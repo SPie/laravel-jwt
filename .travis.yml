@@ -1,0 +1,19 @@
+language: php
+
+php:
+- '7.1'
+
+notifications:
+  email:
+    on_success: change
+    on_failure: change
+
+branches:
+  only:
+  - master
+
+before_script:
+- composer self-update
+- composer install --no-interaction
+
+script: vendor/bin/phpunit
