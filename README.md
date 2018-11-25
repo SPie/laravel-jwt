@@ -139,4 +139,4 @@ To get the string representation of the JWT, you have to call the `JWT::getJWT()
 ## Upcoming
 Future features:
   * Token revokation
-  * Refresh token
+  * Access token - refresh token logic
