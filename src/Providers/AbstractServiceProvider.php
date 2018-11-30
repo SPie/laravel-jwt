@@ -5,6 +5,7 @@ namespace SPie\LaravelJWT\Providers;
 use Illuminate\Support\ServiceProvider;
 use SPie\LaravelJWT\Auth\JWTGuard;
 use SPie\LaravelJWT\Console\GenerateSecret;
+use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use SPie\LaravelJWT\JWTHandler;
 
@@ -24,6 +25,7 @@ abstract class AbstractServiceProvider extends ServiceProvider
         $this
             ->registerJWTHandler()
             ->registerTokenProvider()
+            ->registerTokenBlacklist()
             ->registerCommands();
     }
 
@@ -66,6 +68,18 @@ abstract class AbstractServiceProvider extends ServiceProvider
                 $this->getJWTConfig('tokenProvider.key'),
                 $this->getJWTConfig('tokenProvider.prefix')
             );
+        });
+
+        return $this;
+    }
+
+    /**
+     * @return AbstractServiceProvider
+     */
+    protected function registerTokenBlacklist(): AbstractServiceProvider
+    {
+        $this->app->singleton(TokenBlacklist::class, function () {
+            return $this->app->make($this->getJWTConfig('tokenBlacklist'));
         });
 
         return $this;
