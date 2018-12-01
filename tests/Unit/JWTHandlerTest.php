@@ -56,6 +56,8 @@ class JWTHandlerTest extends TestCase
 
     /**
      * @return void
+     *
+     * @throws InvalidSecretException
      */
     public function testCreateTimestampsWithoutTTL(): void
     {

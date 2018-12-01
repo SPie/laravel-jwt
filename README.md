@@ -44,6 +44,8 @@ JWT_SIGNER=Lcobucci\JWT\Signer\Hmac\Sha256
 JWT_TOKEN_PROVIDER=SPie\\LaravelJWT\\TokenProvider\\HeaderTokenProvider
 JWT_TOKEN_KEY=Authorization
 JWT_TOKEN_PREFIX=Bearer
+JWT_BLACKLIST=SPie\LaravelJWT\Blacklist\CacheTokenBlacklist
+
 ```
 You can also copy the `config/jwt.php` file from the repo to your projects config directory to configure JWT without an `.env` file.
 
@@ -96,6 +98,10 @@ $user = $jwtToken->user();
 ```
 If no token was send by request or the token was invalid, the method will return `NULL`.
 
+### Logout
+The `JWTGuard::logout()` method will unset the `$jwt` and `$user` property.
+If a `TokenBlacklist` is configured, the token will be revoked.
+
 ### TokenProvider
 You have to specify a `TokenProvider` to be able to extract a token from request.
 This package includes two `TokenProvider` already: the `SPie\LaravelJWT\TokenProvider\HeaderTokenProvider` and
@@ -136,7 +142,12 @@ Possible exceptions are possible:
 The `SPie\LaravelJWT\JWT` object is just a wrapper for `Lcobucci\JWT\Token`.
 To get the string representation of the JWT, you have to call the `JWT::getJWT()` method.
 
+### TokenBlacklist
+The `JWTGuard` can use a token blacklist. The token blacklist has to implement the `SPie\LaravelJWT\Contracts\TokenBlacklist` 
+interface. The interface provide two methods: `revoke(SPie\LaravelJWT\JWT $jwt)` and `isRevoked(string $jwt)`.
+The `revoke` method will store the JWT until it would expire, or forever if no expiration date is set.
+The `isRevoked` method will check for a revoked token.
+
 ## Upcoming
 Future features:
-  * Token revokation
   * Access token - refresh token logic

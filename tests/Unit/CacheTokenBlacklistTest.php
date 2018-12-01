@@ -24,14 +24,28 @@ class CacheTokenBlacklistTest extends TestCase
     {
         $arrayStore = new ArrayStore();
 
-        $jwt = new JWT($this->createToken());
+        $jwt = new JWT($this->createToken([], null, 1));
 
         $this->createCacheTokenBlacklist($arrayStore)->revoke($jwt);
 
         $this->assertNotEmpty($arrayStore->get(\md5($jwt->getJWT())));
     }
 
-    //endregion
+    /**
+     * @return void
+     *
+     * @throws Exception
+     */
+    public function testRevokeForever(): void
+    {
+        $arrayStore = new ArrayStore();
+
+        $jwt = new JWT($this->createToken());
+
+        $this->createCacheTokenBlacklist($arrayStore)->revoke($jwt);
+
+        $this->assertNotEmpty($arrayStore->get(\md5($jwt->getJWT())));
+    }
 
     /**
      * @return void
@@ -54,6 +68,8 @@ class CacheTokenBlacklistTest extends TestCase
     {
         $this->assertFalse($this->createCacheTokenBlacklist(new ArrayStore())->isRevoked($this->getFaker()->uuid));
     }
+
+    //endregion
 
     /**
      * @param ArrayStore|null $arrayStore

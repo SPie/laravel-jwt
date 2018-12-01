@@ -9,6 +9,7 @@ use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Http\Request;
 use SPie\LaravelJWT\Contracts\JWTAuthenticatable;
+use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use SPie\LaravelJWT\Exceptions\JWTException;
 use SPie\LaravelJWT\JWT;
@@ -40,6 +41,11 @@ class JWTGuard implements Guard
     private $tokenProvider;
 
     /**
+     * @var TokenBlacklist|null
+     */
+    private $tokenBlacklist;
+
+    /**
      * @var JWT
      */
     private $jwt;
@@ -49,22 +55,25 @@ class JWTGuard implements Guard
     /**
      * JWTGuard constructor.
      *
-     * @param JWTHandler    $jwtHandler
-     * @param UserProvider  $provider
-     * @param Request       $request
-     * @param TokenProvider $tokenProvider
+     * @param JWTHandler          $jwtHandler
+     * @param UserProvider        $provider
+     * @param Request             $request
+     * @param TokenProvider       $tokenProvider
+     * @param TokenBlacklist|null $tokenBlacklist
      */
     public function __construct(
         JWTHandler $jwtHandler,
         UserProvider $provider,
         Request $request,
-        TokenProvider $tokenProvider
+        TokenProvider $tokenProvider,
+        TokenBlacklist $tokenBlacklist = null
     )
     {
         $this->jwtHandler = $jwtHandler;
         $this->provider = $provider;
         $this->request = $request;
         $this->tokenProvider = $tokenProvider;
+        $this->tokenBlacklist = $tokenBlacklist;
     }
 
     /**
@@ -91,11 +100,19 @@ class JWTGuard implements Guard
     }
 
     /**
+     * @return null|TokenBlacklist
+     */
+    protected function getTokenBlacklist(): ?TokenBlacklist
+    {
+        return $this->tokenBlacklist;
+    }
+
+    /**
      * @param JWT|null $jwt
      *
      * @return JWTGuard
      */
-    protected function setJWT(?JWT $jwt): JWTGuard
+    public function setJWT(?JWT $jwt): JWTGuard
     {
         $this->jwt = $jwt;
 
@@ -125,6 +142,10 @@ class JWTGuard implements Guard
 
         $token = $this->getTokenProvider()->getRequestToken($this->getRequest());
         if (empty($token)) {
+            return null;
+        }
+
+        if ($this->getTokenBlacklist() && $this->getTokenBlacklist()->isRevoked($token)) {
             return null;
         }
 
@@ -198,6 +219,7 @@ class JWTGuard implements Guard
      * @return JWTGuard
      *
      * @throws AuthorizationException
+     * @throws \Exception
      */
     public function login(array $credentials = []): JWTGuard
     {
@@ -224,6 +246,22 @@ class JWTGuard implements Guard
         $this
             ->setJWT($this->issueJWT($user))
             ->setUser($user);
+
+        return $this;
+    }
+
+    /**
+     * @return JWTGuard
+     */
+    public function logout(): JWTGuard
+    {
+        if ($this->getTokenBlacklist() && $this->getJWT()) {
+            $this->getTokenBlacklist()->revoke($this->getJWT());
+        }
+
+        $this
+            ->setJWT(null)
+            ->user = null;
 
         return $this;
     }

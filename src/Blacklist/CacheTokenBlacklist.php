@@ -50,13 +50,18 @@ class CacheTokenBlacklist implements TokenBlacklist
     {
         $jwtToken = $jwt->getJWT();
 
-        $this->getRepository()->add(
-            $this->hashJwt($jwtToken),
-            $jwtToken,
-            $jwt->getExpiresAt()
-                ? $this->createExpirationMinutes($jwt->getExpiresAt())
-                : self::EXPIRATION_MINUTES_DEFAULT
-        );
+        $expirationMinutes = $this->getExpirationMinutes($jwt->getExpiresAt());
+
+        $expirationMinutes
+            ? $this->getRepository()->put(
+                $this->hashJwt($jwtToken),
+                $jwtToken,
+                $expirationMinutes
+            )
+            : $this->getRepository()->forever(
+                $this->hashJwt($jwtToken),
+                $jwtToken
+            );
 
         return $this;
     }
@@ -88,12 +93,16 @@ class CacheTokenBlacklist implements TokenBlacklist
      *
      * @throws \Exception
      */
-    protected function createExpirationMinutes(\DateTimeImmutable $expiration): int
+    protected function getExpirationMinutes(?\DateTimeImmutable $expiration): int
     {
+        if (!$expiration) {
+            return 0;
+        }
+
         $minutes = $expiration->getTimestamp() - (new \DateTimeImmutable())->getTimestamp();
 
-        return ($minutes < 0)
+        return ($minutes > 0)
             ? $minutes
-            : self::EXPIRATION_MINUTES_DEFAULT;
+            : 0;
     }
 }

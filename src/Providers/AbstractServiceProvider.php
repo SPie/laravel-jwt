@@ -79,7 +79,11 @@ abstract class AbstractServiceProvider extends ServiceProvider
     protected function registerTokenBlacklist(): AbstractServiceProvider
     {
         $this->app->singleton(TokenBlacklist::class, function () {
-            return $this->app->make($this->getJWTConfig('tokenBlacklist'));
+            $tokenBlacklistClass = $this->getJWTConfig('tokenBlacklist');
+
+            return !empty($tokenBlacklistClass)
+                ? $this->app->make($tokenBlacklistClass)
+                : null;
         });
 
         return $this;
@@ -107,10 +111,11 @@ abstract class AbstractServiceProvider extends ServiceProvider
                 $this->app->get(JWTHandler::class),
                 $this->app->get('auth')->createUserProvider($config['provider']),
                 $this->app['request'],
-                $this->app->get(TokenProvider::class)
+                $this->app->get(TokenProvider::class),
+                $this->app->get(TokenBlacklist::class)
             );
 
-            $this->app->refresh('reques', $jwtGuard, 'setRequest');
+            $this->app->refresh('request', $jwtGuard, 'setRequest');
 
             return $jwtGuard;
         });

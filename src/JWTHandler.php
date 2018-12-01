@@ -96,7 +96,7 @@ class JWTHandler
     /**
      * @return Signer
      */
-    public function getSigner(): Signer
+    protected function getSigner(): Signer
     {
         return $this->signer;
     }

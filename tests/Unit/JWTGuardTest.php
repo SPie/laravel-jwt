@@ -1,12 +1,17 @@
 <?php
 
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Cache\ArrayStore;
+use Illuminate\Cache\Repository;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\UserProvider;
+use Illuminate\Contracts\Cache\Store;
 use Illuminate\Http\Request;
 use Lcobucci\JWT\Token;
 use SPie\LaravelJWT\Auth\JWTGuard;
+use SPie\LaravelJWT\Blacklist\CacheTokenBlacklist;
 use SPie\LaravelJWT\Contracts\JWTAuthenticatable;
+use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use SPie\LaravelJWT\Exceptions\InvalidSecretException;
 use SPie\LaravelJWT\Exceptions\InvalidTokenException;
@@ -84,6 +89,51 @@ class JWTGuardTest extends TestCase
                 null,
                 null,
                 $this->createTokenProvider($this->createToken())
+            )->user()
+        );
+    }
+
+    /**
+     * @return void
+     *
+     * @throws InvalidSecretException
+     * @throws Exception
+     */
+    public function testUserWithEmptyBlacklist(): void
+    {
+        $user = $this->createUser();
+
+        $this->assertEquals(
+            $user,
+            $this->createJWTGuard(
+                $this->createJWTHandler($this->createJWT($this->createToken([JWT::CLAIM_SUBJECT => $this->getFaker()->uuid,]))),
+                $this->createUserProvider($user),
+                new Request(),
+                $this->createTokenProvider($this->createToken()),
+                $this->createTokenBlacklist(new ArrayStore())
+            )->user()
+        );
+    }
+
+    /**
+     * @return void
+     *
+     * @throws InvalidSecretException
+     * @throws Exception
+     */
+    public function testUserWithRevokedToken(): void
+    {
+        $jwt = $this->createJWT($this->createToken([JWT::CLAIM_SUBJECT => $this->getFaker()->uuid,]));
+        $arrayStore = new ArrayStore();
+        $arrayStore->put(\md5($jwt->getJWT()), $jwt->getJWT(), 60);
+
+        $this->assertEmpty(
+            $this->createJWTGuard(
+                $this->createJWTHandler($jwt),
+                $this->createUserProvider($this->createUser()),
+                new Request(),
+                $this->createTokenProvider($jwt->getJWT()),
+                $this->createTokenBlacklist($arrayStore)
             )->user()
         );
     }
@@ -280,13 +330,100 @@ class JWTGuardTest extends TestCase
         $this->assertEmpty($jwtGuard->user());
     }
 
+    /**
+     * @return void
+     *
+     * @throws \Exception
+     */
+    public function testLogout(): void
+    {
+        $jwt = $this->createJWT($this->createToken());
+        $arrayStore = new ArrayStore();
+
+        $jwtGuard = $this->createJWTGuard(
+            $this->createJWTHandler($jwt),
+            null,
+            new Request(),
+            $this->createTokenProvider(),
+            $this->createTokenBlacklist($arrayStore)
+        );
+
+        $jwtGuard
+            ->setJWT($jwt)
+            ->setUser($this->createUser());
+
+        $jwtGuard->logout();
+
+        $this->assertEmpty($jwtGuard->getJWT());
+        $this->assertEmpty($jwtGuard->user());
+        $this->assertEquals($jwt->getJWT(), $arrayStore->get(\md5($jwt->getJWT())));
+    }
+
+    /**
+     * @return void
+     *
+     * @throws InvalidSecretException
+     * @throws Exception
+     */
+    public function testLogoutWithoutTokenBlacklist(): void
+    {
+        $jwt = $this->createJWT($this->createToken());
+
+        $jwtGuard = $this->createJWTGuard(
+            $this->createJWTHandler($jwt),
+            null,
+            new Request(),
+            $this->createTokenProvider()
+        );
+
+        $jwtGuard
+            ->setJWT($jwt)
+            ->setUser($this->createUser());
+
+        $jwtGuard->logout();
+
+        $this->assertEmpty($jwtGuard->getJWT());
+        $this->assertEmpty($jwtGuard->user());
+    }
+
+    /**
+     * @return void
+     *
+     * @throws InvalidSecretException
+     * @throws Exception
+     */
+    public function testLogoutWithoutJWT(): void
+    {
+        $jwt = $this->createJWT($this->createToken());
+        $arrayStore = new ArrayStore();
+
+        $jwtGuard = $this->createJWTGuard(
+            $this->createJWTHandler($jwt),
+            null,
+            new Request(),
+            $this->createTokenProvider(),
+            $this->createTokenBlacklist($arrayStore)
+        );
+
+        $jwtGuard->setUser($this->createUser());
+        $jwtGuard->logout();
+
+        $arrayStoreObject = new \ReflectionObject($arrayStore);
+        $storageProperty = $arrayStoreObject->getProperty('storage');
+        $storageProperty->setAccessible(true);
+
+        $this->assertEmpty($jwtGuard->getJWT());
+        $this->assertEmpty($storageProperty->getValue($arrayStore));
+    }
+
     //endregion
 
     /**
-     * @param JWTHandler|null    $jwtHandler
-     * @param UserProvider|null  $userProvider
-     * @param Request|null       $request
-     * @param TokenProvider|null $tokenProvider
+     * @param JWTHandler|null     $jwtHandler
+     * @param UserProvider|null   $userProvider
+     * @param Request|null        $request
+     * @param TokenProvider|null  $tokenProvider
+     * @param TokenBlacklist|null $tokenBlacklist
      *
      * @return JWTGuard
      *
@@ -296,14 +433,16 @@ class JWTGuardTest extends TestCase
         JWTHandler $jwtHandler = null,
         UserProvider $userProvider = null,
         Request $request = null,
-        TokenProvider $tokenProvider = null
+        TokenProvider $tokenProvider = null,
+        TokenBlacklist $tokenBlacklist = null
     ): JWTGuard
     {
         return new JWTGuard(
             $jwtHandler ?: $this->createJWTHandler(),
             $userProvider ?: $this->createUserProvider(),
             $request ?: new Request(),
-            $tokenProvider ?: $this->createTokenProvider()
+            $tokenProvider ?: $this->createTokenProvider(),
+            $tokenBlacklist
         );
     }
 
@@ -367,9 +506,21 @@ class JWTGuardTest extends TestCase
      * @param Token|null $token
      *
      * @return JWT
+     *
+     * @throws \Exception
      */
     private function createJWT(Token $token = null): JWT
     {
         return new JWT($token ?: $this->createToken());
+    }
+
+    /**
+     * @param Store $store
+     *
+     * @return CacheTokenBlacklist
+     */
+    private function createTokenBlacklist(Store $store): CacheTokenBlacklist
+    {
+        return new CacheTokenBlacklist(new Repository($store));
     }
 }
