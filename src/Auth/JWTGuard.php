@@ -9,6 +9,7 @@ use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Http\Request;
 use SPie\LaravelJWT\Contracts\JWTAuthenticatable;
+use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use SPie\LaravelJWT\Exceptions\JWTException;
@@ -46,27 +47,39 @@ class JWTGuard implements Guard
     private $tokenBlacklist;
 
     /**
+     * @var RefreshTokenRepository|null
+     */
+    private $refreshTokenRepository;
+
+    /**
      * @var JWT
      */
     private $jwt;
+
+    /**
+     * @var JWT
+     */
+    private $refreshJwt;
 
     //TODO events dispatcher
 
     /**
      * JWTGuard constructor.
      *
-     * @param JWTHandler          $jwtHandler
-     * @param UserProvider        $provider
-     * @param Request             $request
-     * @param TokenProvider       $tokenProvider
-     * @param TokenBlacklist|null $tokenBlacklist
+     * @param JWTHandler                  $jwtHandler
+     * @param UserProvider                $provider
+     * @param Request                     $request
+     * @param TokenProvider               $tokenProvider
+     * @param TokenBlacklist|null         $tokenBlacklist
+     * @param RefreshTokenRepository|null $refreshTokenRepository
      */
     public function __construct(
         JWTHandler $jwtHandler,
         UserProvider $provider,
         Request $request,
         TokenProvider $tokenProvider,
-        TokenBlacklist $tokenBlacklist = null
+        TokenBlacklist $tokenBlacklist = null,
+        RefreshTokenRepository $refreshTokenRepository = null
     )
     {
         $this->jwtHandler = $jwtHandler;
@@ -74,6 +87,7 @@ class JWTGuard implements Guard
         $this->request = $request;
         $this->tokenProvider = $tokenProvider;
         $this->tokenBlacklist = $tokenBlacklist;
+        $this->refreshTokenRepository = $refreshTokenRepository;
     }
 
     /**
@@ -108,11 +122,19 @@ class JWTGuard implements Guard
     }
 
     /**
+     * @return null|RefreshTokenRepository
+     */
+    protected function getRefreshTokenRepository(): ?RefreshTokenRepository
+    {
+        return $this->refreshTokenRepository;
+    }
+
+    /**
      * @param JWT|null $jwt
      *
      * @return JWTGuard
      */
-    public function setJWT(?JWT $jwt): JWTGuard
+    protected function setJWT(?JWT $jwt): JWTGuard
     {
         $this->jwt = $jwt;
 
@@ -125,6 +147,14 @@ class JWTGuard implements Guard
     public function getJWT(): ?JWT
     {
         return $this->jwt;
+    }
+
+    /**
+     * @return JWT|null
+     */
+    public function getRefreshJWT(): ?JWT
+    {
+        return $this->refreshJwt;
     }
 
     /**
@@ -264,5 +294,19 @@ class JWTGuard implements Guard
             ->user = null;
 
         return $this;
+    }
+
+    /**
+     * @return JWT
+     */
+    public function issueRefreshToken(): JWT
+    {
+        //TODO check for logged in
+
+        //TODO create new refresh jwt
+
+        //TODO store refresh jwt
+
+        //TODO
     }
 }

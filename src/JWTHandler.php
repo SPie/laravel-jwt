@@ -20,8 +20,6 @@ use SPie\LaravelJWT\Exceptions\InvalidSignatureException;
 class JWTHandler
 {
 
-    const HASH_ALGO_HS256 = 'HS256';
-
     /**
      * @var string
      */
