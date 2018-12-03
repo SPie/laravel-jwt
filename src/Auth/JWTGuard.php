@@ -13,6 +13,8 @@ use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use SPie\LaravelJWT\Exceptions\JWTException;
+use SPie\LaravelJWT\Exceptions\MissingRefreshTokenRepositoryException;
+use SPie\LaravelJWT\Exceptions\NotAuthenticatedException;
 use SPie\LaravelJWT\JWT;
 use SPie\LaravelJWT\JWTHandler;
 
@@ -93,7 +95,7 @@ class JWTGuard implements Guard
     /**
      * @return JWTHandler
      */
-    protected function getJwtHandler(): JWTHandler {
+    protected function getJWTHandler(): JWTHandler {
         return $this->jwtHandler;
     }
 
@@ -160,7 +162,7 @@ class JWTGuard implements Guard
     /**
      * Get the currently authenticated user.
      *
-     * @return \Illuminate\Contracts\Auth\Authenticatable|null
+     * @return Authenticatable|JWTAuthenticatable|null
      *
      * @throws \Exception
      */
@@ -180,7 +182,7 @@ class JWTGuard implements Guard
         }
 
         try {
-            $jwt = $this->getJwtHandler()->getValidJWT($token);
+            $jwt = $this->getJWTHandler()->getValidJWT($token);
         } catch (JWTException $e) {
             return null;
         }
@@ -240,7 +242,7 @@ class JWTGuard implements Guard
      */
     public function issueJWT(JWTAuthenticatable $user): JWT
     {
-        return $this->getJwtHandler()->createJWT($user->getAuthIdentifier(), $user->getCustomClaims());
+        return $this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $user->getCustomClaims());
     }
 
     /**
@@ -298,15 +300,24 @@ class JWTGuard implements Guard
 
     /**
      * @return JWT
+     *
+     * @throws \Exception
      */
     public function issueRefreshToken(): JWT
     {
-        //TODO check for logged in
+        if (!$this->getRefreshTokenRepository()) {
+            throw new MissingRefreshTokenRepositoryException();
+        }
 
-        //TODO create new refresh jwt
+        $user = $this->user();
+        if (!$user || !$this->getJWT()) {
+            throw new NotAuthenticatedException();
+        }
 
-        //TODO store refresh jwt
+        $refreshJwt = $this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $user->getCustomClaims());
 
-        //TODO
+        $this->getRefreshTokenRepository()->storeRefreshToken($refreshJwt);
+
+        return $refreshJwt;
     }
 }

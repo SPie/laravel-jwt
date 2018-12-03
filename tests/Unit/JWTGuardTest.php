@@ -477,7 +477,14 @@ class JWTGuardTest extends TestCase
      */
     public function testIssueRefreshTokenWithoutLoggedInUser(): void
     {
-        $jwtGuard = $this->createJWTGuard();
+        $jwtGuard = $this->createJWTGuard(
+            null,
+            null,
+            null,
+            null,
+            null,
+            $this->createRefreshTokenRepository()
+        );
 
         $setJwtMethod = (new \ReflectionObject($jwtGuard))->getMethod('setJWT');
         $setJwtMethod->setAccessible(true);
@@ -499,7 +506,14 @@ class JWTGuardTest extends TestCase
      */
     public function testIssueRefreshTokenWithoutAccessToken(): void
     {
-        $jwtGuard = $this->createJWTGuard();
+        $jwtGuard = $this->createJWTGuard(
+            null,
+            null,
+            null,
+            null,
+            null,
+            $this->createRefreshTokenRepository()
+        );
         $jwtGuard->setUser($this->createUser());
 
         try {

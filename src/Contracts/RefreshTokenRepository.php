@@ -2,6 +2,8 @@
 
 namespace SPie\LaravelJWT\Contracts;
 
+use SPie\LaravelJWT\JWT;
+
 /**
  * Interface RefreshTokenRepository
  *
@@ -10,4 +12,10 @@ namespace SPie\LaravelJWT\Contracts;
 interface RefreshTokenRepository
 {
 
+    /**
+     * @param JWT $refreshToken
+     *
+     * @return RefreshTokenRepository
+     */
+    public function storeRefreshToken(JWT $refreshToken): RefreshTokenRepository;
 }
