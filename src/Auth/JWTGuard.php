@@ -152,6 +152,18 @@ class JWTGuard implements Guard
     }
 
     /**
+     * @param JWT $refreshJwt
+     *
+     * @return JWTGuard
+     */
+    protected function setRefreshJWT(JWT $refreshJwt): JWTGuard
+    {
+        $this->refreshJwt = $refreshJwt;
+
+        return $this;
+    }
+
+    /**
      * @return JWT|null
      */
     public function getRefreshJWT(): ?JWT
@@ -291,9 +303,13 @@ class JWTGuard implements Guard
             $this->getTokenBlacklist()->revoke($this->getJWT());
         }
 
+        //TODO invalidate refresh token
+
         $this
             ->setJWT(null)
             ->user = null;
+
+        //TODO logout event
 
         return $this;
     }
@@ -314,10 +330,39 @@ class JWTGuard implements Guard
             throw new NotAuthenticatedException();
         }
 
-        $refreshJwt = $this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $user->getCustomClaims());
+        $claims = \array_merge(
+            $user->getCustomClaims(),
+            [
+                JWT::CUSTOM_CLAIM_REFRESH_TOKEN => $this->createRefreshTokenIdentifier($user->getAuthIdentifier())
+            ]
+        );
+
+        $refreshJwt = $this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $claims);
 
         $this->getRefreshTokenRepository()->storeRefreshToken($refreshJwt);
 
+        if ($this->getTokenBlacklist()) {
+            $this->getTokenBlacklist()->revoke($this->getJWT());
+        }
+
+        $this
+            ->setJWT($this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $claims))
+            ->setRefreshJWT($refreshJwt);
+
+        //TODO refresh token event
+
         return $refreshJwt;
+    }
+
+    /**
+     * @param string $subject
+     *
+     * @return string
+     *
+     * @throws \Exception
+     */
+    protected function createRefreshTokenIdentifier(string $subject): string
+    {
+        return \md5($subject . (new \DateTimeImmutable())->getTimestamp() . \mt_rand());
     }
 }

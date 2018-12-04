@@ -63,11 +63,16 @@ class TestJWTHandler extends JWTHandler
     /**
      * @param string $subject
      * @param array  $payload
-     * @param string $algo
      *
      * @return JWT
+     *
+     * @throws \Exception
      */
-    public function createJWT(string $subject, array $payload = [], string $algo = 'HS256'): JWT {
-        return $this->jwt;
+    public function createJWT(string $subject, array $payload = []): JWT {
+        if (!empty($this->jwt)) {
+            return $this->jwt;
+        }
+
+        return parent::createJWT($subject, $payload);
     }
 }

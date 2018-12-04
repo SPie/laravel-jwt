@@ -425,6 +425,14 @@ class JWTGuardTest extends TestCase
 
     /**
      * @return void
+     */
+    public function testLogoutWithRefreshToken(): void
+    {
+        //TODO
+    }
+
+    /**
+     * @return void
      *
      * @throws Exception
      */
@@ -435,7 +443,7 @@ class JWTGuardTest extends TestCase
         $refreshTokenRepository = $this->createRefreshTokenRepository();
 
         $jwtGuard = $this->createJWTGuard(
-            $this->createJWTHandler($jwt),
+            $this->createJWTHandler(),
             $this->createUserProvider($user),
             new Request(),
             $this->createTokenProvider($jwt->getJWT()),
@@ -452,6 +460,46 @@ class JWTGuardTest extends TestCase
 
         $this->assertNotEmpty($refreshJwt);
         $this->assertTrue($refreshTokenRepository->getRefreshTokens()->containsStrict($refreshJwt));
+        $this->assertNotEmpty($refreshJwt->getRefreshTokenId());
+        $this->assertNotEmpty($jwtGuard->getJWT());
+        $this->assertNotEquals($jwt, $jwtGuard->getJWT());
+    }
+
+    /**
+     * @return void
+     *
+     * @throws InvalidSecretException
+     * @throws \Exception
+     */
+    public function testIssueRefreshTokenWithTokenBlacklist(): void
+    {
+        $user = $this->createUser();
+        $jwt = $this->createJWT($this->createToken());
+        $arrayStore = new ArrayStore();
+        $refreshTokenRepository = $this->createRefreshTokenRepository();
+
+        $jwtGuard = $this->createJWTGuard(
+            $this->createJWTHandler(),
+            $this->createUserProvider($user),
+            new Request(),
+            $this->createTokenProvider($jwt->getJWT()),
+            $this->createTokenBlacklist($arrayStore),
+            $refreshTokenRepository
+        );
+
+        $setJwtMethod = (new \ReflectionObject($jwtGuard))->getMethod('setJWT');
+        $setJwtMethod->setAccessible(true);
+        $setJwtMethod->invoke($jwtGuard, $jwt);
+        $jwtGuard->setUser($user);
+
+        $refreshJwt = $jwtGuard->issueRefreshToken();
+
+        $this->assertNotEmpty($refreshJwt);
+        $this->assertTrue($refreshTokenRepository->getRefreshTokens()->containsStrict($refreshJwt));
+        $this->assertNotEmpty($refreshJwt->getRefreshTokenId());
+        $this->assertNotEmpty($jwtGuard->getJWT());
+        $this->assertNotEquals($jwt, $jwtGuard->getJWT());
+        $this->assertNotEmpty($arrayStore->get(\md5($jwt->getJWT())));
     }
 
     /**

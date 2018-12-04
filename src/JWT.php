@@ -21,6 +21,8 @@ class JWT
     const CLAIM_ISSUED_AT  = 'iat';
     const CLAIM_JWT_ID     = 'jti';
 
+    const CUSTOM_CLAIM_REFRESH_TOKEN = 'rti';
+
     /**
      * @var Token
      */
@@ -117,5 +119,13 @@ class JWT
     public function getIssuedAt(): \DateTimeImmutable
     {
         return (new \DateTimeImmutable())->setTimestamp($this->getClaim(self::CLAIM_ISSUED_AT));
+    }
+
+    /**
+     * @return null|string
+     */
+    public function getRefreshTokenId(): ?string
+    {
+        return $this->getClaim(self::CUSTOM_CLAIM_REFRESH_TOKEN);
     }
 }
