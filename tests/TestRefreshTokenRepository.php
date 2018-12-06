@@ -62,10 +62,20 @@ class TestRefreshTokenRepository implements RefreshTokenRepository
      *
      * @return RefreshTokenRepository
      */
-    public function disableRefreshToken(string $refreshTokenId): RefreshTokenRepository
+    public function revokeRefreshToken(string $refreshTokenId): RefreshTokenRepository
     {
         $this->disabledRefreshTokens->push($refreshTokenId);
 
         return $this;
+    }
+
+    /**
+     * @param string $refreshTokenId
+     *
+     * @return bool
+     */
+    public function isRefreshTokenRevoked(string $refreshTokenId): bool
+    {
+        return $this->getDisabledRefreshTokens()->containsStrict($refreshTokenId);
     }
 }

@@ -145,6 +145,63 @@ class JWTGuardTest extends TestCase
      * @return void
      *
      * @throws InvalidSecretException
+     * @throws \Exception
+     */
+    public function testUserWithoutRevokedRefreshToken(): void
+    {
+        $user = $this->createUser();
+
+        $this->assertEquals(
+            $user,
+            $this->createJWTGuard(
+                $this->createJWTHandler($this->createJWT(
+                    $this->createToken([
+                        JWT::CLAIM_SUBJECT              => $this->getFaker()->uuid,
+                        JWT::CUSTOM_CLAIM_REFRESH_TOKEN => $this->getFaker()->uuid,
+                    ])
+                )),
+                $this->createUserProvider($user),
+                new Request(),
+                $this->createTokenProvider($this->createToken()),
+                null,
+                $this->createRefreshTokenRepository()
+            )->user()
+        );
+    }
+
+    /**
+     * @return void
+     *
+     * @throws InvalidSecretException
+     * @throws \Exception
+     */
+    public function testUserWithRevokedRefreshToken(): void
+    {
+        $refreshTokenId = $this->getFaker()->uuid;
+        $refreshTokenRepository = $this->createRefreshTokenRepository();
+        $refreshTokenRepository->getDisabledRefreshTokens()->push($refreshTokenId);
+
+        $this->assertEmpty(
+            $this->createJWTGuard(
+                $this->createJWTHandler($this->createJWT(
+                    $this->createToken([
+                        JWT::CLAIM_SUBJECT              => $this->getFaker()->uuid,
+                        JWT::CUSTOM_CLAIM_REFRESH_TOKEN => $refreshTokenId,
+                    ])
+                )),
+                $this->createUserProvider($this->createUser()),
+                new Request(),
+                $this->createTokenProvider($this->createToken()),
+                null,
+                $refreshTokenRepository
+            )->user()
+        );
+    }
+
+    /**
+     * @return void
+     *
+     * @throws InvalidSecretException
      */
     public function testValidate(): void
     {
@@ -460,6 +517,41 @@ class JWTGuardTest extends TestCase
         $this->assertEmpty($jwtGuard->user());
         $this->assertEquals($jwt->getJWT(), $arrayStore->get(\md5($jwt->getJWT())));
         $this->assertEquals($refreshTokenId, $refreshTokenRepository->getDisabledRefreshTokens()->first());
+    }
+
+    /**
+     * @return void
+     *
+     * @throws InvalidSecretException
+     * @throws \Exception
+     */
+    public function testLogoutWithoutRefreshToken(): void
+    {
+        $jwt = $this->createJWT($this->createToken());
+        $arrayStore = new ArrayStore();
+        $refreshTokenRepository = $this->createRefreshTokenRepository();
+
+        $jwtGuard = $this->createJWTGuard(
+            $this->createJWTHandler($jwt),
+            null,
+            new Request(),
+            $this->createTokenProvider(),
+            $this->createTokenBlacklist($arrayStore),
+            $refreshTokenRepository
+        );
+
+        $setJwtMethod = (new \ReflectionObject($jwtGuard))->getMethod('setJWT');
+        $setJwtMethod->setAccessible(true);
+        $setJwtMethod->invoke($jwtGuard, $jwt);
+
+        $jwtGuard->setUser($this->createUser());
+
+        $jwtGuard->logout();
+
+        $this->assertEmpty($jwtGuard->getJWT());
+        $this->assertEmpty($jwtGuard->user());
+        $this->assertEquals($jwt->getJWT(), $arrayStore->get(\md5($jwt->getJWT())));
+        $this->assertEmpty($refreshTokenRepository->getDisabledRefreshTokens()->first());
     }
 
     /**

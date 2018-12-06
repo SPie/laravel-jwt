@@ -199,12 +199,20 @@ class JWTGuard implements Guard
             return null;
         }
 
-        $user = $this->getUserByJWT($jwt);
-        if ($user) {
-            $this->setJWT($jwt);
+        if (
+            $this->getRefreshTokenRepository()
+            && !empty($jwt->getRefreshTokenId())
+            && $this->getRefreshTokenRepository()->isRefreshTokenRevoked($jwt->getRefreshTokenId())
+        ) {
+            return null;
         }
 
-        $this->user = $user;
+        $user = $this->getUserByJWT($jwt);
+        if ($user) {
+            $this
+                ->setJWT($jwt)
+                ->setUser($user);
+        }
 
         return $user;
     }
@@ -305,7 +313,7 @@ class JWTGuard implements Guard
             }
 
             if ($this->getRefreshTokenRepository() && $this->getJWT()->getRefreshTokenId()) {
-                $this->getRefreshTokenRepository()->disableRefreshToken($this->getJWT()->getRefreshTokenId());
+                $this->getRefreshTokenRepository()->revokeRefreshToken($this->getJWT()->getRefreshTokenId());
             }
         }
 

@@ -24,5 +24,12 @@ interface RefreshTokenRepository
      *
      * @return RefreshTokenRepository
      */
-    public function disableRefreshToken(string $refreshTokenId): RefreshTokenRepository;
+    public function revokeRefreshToken(string $refreshTokenId): RefreshTokenRepository;
+
+    /**
+     * @param string $refreshTokenId
+     *
+     * @return bool
+     */
+    public function isRefreshTokenRevoked(string $refreshTokenId): bool;
 }
