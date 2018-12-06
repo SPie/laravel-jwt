@@ -15,9 +15,18 @@ class TestRefreshTokenRepository implements RefreshTokenRepository
      */
     private $refreshTokens;
 
+    /**
+     * @var Collection
+     */
+    private $disabledRefreshTokens;
+
+    /**
+     * TestRefreshTokenRepository constructor.
+     */
     public function __construct()
     {
         $this->refreshTokens = new Collection();
+        $this->disabledRefreshTokens = new Collection();
     }
 
     /**
@@ -29,6 +38,14 @@ class TestRefreshTokenRepository implements RefreshTokenRepository
     }
 
     /**
+     * @return Collection|JWT[]
+     */
+    public function getDisabledRefreshTokens(): Collection
+    {
+        return $this->disabledRefreshTokens;
+    }
+
+    /**
      * @param JWT $refreshToken
      *
      * @return RefreshTokenRepository
@@ -36,6 +53,18 @@ class TestRefreshTokenRepository implements RefreshTokenRepository
     public function storeRefreshToken(JWT $refreshToken): RefreshTokenRepository
     {
         $this->refreshTokens->push($refreshToken);
+
+        return $this;
+    }
+
+    /**
+     * @param string $refreshTokenId
+     *
+     * @return RefreshTokenRepository
+     */
+    public function disableRefreshToken(string $refreshTokenId): RefreshTokenRepository
+    {
+        $this->disabledRefreshTokens->push($refreshTokenId);
 
         return $this;
     }

@@ -425,10 +425,41 @@ class JWTGuardTest extends TestCase
 
     /**
      * @return void
+     *
+     * @throws InvalidSecretException
+     * @throws \Exception
      */
     public function testLogoutWithRefreshToken(): void
     {
-        //TODO
+        $refreshTokenId = $this->getFaker()->uuid;
+
+        $jwt = $this->createJWT($this->createToken([
+            JWT::CUSTOM_CLAIM_REFRESH_TOKEN => $refreshTokenId,
+        ]));
+        $arrayStore = new ArrayStore();
+        $refreshTokenRepository = $this->createRefreshTokenRepository();
+
+        $jwtGuard = $this->createJWTGuard(
+            $this->createJWTHandler($jwt),
+            null,
+            new Request(),
+            $this->createTokenProvider(),
+            $this->createTokenBlacklist($arrayStore),
+            $refreshTokenRepository
+        );
+
+        $setJwtMethod = (new \ReflectionObject($jwtGuard))->getMethod('setJWT');
+        $setJwtMethod->setAccessible(true);
+        $setJwtMethod->invoke($jwtGuard, $jwt);
+
+        $jwtGuard->setUser($this->createUser());
+
+        $jwtGuard->logout();
+
+        $this->assertEmpty($jwtGuard->getJWT());
+        $this->assertEmpty($jwtGuard->user());
+        $this->assertEquals($jwt->getJWT(), $arrayStore->get(\md5($jwt->getJWT())));
+        $this->assertEquals($refreshTokenId, $refreshTokenRepository->getDisabledRefreshTokens()->first());
     }
 
     /**

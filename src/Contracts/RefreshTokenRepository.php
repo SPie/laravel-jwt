@@ -18,4 +18,11 @@ interface RefreshTokenRepository
      * @return RefreshTokenRepository
      */
     public function storeRefreshToken(JWT $refreshToken): RefreshTokenRepository;
+
+    /**
+     * @param string $refreshTokenId
+     *
+     * @return RefreshTokenRepository
+     */
+    public function disableRefreshToken(string $refreshTokenId): RefreshTokenRepository;
 }

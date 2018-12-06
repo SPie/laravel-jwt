@@ -152,11 +152,11 @@ class JWTGuard implements Guard
     }
 
     /**
-     * @param JWT $refreshJwt
+     * @param JWT|null $refreshJwt
      *
      * @return JWTGuard
      */
-    protected function setRefreshJWT(JWT $refreshJwt): JWTGuard
+    protected function setRefreshJWT(?JWT $refreshJwt): JWTGuard
     {
         $this->refreshJwt = $refreshJwt;
 
@@ -299,14 +299,19 @@ class JWTGuard implements Guard
      */
     public function logout(): JWTGuard
     {
-        if ($this->getTokenBlacklist() && $this->getJWT()) {
-            $this->getTokenBlacklist()->revoke($this->getJWT());
-        }
+        if ($this->getJWT()) {
+            if ($this->getTokenBlacklist()) {
+                $this->getTokenBlacklist()->revoke($this->getJWT());
+            }
 
-        //TODO invalidate refresh token
+            if ($this->getRefreshTokenRepository() && $this->getJWT()->getRefreshTokenId()) {
+                $this->getRefreshTokenRepository()->disableRefreshToken($this->getJWT()->getRefreshTokenId());
+            }
+        }
 
         $this
             ->setJWT(null)
+            ->setRefreshJWT(null)
             ->user = null;
 
         //TODO logout event

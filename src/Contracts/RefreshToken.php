@@ -10,6 +10,9 @@ namespace SPie\LaravelJWT\Contracts;
 interface RefreshToken
 {
 
+    /**
+     * @return string
+     */
     public function getCode(): string;
 
     /**
