@@ -137,14 +137,15 @@ class JWTHandler
     /**
      * @param string $subject
      * @param array  $payload
+     * @param bool   $withExpiresAt
      *
      * @return JWT
      *
      * @throws \Exception
      */
-    public function createJWT(string $subject, array $payload = []): JWT
+    public function createJWT(string $subject, array $payload = [], bool $withExpiresAt = true): JWT
     {
-        list($issuedAt, $expiresAt) = $this->createTimestamps();
+        list($issuedAt, $expiresAt) = $this->createTimestamps($withExpiresAt);
 
         $builder = (new Builder())
             ->setIssuer($this->getIssuer())
@@ -162,17 +163,19 @@ class JWTHandler
     }
 
     /**
+     * @param bool $withExpiresAt
+     *
      * @return array
      *
      * @throws \Exception
      */
-    protected function createTimestamps(): array
+    protected function createTimestamps(bool $withExpiresAt = true): array
     {
         $issuedAt = new \DateTimeImmutable();
 
         return [
             $issuedAt->getTimestamp(),
-            $this->getTtl()
+            ($this->getTtl() && $withExpiresAt)
                 ? (clone $issuedAt)
                     ->add(new \DateInterval('PT' . $this->getTtl() . 'M'))
                     ->getTimestamp()

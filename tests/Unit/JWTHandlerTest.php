@@ -73,6 +73,23 @@ class JWTHandlerTest extends TestCase
     /**
      * @return void
      *
+     * @throws InvalidSecretException
+     * @throws \Exception
+     */
+    public function testCreateTimestampsWithoutExpiry(): void
+    {
+        $jwtHandler = $this->createJWTHandler(null, null, $this->getFaker()->numberBetween());
+        $createTimestampsMethod = (new \ReflectionObject($jwtHandler))->getMethod('createTimestamps');
+        $createTimestampsMethod->setAccessible(true);
+
+        $timestamps = $createTimestampsMethod->invokeArgs($jwtHandler, [false]);
+
+        $this->assertEmpty($timestamps[1]);
+    }
+
+    /**
+     * @return void
+     *
      * @throws \Exception
      */
     public function testCreateJWT(): void
@@ -120,6 +137,36 @@ class JWTHandlerTest extends TestCase
             [
                 $payloadItemName => $payloadItemValue,
             ]
+        );
+
+        $this->assertEquals($issuer, $jwt->getIssuer());
+        $this->assertEquals($subject, $jwt->getSubject());
+        $this->assertEquals($payloadItemValue, $jwt->getClaim($payloadItemName));
+        $this->assertEmpty($jwt->getExpiresAt());
+    }
+
+    /**
+     * @return void
+     *
+     * @throws InvalidSecretException
+     * @throws \Exception
+     */
+    public function testCreateJWTWithoutExpiry(): void
+    {
+        $expiryMinutes = $this->getFaker()->numberBetween();
+        $issuer = $this->getFaker()->uuid;
+        $subject = $this->getFaker()->uuid;
+        $payloadItemName = $this->getFaker()->uuid;
+        $payloadItemValue = $this->getFaker()->uuid;
+
+        $jwtHandler = $this->createJWTHandler(null, $issuer, $expiryMinutes);
+
+        $jwt = $jwtHandler->createJWT(
+            $subject,
+            [
+                $payloadItemName => $payloadItemValue,
+            ],
+            false
         );
 
         $this->assertEquals($issuer, $jwt->getIssuer());

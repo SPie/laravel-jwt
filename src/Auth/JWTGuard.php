@@ -362,7 +362,7 @@ class JWTGuard implements Guard
             ->setJWT($this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $claims))
             ->setRefreshJWT($refreshJwt);
 
-        //TODO refresh token event
+        //TODO issue refresh token event
 
         return $refreshJwt;
     }

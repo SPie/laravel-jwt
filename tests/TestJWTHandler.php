@@ -63,12 +63,13 @@ class TestJWTHandler extends JWTHandler
     /**
      * @param string $subject
      * @param array  $payload
+     * @param bool   $withExpiresAt
      *
      * @return JWT
      *
-     * @throws \Exception
+     * @throws Exception
      */
-    public function createJWT(string $subject, array $payload = []): JWT {
+    public function createJWT(string $subject, array $payload = [], bool $withExpiresAt = true): JWT {
         if (!empty($this->jwt)) {
             return $this->jwt;
         }
