@@ -249,20 +249,20 @@ class JWTGuardTest extends TestCase
      * @throws InvalidSecretException
      * @throws Exception
      */
-    public function testIssueJWT(): void
+    public function testIssueAccessToken(): void
     {
         $user = $this->createUser();
         $jwt = $this->createJWT($this->createToken([JWT::CLAIM_SUBJECT => $user->getAuthIdentifier()]));
 
-        $this->assertEquals(
-            $jwt,
-            $this->createJWTGuard(
-                $this->createJWTHandler($jwt),
-                $this->createUserProvider($user),
-                new Request(),
-                $this->createTokenProvider()
-            )->issueJWT($user)
+        $jwtGuard = $this->createJWTGuard(
+            $this->createJWTHandler($jwt),
+            $this->createUserProvider($user),
+            new Request(),
+            $this->createTokenProvider()
         );
+
+        $this->assertEquals($jwt, $jwtGuard->issueAccessToken($user));
+        $this->assertEquals($jwt, $jwtGuard->getJWT());
     }
 
     /**
@@ -694,6 +694,22 @@ class JWTGuardTest extends TestCase
         } catch (NotAuthenticatedException $e) {
             $this->assertTrue(true);
         }
+    }
+
+    /**
+     * @return void
+     */
+    public function testRefreshAccessToken(): void
+    {
+        //TODO
+    }
+
+    /**
+     * @return void
+     */
+    public function testRefreshAccessTokenWithInvalidRefreshToken(): void
+    {
+        //TODO
     }
 
     //endregion

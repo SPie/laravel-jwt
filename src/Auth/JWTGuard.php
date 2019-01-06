@@ -260,9 +260,13 @@ class JWTGuard implements Guard
      *
      * @throws \Exception
      */
-    public function issueJWT(JWTAuthenticatable $user): JWT
+    public function issueAccessToken(JWTAuthenticatable $user): JWT
     {
-        return $this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $user->getCustomClaims());
+        $this->setJWT(
+            $this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $user->getCustomClaims())
+        );
+
+        return $this->getJWT();
     }
 
     /**
@@ -296,7 +300,7 @@ class JWTGuard implements Guard
         //TODO login event
 
         $this
-            ->setJWT($this->issueJWT($user))
+            ->setJWT($this->issueAccessToken($user))
             ->setUser($user);
 
         return $this;
@@ -365,6 +369,14 @@ class JWTGuard implements Guard
         //TODO issue refresh token event
 
         return $refreshJwt;
+    }
+
+    /**
+     * @return JWT
+     */
+    protected function refreshAccessToken(): JWT
+    {
+        //TODO
     }
 
     /**
