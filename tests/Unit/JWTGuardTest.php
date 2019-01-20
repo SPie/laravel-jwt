@@ -696,22 +696,6 @@ class JWTGuardTest extends TestCase
         }
     }
 
-    /**
-     * @return void
-     */
-    public function testRefreshAccessToken(): void
-    {
-        //TODO
-    }
-
-    /**
-     * @return void
-     */
-    public function testRefreshAccessTokenWithInvalidRefreshToken(): void
-    {
-        //TODO
-    }
-
     //endregion
 
     /**

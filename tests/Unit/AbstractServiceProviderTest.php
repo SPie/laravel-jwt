@@ -1,9 +1,14 @@
 <?php
 
+use Illuminate\Auth\AuthManager;
+use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Http\Request;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Mockery\Exception\InvalidCountException;
 use Mockery\MockInterface;
+use SPie\LaravelJWT\Auth\JWTGuard;
+use SPie\LaravelJWT\Console\GenerateSecret;
 use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use SPie\LaravelJWT\JWTHandler;
@@ -23,7 +28,7 @@ class AbstractServiceProviderTest extends TestCase
      */
     public function testRegister(): void
     {
-        $abstractServiceProvider = $this->createAbstractServiceProviderSpy();
+        $abstractServiceProvider = $this->createEmptyAbstractServiceProvider();
         $abstractServiceProvider
             ->makePartial()
             ->shouldAllowMockingProtectedMethods();
@@ -60,7 +65,7 @@ class AbstractServiceProviderTest extends TestCase
      */
     public function testBoot(): void
     {
-        $abstractServiceProvider = $this->createAbstractServiceProviderSpy();
+        $abstractServiceProvider = $this->createEmptyAbstractServiceProvider();
         $abstractServiceProvider
             ->makePartial()
             ->shouldAllowMockingProtectedMethods();
@@ -100,11 +105,10 @@ class AbstractServiceProviderTest extends TestCase
             ->addGetIssuerSetting($abstractServiceProvider, $issuer)
             ->addGetTTLSetting($abstractServiceProvider, $ttl);
 
-        $abstractServiceProviderObject = new \ReflectionObject($abstractServiceProvider);
-        $registerJWTHandlerMethod = $abstractServiceProviderObject->getMethod('registerJWTHandler');
-        $registerJWTHandlerMethod->setAccessible(true);
-
-        $registerJWTHandlerMethod->invoke($abstractServiceProvider);
+        $this->getReflectionMethod(
+            $this->getReflectionObject($abstractServiceProvider),
+            'registerJWTHandler'
+        )->invoke($abstractServiceProvider);
 
         $app
             ->shouldHaveReceived('singleton')
@@ -147,11 +151,10 @@ class AbstractServiceProviderTest extends TestCase
             ->addGetTokenProviderKeySetting($abstractServiceProvider, $tokenProviderKey)
             ->addGetTokenProviderPrefixSetting($abstractServiceProvider, $tokenProviderPrefix);
 
-        $abstractServiceProviderObject = new \ReflectionObject($abstractServiceProvider);
-        $registerTokenProviderMethod = $abstractServiceProviderObject->getMethod('registerTokenProvider');
-        $registerTokenProviderMethod->setAccessible(true);
-
-        $registerTokenProviderMethod->invoke($abstractServiceProvider);
+        $this->getReflectionMethod(
+            $this->getReflectionObject($abstractServiceProvider),
+            'registerTokenProvider'
+        )->invoke($abstractServiceProvider);
 
         $app
             ->shouldHaveReceived('singleton')
@@ -190,11 +193,10 @@ class AbstractServiceProviderTest extends TestCase
         $abstractServiceProvider = $this->createAbstractServiceProvider($app);
         $this->addGetBlacklistSetting($abstractServiceProvider, $tokenBlacklistClass);
 
-        $abstractServiceProviderObject = new \ReflectionObject($abstractServiceProvider);
-        $registerTokenBlacklistMethod = $abstractServiceProviderObject->getMethod('registerTokenBlacklist');
-        $registerTokenBlacklistMethod->setAccessible(true);
-
-        $registerTokenBlacklistMethod->invoke($abstractServiceProvider);
+        $this->getReflectionMethod(
+            $this->getReflectionObject($abstractServiceProvider),
+            'registerTokenBlacklist'
+        )->invoke($abstractServiceProvider);
 
         $app
             ->shouldHaveReceived('singleton')
@@ -225,18 +227,15 @@ class AbstractServiceProviderTest extends TestCase
         $abstractServiceProvider = $this->createAbstractServiceProvider($app);
         $this->addGetBlacklistSetting($abstractServiceProvider);
 
-        $abstractServiceProviderObject = new \ReflectionObject($abstractServiceProvider);
-        $registerTokenBlacklistMethod = $abstractServiceProviderObject->getMethod('registerTokenBlacklist');
-        $registerTokenBlacklistMethod->setAccessible(true);
-
-        $registerTokenBlacklistMethod->invoke($abstractServiceProvider);
+        $this->getReflectionMethod(
+            $this->getReflectionObject($abstractServiceProvider),
+            'registerTokenBlacklist'
+        )->invoke($abstractServiceProvider);
 
         $app
             ->shouldHaveReceived('singleton')
             ->with(
-                Mockery::on(function (string $abstract) {
-                    return ($abstract == TokenBlacklist::class);
-                }),
+                TokenBlacklist::class,
                 Mockery::on(function (\Closure $concrete) {
                     $tokenBlacklist = $concrete();
 
@@ -250,7 +249,105 @@ class AbstractServiceProviderTest extends TestCase
         $this->assertTrue(true);
     }
 
+    /**
+     * @return void
+     *
+     * @throws ReflectionException
+     */
+    public function testRegisterCommands(): void
+    {
+        $abstractServiceProvider = $this->createAbstractServiceProvider();
+
+        $this->getReflectionMethod($this->getReflectionObject($abstractServiceProvider), 'registerCommands')
+             ->invoke($abstractServiceProvider);
+
+        $abstractServiceProvider
+            ->shouldHaveReceived('commands')
+            ->with([GenerateSecret::class])
+            ->atLeast()
+            ->once();
+
+        $this->assertTrue(true);
+    }
+
+    /**
+     * @return void
+     *
+     * @throws ReflectionException
+     */
+    public function testExtendAuthGuard(): void
+    {
+        $authManager = Mockery::spy(AuthManager::class);
+        $authManager
+            ->shouldReceive('createUserProvider')
+            ->andReturn(Mockery::mock(UserProvider::class));
+
+        $app = $this->createApp();
+        $this->addGet($app, $authManager);
+
+        $abstractServiceProvider = $this->createAbstractServiceProvider($app);
+
+        $this->getReflectionMethod($this->getReflectionObject($abstractServiceProvider), 'extendAuthGuard')
+            ->invoke($abstractServiceProvider);
+
+        $authManager
+            ->shouldHaveReceived('extend')
+            ->with(
+                'jwt',
+                Mockery::on(function (\Closure $concrete) use ($app) {
+                    $jwtGuard = $concrete(
+                        $app,
+                        $this->getFaker()->uuid,
+                        [
+                            'provider' => Mockery::mock(UserProvider::class),
+                        ]
+                    );
+
+                    return ($jwtGuard instanceof JWTGuard);
+                })
+            )
+            ->once();
+
+        $app
+            ->shouldHaveReceived('refresh')
+            ->with(
+                'request',
+                Mockery::any(),
+                'setRequest'
+            )
+            ->atLeast()
+            ->once();
+
+        $this->assertTrue(true);
+    }
+
     //endregion
+
+    /**
+     * @param AbstractServiceProvider $abstractServiceProvider
+     *
+     * @return ReflectionObject
+     */
+    private function getReflectionObject(AbstractServiceProvider $abstractServiceProvider): \ReflectionObject
+    {
+        return new \ReflectionObject($abstractServiceProvider);
+    }
+
+    /**
+     * @param ReflectionObject $reflectionObject
+     * @param string           $methodName
+     *
+     * @return ReflectionMethod
+     *
+     * @throws ReflectionException
+     */
+    private function getReflectionMethod(\ReflectionObject $reflectionObject, string $methodName): \ReflectionMethod
+    {
+        $reflectionMethod = $reflectionObject->getMethod($methodName);
+        $reflectionMethod->setAccessible(true);
+
+        return $reflectionMethod;
+    }
 
     /**
      * @param Application|null $app
@@ -259,7 +356,7 @@ class AbstractServiceProviderTest extends TestCase
      */
     private function createAbstractServiceProvider(Application $app = null): AbstractServiceProvider
     {
-        $abstractServiceProvider = Mockery::mock(AbstractServiceProvider::class, [$app]);
+        $abstractServiceProvider = Mockery::spy(AbstractServiceProvider::class, [$app]);
         $abstractServiceProvider->makePartial();
         $abstractServiceProvider->shouldAllowMockingProtectedMethods();
 
@@ -269,7 +366,7 @@ class AbstractServiceProviderTest extends TestCase
     /**
      * @return AbstractServiceProvider|MockInterface
      */
-    private function createAbstractServiceProviderSpy(): AbstractServiceProvider
+    private function createEmptyAbstractServiceProvider(): AbstractServiceProvider
     {
         return Mockery::spy(AbstractServiceProvider::class);
     }
@@ -280,6 +377,41 @@ class AbstractServiceProviderTest extends TestCase
     private function createApp(): Application
     {
         return Mockery::spy(Application::class);
+    }
+
+    /**
+     * @param Application|MockInterface $app
+     * @param AuthManager               $authManager
+     *
+     * @return AbstractServiceProviderTest
+     */
+    private function addGet(Application $app, AuthManager $authManager): AbstractServiceProviderTest
+    {
+        $app
+            ->shouldReceive('get')
+            ->andReturnUsing(function (string $argument) use ($authManager) {
+                switch ($argument) {
+                    case 'auth':
+                        return $authManager;
+
+                    case JWTHandler::class:
+                        return Mockery::mock(JWTHandler::class);
+
+                    case 'request':
+                        return new Request();
+
+                    case TokenProvider::class:
+                        return Mockery::mock(TokenProvider::class);
+
+                    case TokenBlacklist::class:
+                        return Mockery::mock(TokenBlacklist::class);
+
+                    default:
+                        return $this->getFaker()->uuid;
+                }
+            });
+
+        return $this;
     }
 
     /**

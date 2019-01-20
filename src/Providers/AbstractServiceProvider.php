@@ -2,7 +2,6 @@
 
 namespace SPie\LaravelJWT\Providers;
 
-use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 use SPie\LaravelJWT\Auth\JWTGuard;
 use SPie\LaravelJWT\Console\GenerateSecret;
@@ -17,14 +16,6 @@ use SPie\LaravelJWT\JWTHandler;
  */
 abstract class AbstractServiceProvider extends ServiceProvider
 {
-
-    /**
-     * @return Application
-     */
-    protected function getApp(): Application
-    {
-        return $this->app;
-    }
 
     /**
      * @return void
@@ -51,7 +42,7 @@ abstract class AbstractServiceProvider extends ServiceProvider
      */
     protected function registerJWTHandler(): AbstractServiceProvider
     {
-        $this->getApp()->singleton(JWTHandler::class, function () {
+        $this->app->singleton(JWTHandler::class, function () {
             $signerClass = $this->getSignerSetting();
 
             return new JWTHandler(
@@ -70,7 +61,7 @@ abstract class AbstractServiceProvider extends ServiceProvider
      */
     protected function registerTokenProvider(): AbstractServiceProvider
     {
-        $this->getApp()->singleton(TokenProvider::class, function () {
+        $this->app->singleton(TokenProvider::class, function () {
             $tokenProviderClass = $this->getTokenProviderClassSetting();
 
             return new $tokenProviderClass(
@@ -87,11 +78,11 @@ abstract class AbstractServiceProvider extends ServiceProvider
      */
     protected function registerTokenBlacklist(): AbstractServiceProvider
     {
-        $this->getApp()->singleton(TokenBlacklist::class, function () {
+        $this->app->singleton(TokenBlacklist::class, function () {
             $tokenBlacklistClass = $this->getBlacklistSetting();
 
             return !empty($tokenBlacklistClass)
-                ? $this->getApp()->make($tokenBlacklistClass)
+                ? $this->app->make($tokenBlacklistClass)
                 : null;
         });
 
@@ -115,16 +106,16 @@ abstract class AbstractServiceProvider extends ServiceProvider
      */
     protected function extendAuthGuard(): AbstractServiceProvider
     {
-        $this->getApp()['auth']->extend('jwt', function ($app, $name, array $config) {
+        $this->app->get('auth')->extend('jwt', function ($app, $name, array $config) {
             $jwtGuard = new JWTGuard(
-                $this->getApp()->get(JWTHandler::class),
-                $this->getApp()->get('auth')->createUserProvider($config['provider']),
-                $this->getApp()['request'],
-                $this->getApp()->get(TokenProvider::class),
-                $this->getApp()->get(TokenBlacklist::class)
+                $this->app->get(JWTHandler::class),
+                $this->app->get('auth')->createUserProvider($config['provider']),
+                $this->app->get('request'),
+                $this->app->get(TokenProvider::class),
+                $this->app->get(TokenBlacklist::class)
             );
 
-            $this->getApp()->refresh('request', $jwtGuard, 'setRequest');
+            $this->app->refresh('request', $jwtGuard, 'setRequest');
 
             return $jwtGuard;
         });
@@ -203,6 +194,6 @@ abstract class AbstractServiceProvider extends ServiceProvider
      */
     protected function getJWTConfig(string $key)
     {
-        return $this->getApp()['config']['jwt.' . $key];
+        return $this->app['config']['jwt.' . $key];
     }
 }
