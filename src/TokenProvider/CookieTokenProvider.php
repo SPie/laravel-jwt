@@ -2,9 +2,9 @@
 
 namespace SPie\LaravelJWT\TokenProvider;
 
-use Illuminate\Http\Request;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use Symfony\Component\HttpFoundation\Cookie;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -21,14 +21,15 @@ class CookieTokenProvider implements TokenProvider
     private $key;
 
     /**
-     * CookieTokenProvider constructor.
+     * @param string $key
      *
-     * @param string      $key
-     * @param string|null $prefix
+     * @return CookieTokenProvider|TokenProvider
      */
-    public function __construct(string $key, string $prefix = null)
+    public function setKey(string $key): TokenProvider
     {
         $this->key = $key;
+
+        return $this;
     }
 
     /**
@@ -46,7 +47,7 @@ class CookieTokenProvider implements TokenProvider
      */
     public function getRequestToken(Request $request): ?string
     {
-        return $request->cookie($this->getKey());
+        return $request->cookies->get($this->getKey());
     }
 
     /**

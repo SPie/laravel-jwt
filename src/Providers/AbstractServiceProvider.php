@@ -64,10 +64,8 @@ abstract class AbstractServiceProvider extends ServiceProvider
         $this->app->singleton(TokenProvider::class, function () {
             $tokenProviderClass = $this->getTokenProviderClassSetting();
 
-            return new $tokenProviderClass(
-                $this->getTokenProviderKeySetting(),
-                $this->getTokenProviderPrefixSetting()
-            );
+            return (new $tokenProviderClass())
+                ->setKey($this->getTokenProviderKeySetting());
         });
 
         return $this;

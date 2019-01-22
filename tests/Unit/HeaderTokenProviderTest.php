@@ -18,23 +18,9 @@ class HeaderTokenProviderTest extends TestCase
     public function testGetRequestToken(): void
     {
         $headerName = $this->getFaker()->uuid;
-        $prefix = $this->getFaker()->uuid;
         $token = $this->getFaker()->uuid;
         $request = new Request();
-        $request->headers->set($headerName, $prefix . ' ' . $token);
-
-        $this->assertEquals($token, $this->createHeaderTokenProvider($headerName, $prefix)->getRequestToken($request));
-    }
-
-    /**
-     * @return void
-     */
-    public function testGetRequestTokenWithoutPrefix(): void
-    {
-        $headerName = $this->getFaker()->uuid;
-        $token = $this->getFaker()->uuid;
-        $request = new Request();
-        $request->headers->set($headerName, $token);
+        $request->headers->set($headerName, HeaderTokenProvider::BEARER_PREFIX . ' ' . $token);
 
         $this->assertEquals($token, $this->createHeaderTokenProvider($headerName)->getRequestToken($request));
     }
@@ -54,10 +40,10 @@ class HeaderTokenProviderTest extends TestCase
     {
         $headerName = $this->getFaker()->uuid;
         $request = new Request();
-        $request->headers->set($headerName, $this->getFaker()->uuid . ' ' . $this->getFaker()->uuid);
+        $request->headers->set($headerName, $this->getFaker()->uuid);
 
         $this->assertEmpty(
-            $this->createHeaderTokenProvider($headerName, $this->getFaker()->uuid)->getRequestToken($request)
+            $this->createHeaderTokenProvider($headerName)->getRequestToken($request)
         );
     }
 
@@ -68,25 +54,9 @@ class HeaderTokenProviderTest extends TestCase
     {
         $token = $this->getFaker()->uuid;
         $headerName = $this->getFaker()->uuid;
-        $prefix = $this->getFaker()->uuid;
 
         $this->assertEquals(
-            $prefix . ' ' . $token,
-            $this->createHeaderTokenProvider($headerName, $prefix)
-                ->setResponseToken(new Response(), $token)->headers->get($headerName)
-        );
-    }
-
-    /**
-     * @return void
-     */
-    public function testSetResponseTokenWithoutPrefix(): void
-    {
-        $token = $this->getFaker()->uuid;
-        $headerName = $this->getFaker()->uuid;
-
-        $this->assertEquals(
-            $token,
+            HeaderTokenProvider::BEARER_PREFIX . ' ' . $token,
             $this->createHeaderTokenProvider($headerName)
                 ->setResponseToken(new Response(), $token)->headers->get($headerName)
         );
@@ -95,13 +65,12 @@ class HeaderTokenProviderTest extends TestCase
     //endregion
 
     /**
-     * @param string      $headerName
-     * @param string|null $prefix
+     * @param string $headerName
      *
      * @return HeaderTokenProvider
      */
-    private function createHeaderTokenProvider(string $headerName, string $prefix = null): HeaderTokenProvider
+    private function createHeaderTokenProvider(string $headerName): HeaderTokenProvider
     {
-        return new HeaderTokenProvider($headerName, $prefix);
+        return (new HeaderTokenProvider())->setKey($headerName);
     }
 }

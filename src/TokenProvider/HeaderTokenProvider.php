@@ -2,8 +2,8 @@
 
 namespace SPie\LaravelJWT\TokenProvider;
 
-use Illuminate\Http\Request;
 use SPie\LaravelJWT\Contracts\TokenProvider;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -14,26 +14,23 @@ use Symfony\Component\HttpFoundation\Response;
 class HeaderTokenProvider implements TokenProvider
 {
 
+    const BEARER_PREFIX = 'Bearer';
+
     /**
      * @var string
      */
     private $key;
 
     /**
-     * @var string|null
-     */
-    private $prefix;
-
-    /**
-     * HeaderTokenProvider constructor.
+     * @param string $key
      *
-     * @param string      $key
-     * @param string|null $prefix
+     * @return HeaderTokenProvider|TokenProvider
      */
-    public function __construct(string $key, string $prefix = null)
+    public function setKey(string $key): TokenProvider
     {
         $this->key = $key;
-        $this->prefix = $prefix;
+
+        return $this;
     }
 
     /**
@@ -45,30 +42,18 @@ class HeaderTokenProvider implements TokenProvider
     }
 
     /**
-     * @return null|string
-     */
-    protected function getPrefix(): ?string
-    {
-        return $this->prefix;
-    }
-
-    /**
      * @param Request $request
      *
      * @return null|string
      */
     public function getRequestToken(Request $request): ?string
     {
-        $token = $request->header($this->getKey());
+        $token = $request->headers->get($this->getKey());
         if (empty($token)) {
             return null;
         }
 
-        if (empty($this->getPrefix())) {
-            return $token;
-        }
-
-        if (!\preg_match('/'.$this->prefix.'\s*(\S+)\b/i', $token, $matches)) {
+        if (!\preg_match('/' . self::BEARER_PREFIX . '\s*(\S+)\b/i', $token, $matches)) {
             return null;
         }
 
@@ -83,9 +68,8 @@ class HeaderTokenProvider implements TokenProvider
      */
     public function setResponseToken(Response $response, string $token): Response
     {
-        return $response->header(
-            $this->getKey(),
-            (!empty($this->getPrefix()) ? ($this->getPrefix() . ' ') : '') . $token
-        );
+        $response->headers->set($this->getKey(), self::BEARER_PREFIX . ' ' . $token);
+
+        return $response;
     }
 }

@@ -163,10 +163,7 @@ class AbstractServiceProviderTest extends TestCase
                     return ($abstract == TokenProvider::class);
                 }),
                 Mockery::on(function (\Closure $concrete) use ($tokenProviderKey, $tokenProviderPrefix) {
-                    $expectedTokenProvider = new HeaderTokenProvider(
-                        $tokenProviderKey,
-                        $tokenProviderPrefix
-                    );
+                    $expectedTokenProvider = (new HeaderTokenProvider())->setKey($tokenProviderKey);
 
                     $tokenProvider = $concrete();
 
