@@ -13,6 +13,11 @@ class TestTokenProvider implements TokenProvider
     /**
      * @var string|null
      */
+    private $key;
+
+    /**
+     * @var string|null
+     */
     private $token;
 
     /**
@@ -60,6 +65,16 @@ class TestTokenProvider implements TokenProvider
      */
     public function setKey(string $key): TokenProvider
     {
-        // TODO: Implement setKey() method.
+        $this->key = $key;
+
+        return $this;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getKey(): ?string
+    {
+        return $this->key;
     }
 }

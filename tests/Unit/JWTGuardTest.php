@@ -164,6 +164,7 @@ class JWTGuardTest extends TestCase
                 new Request(),
                 $this->createTokenProvider($this->createToken()),
                 null,
+                null,
                 $this->createRefreshTokenRepository()
             )->user()
         );
@@ -192,6 +193,7 @@ class JWTGuardTest extends TestCase
                 $this->createUserProvider($this->createUser()),
                 new Request(),
                 $this->createTokenProvider($this->createToken()),
+                null,
                 null,
                 $refreshTokenRepository
             )->user()
@@ -502,6 +504,7 @@ class JWTGuardTest extends TestCase
             new Request(),
             $this->createTokenProvider(),
             $this->createTokenBlacklist($arrayStore),
+            null,
             $refreshTokenRepository
         );
 
@@ -537,6 +540,7 @@ class JWTGuardTest extends TestCase
             new Request(),
             $this->createTokenProvider(),
             $this->createTokenBlacklist($arrayStore),
+            null,
             $refreshTokenRepository
         );
 
@@ -570,6 +574,7 @@ class JWTGuardTest extends TestCase
             $this->createUserProvider($user),
             new Request(),
             $this->createTokenProvider($jwt->getJWT()),
+            null,
             null,
             $refreshTokenRepository
         );
@@ -607,6 +612,7 @@ class JWTGuardTest extends TestCase
             new Request(),
             $this->createTokenProvider($jwt->getJWT()),
             $this->createTokenBlacklist($arrayStore),
+            null,
             $refreshTokenRepository
         );
 
@@ -654,6 +660,7 @@ class JWTGuardTest extends TestCase
             null,
             null,
             null,
+            null,
             $this->createRefreshTokenRepository()
         );
 
@@ -683,6 +690,7 @@ class JWTGuardTest extends TestCase
             null,
             null,
             null,
+            null,
             $this->createRefreshTokenRepository()
         );
         $jwtGuard->setUser($this->createUser());
@@ -696,6 +704,14 @@ class JWTGuardTest extends TestCase
         }
     }
 
+    /**
+     * @return void
+     */
+    public function testRefreshAccessToken(): void
+    {
+        //TODO
+    }
+
     //endregion
 
     /**
@@ -704,6 +720,7 @@ class JWTGuardTest extends TestCase
      * @param Request|null                $request
      * @param TokenProvider|null          $tokenProvider
      * @param TokenBlacklist|null         $tokenBlacklist
+     * @param TokenProvider|null          $refreshTokenProvider
      * @param RefreshTokenRepository|null $refreshTokenRepository
      *
      * @return JWTGuard
@@ -716,6 +733,7 @@ class JWTGuardTest extends TestCase
         Request $request = null,
         TokenProvider $tokenProvider = null,
         TokenBlacklist $tokenBlacklist = null,
+        TokenProvider $refreshTokenProvider = null,
         RefreshTokenRepository $refreshTokenRepository = null
     ): JWTGuard
     {
@@ -725,6 +743,7 @@ class JWTGuardTest extends TestCase
             $request ?: new Request(),
             $tokenProvider ?: $this->createTokenProvider(),
             $tokenBlacklist,
+            $refreshTokenProvider,
             $refreshTokenRepository
         );
     }

@@ -7,6 +7,7 @@ use SPie\LaravelJWT\Auth\JWTGuard;
 use SPie\LaravelJWT\Console\GenerateSecret;
 use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
+use SPie\LaravelJWT\Exceptions\InvalidTokenProviderKeyException;
 use SPie\LaravelJWT\JWTHandler;
 
 /**
@@ -17,6 +18,17 @@ use SPie\LaravelJWT\JWTHandler;
 abstract class AbstractServiceProvider extends ServiceProvider
 {
 
+    const SETTING_JWT                    = 'jwt';
+    const SETTING_SECRET                 = 'secret';
+    const SETTING_ISSUER                 = 'issuer';
+    const SETTING_TTL                    = 'ttl';
+    const SETTING_SIGNER                 = 'signer';
+    const SETTING_ACCESS_TOKEN_PROVIDER  = 'accessTokenProvider';
+    const SETTING_REFRESH_TOKEN_PROVIDER = 'refreshTokenProvider';
+    const SETTING_CLASS                  = 'class';
+    const SETTING_KEY                    = 'key';
+    const SETTING_TOKEN_BLACKLIST        = 'tokenBlacklist';
+
     /**
      * @return void
      */
@@ -24,7 +36,6 @@ abstract class AbstractServiceProvider extends ServiceProvider
     {
         $this
             ->registerJWTHandler()
-            ->registerTokenProvider()
             ->registerTokenBlacklist()
             ->registerCommands();
     }
@@ -51,21 +62,6 @@ abstract class AbstractServiceProvider extends ServiceProvider
                 $this->getTTLSetting(),
                 new $signerClass()
             );
-        });
-
-        return $this;
-    }
-
-    /**
-     * @return AbstractServiceProvider
-     */
-    protected function registerTokenProvider(): AbstractServiceProvider
-    {
-        $this->app->singleton(TokenProvider::class, function () {
-            $tokenProviderClass = $this->getTokenProviderClassSetting();
-
-            return (new $tokenProviderClass())
-                ->setKey($this->getTokenProviderKeySetting());
         });
 
         return $this;
@@ -109,8 +105,9 @@ abstract class AbstractServiceProvider extends ServiceProvider
                 $this->app->get(JWTHandler::class),
                 $this->app->get('auth')->createUserProvider($config['provider']),
                 $this->app->get('request'),
-                $this->app->get(TokenProvider::class),
-                $this->app->get(TokenBlacklist::class)
+                $this->getAccessTokenProvider(),
+                $this->app->get(TokenBlacklist::class),
+                $this->getRefreshTokenProvider()
             );
 
             $this->app->refresh('request', $jwtGuard, 'setRequest');
@@ -122,11 +119,43 @@ abstract class AbstractServiceProvider extends ServiceProvider
     }
 
     /**
+     * @return TokenProvider
+     */
+    protected function getAccessTokenProvider(): TokenProvider
+    {
+        $accessTokenProviderClass = $this->getAccessTokenProviderClassSetting();
+
+        return (new $accessTokenProviderClass())
+            ->setKey($this->getAccessTokenProviderKeySetting());
+    }
+
+    /**
+     * @return TokenProvider|null
+     *
+     * @throws InvalidTokenProviderKeyException
+     */
+    protected function getRefreshTokenProvider(): ?TokenProvider
+    {
+        $refreshTokenProviderClass = $this->getRefreshTokenProviderClassSetting();
+        if (empty($refreshTokenProviderClass)) {
+            return null;
+        }
+
+        $refreshTokenProviderKey = $this->getRefreshTokenProviderKeySetting();
+        if (empty($refreshTokenProviderKey)) {
+            throw new InvalidTokenProviderKeyException();
+        }
+
+        return (new $refreshTokenProviderClass())
+            ->setKey($this->getRefreshTokenProviderKeySetting());
+    }
+
+    /**
      * @return string
      */
     protected function getSecretSetting(): string
     {
-        return $this->getJWTConfig('secret');
+        return $this->getJWTConfig(self::SETTING_SECRET);
     }
 
     /**
@@ -134,7 +163,7 @@ abstract class AbstractServiceProvider extends ServiceProvider
      */
     protected function getIssuerSetting(): string
     {
-        return $this->getJWTConfig('issuer');
+        return $this->getJWTConfig(self::SETTING_ISSUER);
     }
 
     /**
@@ -142,7 +171,7 @@ abstract class AbstractServiceProvider extends ServiceProvider
      */
     protected function getTTLSetting(): int
     {
-        return $this->getJWTConfig('ttl');
+        return $this->getJWTConfig(self::SETTING_TTL);
     }
 
     /**
@@ -150,31 +179,23 @@ abstract class AbstractServiceProvider extends ServiceProvider
      */
     protected function getSignerSetting(): string
     {
-        return $this->getJWTConfig('signer');
+        return $this->getJWTConfig(self::SETTING_SIGNER);
     }
 
     /**
      * @return string
      */
-    protected function getTokenProviderClassSetting(): string
+    protected function getAccessTokenProviderClassSetting(): string
     {
-        return $this->getJWTConfig('tokenProvider.class');
+        return $this->getJWTConfig(self::SETTING_ACCESS_TOKEN_PROVIDER . '.' . self::SETTING_CLASS);
     }
 
     /**
      * @return string
      */
-    protected function getTokenProviderKeySetting(): string
+    protected function getAccessTokenProviderKeySetting(): string
     {
-        return $this->getJWTConfig('tokenProvider.key');
-    }
-
-    /**
-     * @return string|null
-     */
-    protected function getTokenProviderPrefixSetting(): ?string
-    {
-        return $this->getJWTConfig('tokenProvider.prefix');
+        return $this->getJWTConfig(self::SETTING_ACCESS_TOKEN_PROVIDER . '.' . self::SETTING_KEY);
     }
 
     /**
@@ -182,16 +203,32 @@ abstract class AbstractServiceProvider extends ServiceProvider
      */
     protected function getBlacklistSetting(): ?string
     {
-        return $this->getJWTConfig('blacklist');
+        return $this->getJWTConfig(self::SETTING_TOKEN_BLACKLIST);
+    }
+
+    /**
+     * @return string|null
+     */
+    protected function getRefreshTokenProviderClassSetting(): ?string
+    {
+        return $this->getJWTConfig(self::SETTING_REFRESH_TOKEN_PROVIDER . '.' . self::SETTING_CLASS);
+    }
+
+    /**
+     * @return string|null
+     */
+    protected function getRefreshTokenProviderKeySetting(): ?string
+    {
+        return $this->getJWTConfig(self::SETTING_REFRESH_TOKEN_PROVIDER . '.' . self::SETTING_KEY);
     }
 
     /**
      * @param string $key
      *
-     * @return mixed|null
+     * @return string|null
      */
-    protected function getJWTConfig(string $key)
+    protected function getJWTConfig(string $key): ?string
     {
-        return $this->app['config']['jwt.' . $key];
+        return $this->app['config'][self::SETTING_JWT . '.' . $key];
     }
 }

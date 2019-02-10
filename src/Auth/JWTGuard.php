@@ -41,12 +41,17 @@ class JWTGuard implements Guard
     /**
      * @var TokenProvider
      */
-    private $tokenProvider;
+    private $accessTokenProvider;
 
     /**
      * @var TokenBlacklist|null
      */
     private $tokenBlacklist;
+
+    /**
+     * @var TokenProvider|null
+     */
+    private $refreshTokenProvider;
 
     /**
      * @var RefreshTokenRepository|null
@@ -71,24 +76,27 @@ class JWTGuard implements Guard
      * @param JWTHandler                  $jwtHandler
      * @param UserProvider                $provider
      * @param Request                     $request
-     * @param TokenProvider               $tokenProvider
+     * @param TokenProvider               $accessTokenProvider
      * @param TokenBlacklist|null         $tokenBlacklist
+     * @param TokenProvider|null          $refreshTokenProvider
      * @param RefreshTokenRepository|null $refreshTokenRepository
      */
     public function __construct(
         JWTHandler $jwtHandler,
         UserProvider $provider,
         Request $request,
-        TokenProvider $tokenProvider,
+        TokenProvider $accessTokenProvider,
         TokenBlacklist $tokenBlacklist = null,
+        TokenProvider $refreshTokenProvider = null,
         RefreshTokenRepository $refreshTokenRepository = null
     )
     {
         $this->jwtHandler = $jwtHandler;
         $this->provider = $provider;
         $this->request = $request;
-        $this->tokenProvider = $tokenProvider;
+        $this->accessTokenProvider = $accessTokenProvider;
         $this->tokenBlacklist = $tokenBlacklist;
+        $this->refreshTokenProvider = $refreshTokenProvider;
         $this->refreshTokenRepository = $refreshTokenRepository;
     }
 
@@ -110,9 +118,9 @@ class JWTGuard implements Guard
     /**
      * @return TokenProvider
      */
-    protected function getTokenProvider(): TokenProvider
+    protected function getAccessTokenProvider(): TokenProvider
     {
-        return $this->tokenProvider;
+        return $this->accessTokenProvider;
     }
 
     /**
@@ -121,6 +129,14 @@ class JWTGuard implements Guard
     protected function getTokenBlacklist(): ?TokenBlacklist
     {
         return $this->tokenBlacklist;
+    }
+
+    /**
+     * @return TokenProvider|null
+     */
+    protected function getRefreshTokenProvider(): ?TokenProvider
+    {
+        return $this->refreshTokenProvider;
     }
 
     /**
@@ -184,7 +200,7 @@ class JWTGuard implements Guard
             return $this->user;
         }
 
-        $token = $this->getTokenProvider()->getRequestToken($this->getRequest());
+        $token = $this->getAccessTokenProvider()->getRequestToken($this->getRequest());
         if (empty($token)) {
             return null;
         }
@@ -374,7 +390,7 @@ class JWTGuard implements Guard
     /**
      * @return JWT
      */
-    protected function refreshAccessToken(): JWT
+    public function refreshAccessToken(): JWT
     {
         //TODO
     }
