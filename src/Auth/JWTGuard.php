@@ -61,7 +61,7 @@ class JWTGuard implements Guard
     /**
      * @var JWT
      */
-    private $jwt;
+    private $accessToken;
 
     /**
      * @var JWT
@@ -148,13 +148,13 @@ class JWTGuard implements Guard
     }
 
     /**
-     * @param JWT|null $jwt
+     * @param JWT|null $accessToken
      *
      * @return JWTGuard
      */
-    protected function setJWT(?JWT $jwt): JWTGuard
+    protected function setAccessToken(?JWT $accessToken): JWTGuard
     {
-        $this->jwt = $jwt;
+        $this->accessToken = $accessToken;
 
         return $this;
     }
@@ -162,9 +162,9 @@ class JWTGuard implements Guard
     /**
      * @return JWT|null
      */
-    public function getJWT(): ?JWT
+    public function getAccessToken(): ?JWT
     {
-        return $this->jwt;
+        return $this->accessToken;
     }
 
     /**
@@ -226,7 +226,7 @@ class JWTGuard implements Guard
         $user = $this->getUserByJWT($jwt);
         if ($user) {
             $this
-                ->setJWT($jwt)
+                ->setAccessToken($jwt)
                 ->setUser($user);
         }
 
@@ -262,7 +262,7 @@ class JWTGuard implements Guard
     /**
      * @param JWT $jwt
      *
-     * @return Authenticatable|null
+     * @return Authenticatable|JWTAuthenticatable|null
      */
     protected function getUserByJWT(JWT $jwt): ?Authenticatable
     {
@@ -278,11 +278,11 @@ class JWTGuard implements Guard
      */
     public function issueAccessToken(JWTAuthenticatable $user): JWT
     {
-        $this->setJWT(
+        $this->setAccessToken(
             $this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $user->getCustomClaims())
         );
 
-        return $this->getJWT();
+        return $this->getAccessToken();
     }
 
     /**
@@ -307,7 +307,7 @@ class JWTGuard implements Guard
             //TODO failed event
 
             $this
-                ->setJWT(null)
+                ->setAccessToken(null)
                 ->user = null;
 
             throw new AuthorizationException();
@@ -316,7 +316,7 @@ class JWTGuard implements Guard
         //TODO login event
 
         $this
-            ->setJWT($this->issueAccessToken($user))
+            ->setAccessToken($this->issueAccessToken($user))
             ->setUser($user);
 
         return $this;
@@ -327,18 +327,18 @@ class JWTGuard implements Guard
      */
     public function logout(): JWTGuard
     {
-        if ($this->getJWT()) {
+        if ($this->getAccessToken()) {
             if ($this->getTokenBlacklist()) {
-                $this->getTokenBlacklist()->revoke($this->getJWT());
+                $this->getTokenBlacklist()->revoke($this->getAccessToken());
             }
 
-            if ($this->getRefreshTokenRepository() && $this->getJWT()->getRefreshTokenId()) {
-                $this->getRefreshTokenRepository()->revokeRefreshToken($this->getJWT()->getRefreshTokenId());
+            if ($this->getRefreshTokenRepository() && $this->getAccessToken()->getRefreshTokenId()) {
+                $this->getRefreshTokenRepository()->revokeRefreshToken($this->getAccessToken()->getRefreshTokenId());
             }
         }
 
         $this
-            ->setJWT(null)
+            ->setAccessToken(null)
             ->setRefreshJWT(null)
             ->user = null;
 
@@ -359,7 +359,7 @@ class JWTGuard implements Guard
         }
 
         $user = $this->user();
-        if (!$user || !$this->getJWT()) {
+        if (!$user || !$this->getAccessToken()) {
             throw new NotAuthenticatedException();
         }
 
@@ -375,11 +375,11 @@ class JWTGuard implements Guard
         $this->getRefreshTokenRepository()->storeRefreshToken($refreshJwt);
 
         if ($this->getTokenBlacklist()) {
-            $this->getTokenBlacklist()->revoke($this->getJWT());
+            $this->getTokenBlacklist()->revoke($this->getAccessToken());
         }
 
         $this
-            ->setJWT($this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $claims))
+            ->setAccessToken($this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $claims))
             ->setRefreshJWT($refreshJwt);
 
         //TODO issue refresh token event
@@ -389,10 +389,47 @@ class JWTGuard implements Guard
 
     /**
      * @return JWT
+     *
+     * @throws \Exception
      */
     public function refreshAccessToken(): JWT
     {
-        //TODO
+        $token = $this->getRefreshTokenProvider()->getRequestToken($this->getRequest());
+        if (empty($token)) {
+            throw new NotAuthenticatedException();
+        }
+
+        if ($this->getTokenBlacklist()->isRevoked($token)) {
+            throw new NotAuthenticatedException();
+        }
+
+        try {
+            $refreshJWT = $this->getJWTHandler()->getValidJWT($token);
+        } catch (JWTException $e) {
+            throw new NotAuthenticatedException();
+        }
+
+        if (empty($refreshJWT->getRefreshTokenId())) {
+            throw new NotAuthenticatedException();
+        }
+
+        $user = $this->getUserByJWT($refreshJWT);
+        if (!$user) {
+            throw new NotAuthenticatedException();
+        }
+
+        $payload = \array_merge(
+            $user->getCustomClaims(),
+            [
+                JWT::CUSTOM_CLAIM_REFRESH_TOKEN => $refreshJWT->getRefreshTokenId()
+            ]
+        );
+
+        $this
+            ->setAccessToken($this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $payload))
+            ->setUser($user);
+
+        return $this->getAccessToken();
     }
 
     /**
