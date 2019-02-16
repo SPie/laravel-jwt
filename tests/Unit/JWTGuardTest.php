@@ -22,6 +22,7 @@ use SPie\LaravelJWT\Exceptions\MissingRefreshTokenRepositoryException;
 use SPie\LaravelJWT\Exceptions\NotAuthenticatedException;
 use SPie\LaravelJWT\JWT;
 use SPie\LaravelJWT\JWTHandler;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Class JWTGuardTest
@@ -889,6 +890,112 @@ class JWTGuardTest extends TestCase
         $jwtGuard->refreshAccessToken();
     }
 
+    /**
+     * @return void
+     *
+     * @throws \Exception
+     */
+    public function testReturnAccessToken(): void
+    {
+        $response = new Response();
+        $responseWithToken = new Response();
+        $responseWithToken->headers->set($this->getFaker()->uuid, $this->getFaker()->uuid);
+        $accessToken = $this->createJWT();
+        $accessTokenProvider = $this->createAccessTokenProviderMock(null, $responseWithToken);
+
+        $jwtGuard = $this->createJWTGuard(null, null, null, $accessTokenProvider);
+        $this->addGetAccessToken($jwtGuard, $accessToken);
+
+        $this->assertEquals($responseWithToken, $jwtGuard->returnAccessToken($response));
+
+        $accessTokenProvider
+            ->shouldHaveReceived('setResponseToken')
+            ->with(
+                $response,
+                $accessToken->getJWT()
+            )
+            ->once();
+    }
+
+    /**
+     * @return void
+     *
+     * @throws \Exception
+     */
+    public function testReturnAccessTokenWithoutAccessToken(): void
+    {
+        $this->expectException(NotAuthenticatedException::class);
+
+        $this->createJWTGuard()->returnAccessToken(new Response());
+    }
+
+    /**
+     * @return void
+     *
+     * @throws \Exception
+     */
+    public function testReturnRefreshToken(): void
+    {
+        $response = new Response();
+        $responseWithToken = new Response();
+        $responseWithToken->headers->set($this->getFaker()->uuid, $this->getFaker()->uuid);
+        $refreshToken = $this->createJWT();
+        $refreshTokenProvider = $this->createRefreshTokenProvider(null, $responseWithToken);
+
+        $jwtGuard = $this->createJWTGuard(
+            null,
+            null,
+            null,
+            null,
+            null,
+            $refreshTokenProvider
+        );
+        $this->addGetRefreshToken($jwtGuard, $refreshToken);
+
+        $this->assertEquals($responseWithToken, $jwtGuard->returnRefreshToken($response));
+
+        $refreshTokenProvider
+            ->shouldHaveReceived('setResponseToken')
+            ->with(
+                $response,
+                $refreshToken->getJWT()
+            )
+            ->once();
+    }
+
+    /**
+     * @return void
+     *
+     * @throws InvalidSecretException
+     * @throws NotAuthenticatedException
+     */
+    public function testReturnRefreshTokenWithoutRefreshToken(): void
+    {
+        $this->expectException(NotAuthenticatedException::class);
+
+        $this->createJWTGuard(
+            null,
+            null,
+            null,
+            null,
+            null,
+            $this->createRefreshTokenProvider()
+        )->returnRefreshToken(new Response());
+    }
+
+    /**
+     * @return void
+     *
+     * @throws InvalidSecretException
+     * @throws NotAuthenticatedException
+     */
+    public function testReturnRefreshTokenWithoutRefreshTokenProvider(): void
+    {
+        $response = new Response();
+
+        $this->assertEquals($response, $this->createJWTGuard()->returnRefreshToken($response));
+    }
+
     //endregion
 
     /**
@@ -931,6 +1038,36 @@ class JWTGuardTest extends TestCase
             ->shouldAllowMockingProtectedMethods();
 
         return $jwtGuard;
+    }
+
+    /**
+     * @param JWTGuard|MockInterface $jwtGuard
+     * @param JWT|null               $accessToken
+     *
+     * @return JWTGuardTest
+     */
+    private function addGetAccessToken(JWTGuard $jwtGuard, JWT $accessToken = null): JWTGuardTest
+    {
+        $jwtGuard
+            ->shouldReceive('getAccessToken')
+            ->andReturn($accessToken);
+
+        return $this;
+    }
+
+    /**
+     * @param JWTGuard|MockInterface $jwtGuard
+     *
+     * @param JWT|null               $refreshToken
+     * @return JWTGuardTest
+     */
+    private function addGetRefreshToken(JWTGuard $jwtGuard, JWT $refreshToken = null): JWTGuardTest
+    {
+        $jwtGuard
+            ->shouldReceive('getRefreshToken')
+            ->andReturn($refreshToken);
+
+        return $this;
     }
 
     /**
@@ -1117,17 +1254,43 @@ class JWTGuardTest extends TestCase
     }
 
     /**
-     * @param string|null $token
+     * @param string|null   $token
+     * @param Response|null $response
      *
      * @return TokenProvider|MockInterface
      */
-    private function createRefreshTokenProvider(string $token = null): TokenProvider
+    private function createAccessTokenProviderMock(string $token = null, Response $response = null): TokenProvider
+    {
+        $accessTokenProvider = Mockery::spy(TokenProvider::class);
+
+        $accessTokenProvider
+            ->shouldReceive('getRequestToken')
+            ->andReturn($token);
+
+        $accessTokenProvider
+            ->shouldReceive('setResponseToken')
+            ->andReturn($response);
+
+        return $accessTokenProvider;
+    }
+
+    /**
+     * @param string|null   $token
+     * @param Response|null $response
+     *
+     * @return TokenProvider|MockInterface
+     */
+    private function createRefreshTokenProvider(string $token = null, Response $response = null): TokenProvider
     {
         $refreshTokenProvider = Mockery::spy(TokenProvider::class);
 
         $refreshTokenProvider
             ->shouldReceive('getRequestToken')
             ->andReturn($token);
+
+        $refreshTokenProvider
+            ->shouldReceive('setResponseToken')
+            ->andReturn($response);
 
         return $refreshTokenProvider;
     }
