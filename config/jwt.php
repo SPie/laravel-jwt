@@ -14,6 +14,7 @@ return [
             'JWT_ACCESS_TOKEN_PROVIDER', SPie\LaravelJWT\TokenProvider\HeaderTokenProvider::class
         ),
         AbstractServiceProvider::SETTING_KEY   => env('JWT_ACCESS_TOKEN_KEY', 'Authorization'),
+        AbstractServiceProvider::SETTING_TTL   => env('JWT_ACCESS_TOKEN_TTL', 10)
     ],
     AbstractServiceProvider::SETTING_TOKEN_BLACKLIST        => env(
         'JWT_BLACKLIST', SPie\LaravelJWT\Blacklist\CacheTokenBlacklist::class
@@ -21,5 +22,7 @@ return [
     AbstractServiceProvider::SETTING_REFRESH_TOKEN_PROVIDER => [
         AbstractServiceProvider::SETTING_CLASS => env('JWT_REFRESH_TOKEN_PROVIDER', null),
         AbstractServiceProvider::SETTING_KEY   => env('JWT_REFRESH_TOKEN_KEY', null),
+        AbstractServiceProvider::SETTING_TTL   => env('JWT_REFRESH_TOKEN_KEY', null)
     ],
+    AbstractServiceProvider::SETTING_REFRESH_TOKEN_REPOSITORY => env('JWT_REFRESH_TOKEN_REPOSITORY', null)
 ];

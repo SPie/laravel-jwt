@@ -45,6 +45,11 @@ class JWTGuard implements Guard
     private $accessTokenProvider;
 
     /**
+     * @var int
+     */
+    private $accessTokenTtl;
+
+    /**
      * @var TokenBlacklist|null
      */
     private $tokenBlacklist;
@@ -53,6 +58,11 @@ class JWTGuard implements Guard
      * @var TokenProvider|null
      */
     private $refreshTokenProvider;
+
+    /**
+     * @var int|null
+     */
+    private $refreshTokenTtl;
 
     /**
      * @var RefreshTokenRepository|null
@@ -78,8 +88,10 @@ class JWTGuard implements Guard
      * @param UserProvider                $provider
      * @param Request                     $request
      * @param TokenProvider               $accessTokenProvider
+     * @param int                         $accessTokenTtl
      * @param TokenBlacklist|null         $tokenBlacklist
      * @param TokenProvider|null          $refreshTokenProvider
+     * @param int|null                    $refreshTokenTtl
      * @param RefreshTokenRepository|null $refreshTokenRepository
      */
     public function __construct(
@@ -87,8 +99,10 @@ class JWTGuard implements Guard
         UserProvider $provider,
         Request $request,
         TokenProvider $accessTokenProvider,
+        int $accessTokenTtl,
         TokenBlacklist $tokenBlacklist = null,
         TokenProvider $refreshTokenProvider = null,
+        int $refreshTokenTtl = null,
         RefreshTokenRepository $refreshTokenRepository = null
     )
     {
@@ -96,8 +110,10 @@ class JWTGuard implements Guard
         $this->provider = $provider;
         $this->request = $request;
         $this->accessTokenProvider = $accessTokenProvider;
+        $this->accessTokenTtl = $accessTokenTtl;
         $this->tokenBlacklist = $tokenBlacklist;
         $this->refreshTokenProvider = $refreshTokenProvider;
+        $this->refreshTokenTtl = $refreshTokenTtl;
         $this->refreshTokenRepository = $refreshTokenRepository;
     }
 
@@ -125,6 +141,14 @@ class JWTGuard implements Guard
     }
 
     /**
+     * @return int
+     */
+    protected function getAccessTokenTtl(): int
+    {
+        return $this->accessTokenTtl;
+    }
+
+    /**
      * @return null|TokenBlacklist
      */
     protected function getTokenBlacklist(): ?TokenBlacklist
@@ -138,6 +162,14 @@ class JWTGuard implements Guard
     protected function getRefreshTokenProvider(): ?TokenProvider
     {
         return $this->refreshTokenProvider;
+    }
+
+    /**
+     * @return int|null
+     */
+    protected function getRefreshTokenTtl(): ?int
+    {
+        return $this->refreshTokenTtl;
     }
 
     /**
@@ -280,7 +312,11 @@ class JWTGuard implements Guard
     public function issueAccessToken(JWTAuthenticatable $user): JWT
     {
         $this->setAccessToken(
-            $this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $user->getCustomClaims())
+            $this->getJWTHandler()->createJWT(
+                $user->getAuthIdentifier(),
+                $user->getCustomClaims(),
+                $this->getAccessTokenTtl()
+            )
         );
 
         return $this->getAccessToken();
@@ -371,7 +407,7 @@ class JWTGuard implements Guard
             ]
         );
 
-        $refreshJwt = $this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $claims);
+        $refreshJwt = $this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $claims, $this->getRefreshTokenTtl());
 
         $this->getRefreshTokenRepository()->storeRefreshToken($refreshJwt);
 
@@ -380,7 +416,9 @@ class JWTGuard implements Guard
         }
 
         $this
-            ->setAccessToken($this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $claims))
+            ->setAccessToken(
+                $this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $claims, $this->getAccessTokenTtl())
+            )
             ->setRefreshToken($refreshJwt);
 
         //TODO issue refresh token event
@@ -427,7 +465,9 @@ class JWTGuard implements Guard
         );
 
         $this
-            ->setAccessToken($this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $payload))
+            ->setAccessToken(
+                $this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $payload, $this->getAccessTokenTtl())
+            )
             ->setUser($user);
 
         //TODO refresh access token event

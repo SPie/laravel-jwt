@@ -1,5 +1,6 @@
 <?php
 
+use Mockery\MockInterface;
 use SPie\LaravelJWT\Exceptions\BeforeValidException;
 use SPie\LaravelJWT\Exceptions\TokenExpiredException;
 use SPie\LaravelJWT\Exceptions\InvalidSecretException;
@@ -24,7 +25,7 @@ class JWTHandlerTest extends TestCase
     public function testConstructInvalidSecretException(): void
     {
         try {
-            new JWTHandler('', $this->getFaker()->uuid, $this->getFaker()->numberBetween());
+            new JWTHandler('', $this->getFaker()->uuid);
 
             $this->assertTrue(false);
         } catch (InvalidSecretException $e) {
@@ -41,11 +42,11 @@ class JWTHandlerTest extends TestCase
     {
         $minutes = $this->getFaker()->numberBetween();
 
-        $jwtHandler = $this->createJWTHandler(null, null, $minutes);
+        $jwtHandler = $this->createJWTHandler();
         $createTimestampsMethod = (new \ReflectionObject($jwtHandler))->getMethod('createTimestamps');
         $createTimestampsMethod->setAccessible(true);
 
-        $timestamps = $createTimestampsMethod->invoke($jwtHandler);
+        $timestamps = $createTimestampsMethod->invokeArgs($jwtHandler, [$minutes]);
 
         $this->assertEquals(
             (new \DateTimeImmutable())->setTimestamp($timestamps[0])
@@ -57,7 +58,7 @@ class JWTHandlerTest extends TestCase
     /**
      * @return void
      *
-     * @throws InvalidSecretException
+     * @throws \ReflectionException
      */
     public function testCreateTimestampsWithoutTTL(): void
     {
@@ -66,23 +67,6 @@ class JWTHandlerTest extends TestCase
         $createTimestampsMethod->setAccessible(true);
 
         $timestamps = $createTimestampsMethod->invoke($jwtHandler);
-
-        $this->assertEmpty($timestamps[1]);
-    }
-
-    /**
-     * @return void
-     *
-     * @throws InvalidSecretException
-     * @throws \Exception
-     */
-    public function testCreateTimestampsWithoutExpiry(): void
-    {
-        $jwtHandler = $this->createJWTHandler(null, null, $this->getFaker()->numberBetween());
-        $createTimestampsMethod = (new \ReflectionObject($jwtHandler))->getMethod('createTimestamps');
-        $createTimestampsMethod->setAccessible(true);
-
-        $timestamps = $createTimestampsMethod->invokeArgs($jwtHandler, [false]);
 
         $this->assertEmpty($timestamps[1]);
     }
@@ -100,13 +84,14 @@ class JWTHandlerTest extends TestCase
         $payloadItemName = $this->getFaker()->uuid;
         $payloadItemValue = $this->getFaker()->uuid;
 
-        $jwtHandler = $this->createJWTHandler(null, $issuer, $expiryMinutes);
+        $jwtHandler = $this->createJWTHandler(null, $issuer);
 
         $jwt = $jwtHandler->createJWT(
             $subject,
             [
                 $payloadItemName => $payloadItemValue,
-            ]
+            ],
+            $expiryMinutes
         );
 
         $this->assertEquals($issuer, $jwt->getIssuer());
@@ -137,36 +122,6 @@ class JWTHandlerTest extends TestCase
             [
                 $payloadItemName => $payloadItemValue,
             ]
-        );
-
-        $this->assertEquals($issuer, $jwt->getIssuer());
-        $this->assertEquals($subject, $jwt->getSubject());
-        $this->assertEquals($payloadItemValue, $jwt->getClaim($payloadItemName));
-        $this->assertEmpty($jwt->getExpiresAt());
-    }
-
-    /**
-     * @return void
-     *
-     * @throws InvalidSecretException
-     * @throws \Exception
-     */
-    public function testCreateJWTWithoutExpiry(): void
-    {
-        $expiryMinutes = $this->getFaker()->numberBetween();
-        $issuer = $this->getFaker()->uuid;
-        $subject = $this->getFaker()->uuid;
-        $payloadItemName = $this->getFaker()->uuid;
-        $payloadItemValue = $this->getFaker()->uuid;
-
-        $jwtHandler = $this->createJWTHandler(null, $issuer, $expiryMinutes);
-
-        $jwt = $jwtHandler->createJWT(
-            $subject,
-            [
-                $payloadItemName => $payloadItemValue,
-            ],
-            false
         );
 
         $this->assertEquals($issuer, $jwt->getIssuer());
@@ -318,23 +273,21 @@ class JWTHandlerTest extends TestCase
     /**
      * @param string|null $secret
      * @param string|null $issuer
-     * @param int|null    $expiryMinutes
      *
-     * @return JWTHandler
-     *
-     * @throws InvalidSecretException
+     * @return JWTHandler|MockInterface
      */
-    private function createJWTHandler(
-        string $secret = null,
-        string $issuer = null,
-        int $expiryMinutes = null
-    ): JWTHandler
+    private function createJWTHandler(string $secret = null, string $issuer = null): JWTHandler
     {
-        return new JWTHandler(
-            $secret ?: $this->getFaker()->uuid,
-            $issuer ?: $this->getFaker()->uuid,
-            $expiryMinutes,
-            $this->getSigner()
+        $jwtHandler = Mockery::spy(
+            JWTHandler::class, [
+                $secret ?: $this->getFaker()->uuid,
+                $issuer ?: $this->getFaker()->uuid,
+                $this->getSigner()
+            ]
         );
+
+        return $jwtHandler
+            ->makePartial()
+            ->shouldAllowMockingProtectedMethods();
     }
 }

@@ -9,6 +9,7 @@ use Mockery\Exception\InvalidCountException;
 use Mockery\MockInterface;
 use SPie\LaravelJWT\Auth\JWTGuard;
 use SPie\LaravelJWT\Console\GenerateSecret;
+use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use SPie\LaravelJWT\Exceptions\InvalidTokenProviderKeyException;
@@ -92,14 +93,12 @@ class AbstractServiceProviderTest extends TestCase
         $signer = Sha256::class;
         $secret = $this->getFaker()->uuid;
         $issuer = $this->getFaker()->uuid;
-        $ttl = $this->getFaker()->numberBetween();
 
         $abstractServiceProvider = $this->createAbstractServiceProvider($app);
         $this
             ->addGetSignerSetting($abstractServiceProvider, $signer)
             ->addGetSecretSetting($abstractServiceProvider, $secret)
-            ->addGetIssuerSetting($abstractServiceProvider, $issuer)
-            ->addGetTTLSetting($abstractServiceProvider, $ttl);
+            ->addGetIssuerSetting($abstractServiceProvider, $issuer);
 
         $this->getReflectionMethod(
             $this->getReflectionObject($abstractServiceProvider),
@@ -112,11 +111,10 @@ class AbstractServiceProviderTest extends TestCase
                 Mockery::on(function (string $abstract) {
                     return ($abstract == JWTHandler::class);
                 }),
-                Mockery::on(function (\Closure $concrete) use ($signer, $secret, $issuer, $ttl) {
+                Mockery::on(function (\Closure $concrete) use ($signer, $secret, $issuer) {
                     $expectedJwtHandler = new JWTHandler(
                         $secret,
                         $issuer,
-                        $ttl,
                         new $signer()
                     );
 
@@ -229,20 +227,53 @@ class AbstractServiceProviderTest extends TestCase
      */
     public function testExtendAuthGuard(): void
     {
+        $userProvider = Mockery::mock(UserProvider::class);
+        $request = new Request();
+        $jwtHandler = Mockery::mock(JWTHandler::class);
+        $tokenBlacklist = Mockery::mock(TokenBlacklist::class);
+        $refreshTokenRepository = Mockery::mock(RefreshTokenRepository::class);
+
         $authManager = Mockery::spy(AuthManager::class);
         $authManager
             ->shouldReceive('createUserProvider')
-            ->andReturn(Mockery::mock(UserProvider::class));
+            ->andReturn($userProvider);
 
         $app = $this->createApp();
-        $this->addGet($app, $authManager);
+        $this->addGet(
+            $app,
+            $authManager,
+            $tokenBlacklist,
+            $request,
+            $jwtHandler,
+            $refreshTokenRepository
+        );
+
+        $accessTokenProviderKey = $this->getFaker()->uuid;
+        $refreshTokenProviderKey = $this->getFaker()->uuid;
+        $accessTokenTTL = $this->getFaker()->numberBetween();
+        $refreshTokenTTL = $this->getFaker()->numberBetween();
+
+        $jwtGuard = new JWTGuard(
+            $jwtHandler,
+            $userProvider,
+            $request,
+            (new TestTokenProvider())->setKey($accessTokenProviderKey),
+            $accessTokenTTL,
+            $tokenBlacklist,
+            (new TestTokenProvider())->setKey($refreshTokenProviderKey),
+            $refreshTokenTTL,
+            $refreshTokenRepository
+        );
 
         $abstractServiceProvider = $this->createAbstractServiceProvider($app);
         $this
             ->addGetAccessTokenProviderClassSetting($abstractServiceProvider, TestTokenProvider::class)
-            ->addGetAccessTokenProviderKeySetting($abstractServiceProvider, $this->getFaker()->uuid)
+            ->addGetAccessTokenProviderKeySetting($abstractServiceProvider, $accessTokenProviderKey)
             ->addGetRefreshTokenProviderClassSetting($abstractServiceProvider, TestTokenProvider::class)
-            ->addGetRefreshTokenProviderKeySetting($abstractServiceProvider, $this->getFaker()->uuid);
+            ->addGetRefreshTokenProviderKeySetting($abstractServiceProvider, $refreshTokenProviderKey)
+            ->addGetAccessTokenTTLSetting($abstractServiceProvider, $accessTokenTTL)
+            ->addGetRefreshTokenTTLSetting($abstractServiceProvider, $refreshTokenTTL)
+            ->addGetRefreshTokenRepositoryClass($abstractServiceProvider, RefreshTokenRepository::class);
 
         $this->getReflectionMethod($this->getReflectionObject($abstractServiceProvider), 'extendAuthGuard')
             ->invoke($abstractServiceProvider);
@@ -251,16 +282,17 @@ class AbstractServiceProviderTest extends TestCase
             ->shouldHaveReceived('extend')
             ->with(
                 'jwt',
-                Mockery::on(function (\Closure $concrete) use ($app) {
-                    $jwtGuard = $concrete(
+                Mockery::on(function (\Closure $concrete) use ($app, $jwtGuard) {
+                    $concreteJwtGuard = $concrete(
                         $app,
                         $this->getFaker()->uuid,
                         [
                             'provider' => Mockery::mock(UserProvider::class),
                         ]
                     );
+                    $this->assertEquals($jwtGuard, $concreteJwtGuard);
 
-                    return ($jwtGuard instanceof JWTGuard);
+                    return ($jwtGuard == $concreteJwtGuard);
                 })
             )
             ->once();
@@ -285,19 +317,44 @@ class AbstractServiceProviderTest extends TestCase
      */
     public function testExtendAuthGuardOnlyWithRequiredProperties(): void
     {
+        $userProvider = Mockery::mock(UserProvider::class);
+        $request = new Request();
+        $jwtHandler = Mockery::mock(JWTHandler::class);
+
         $authManager = Mockery::spy(AuthManager::class);
         $authManager
             ->shouldReceive('createUserProvider')
             ->andReturn(Mockery::mock(UserProvider::class));
 
         $app = $this->createApp();
-        $this->addGet($app, $authManager, false);
+        $this->addGet(
+            $app,
+            $authManager,
+            null,
+            $request,
+            $jwtHandler
+        );
+
+        $accessTokenProviderKey = $this->getFaker()->uuid;
+        $accessTokenTTL = $this->getFaker()->numberBetween();
+
+        $jwtGuard = new JWTGuard(
+            $jwtHandler,
+            $userProvider,
+            $request,
+            (new TestTokenProvider())->setKey($accessTokenProviderKey),
+            $accessTokenTTL
+        );
 
         $abstractServiceProvider = $this->createAbstractServiceProvider($app);
         $this
             ->addGetAccessTokenProviderClassSetting($abstractServiceProvider, TestTokenProvider::class)
-            ->addGetAccessTokenProviderKeySetting($abstractServiceProvider, $this->getFaker()->uuid)
-            ->addGetRefreshTokenProviderClassSetting($abstractServiceProvider, null);
+            ->addGetAccessTokenProviderKeySetting($abstractServiceProvider, $accessTokenProviderKey)
+            ->addGetAccessTokenTTLSetting($abstractServiceProvider, $accessTokenTTL)
+            ->addGetRefreshTokenProviderClassSetting($abstractServiceProvider, null)
+            ->addGetRefreshTokenProviderKeySetting($abstractServiceProvider, null)
+            ->addGetRefreshTokenTTLSetting($abstractServiceProvider, null)
+            ->addGetRefreshTokenRepositoryClass($abstractServiceProvider, null);
 
         $this->getReflectionMethod($this->getReflectionObject($abstractServiceProvider), 'extendAuthGuard')
              ->invoke($abstractServiceProvider);
@@ -306,8 +363,8 @@ class AbstractServiceProviderTest extends TestCase
             ->shouldHaveReceived('extend')
             ->with(
                 'jwt',
-                Mockery::on(function (\Closure $concrete) use ($app) {
-                    $jwtGuard = $concrete(
+                Mockery::on(function (\Closure $concrete) use ($app, $jwtGuard) {
+                    $concreteJwtGuard = $concrete(
                         $app,
                         $this->getFaker()->uuid,
                         [
@@ -315,7 +372,7 @@ class AbstractServiceProviderTest extends TestCase
                         ]
                     );
 
-                    return ($jwtGuard instanceof JWTGuard);
+                    return ($jwtGuard == $concreteJwtGuard);
                 })
             )
             ->once();
@@ -491,40 +548,50 @@ class AbstractServiceProviderTest extends TestCase
     }
 
     /**
-     * @param Application|MockInterface $app
-     * @param AuthManager               $authManager
-     * @param bool                      $withTokenBlacklist
+     * @param Application|MockInterface   $app
+     * @param AuthManager                 $authManager
+     * @param TokenBlacklist              $withTokenBlacklist
+     * @param Request|null                $request
+     * @param JWTHandler|null             $jwtHandler
+     * @param RefreshTokenRepository|null $refreshTokenRepository
      *
      * @return AbstractServiceProviderTest
      */
     private function addGet(
         Application $app,
         AuthManager $authManager,
-        bool $withTokenBlacklist = true
+        TokenBlacklist $withTokenBlacklist = null,
+        Request $request = null,
+        JWTHandler $jwtHandler = null,
+        RefreshTokenRepository $refreshTokenRepository = null
     ): AbstractServiceProviderTest
     {
         $app
             ->shouldReceive('get')
-            ->andReturnUsing(function (string $argument) use ($authManager, $withTokenBlacklist) {
-                switch ($argument) {
-                    case 'auth':
-                        return $authManager;
+            ->andReturnUsing(
+                function (string $argument)
+                use ($authManager, $withTokenBlacklist, $request, $jwtHandler, $refreshTokenRepository) {
+                    switch ($argument) {
+                        case 'auth':
+                            return $authManager;
 
-                    case JWTHandler::class:
-                        return Mockery::mock(JWTHandler::class);
+                        case JWTHandler::class:
+                            return $jwtHandler ?: Mockery::mock(JWTHandler::class);
 
-                    case 'request':
-                        return new Request();
+                        case 'request':
+                            return $request ?: new Request();
 
-                    case TokenBlacklist::class:
-                        return $withTokenBlacklist
-                            ? Mockery::mock(TokenBlacklist::class)
-                            : null;
+                        case TokenBlacklist::class:
+                            return $withTokenBlacklist;
 
-                    default:
-                        return $this->getFaker()->uuid;
+                        case RefreshTokenRepository::class:
+                            return $refreshTokenRepository;
+
+                        default:
+                            return $this->getFaker()->uuid;
+                    }
                 }
-            });
+            );
 
         return $this;
     }
@@ -586,14 +653,50 @@ class AbstractServiceProviderTest extends TestCase
      *
      * @return AbstractServiceProviderTest
      */
-    private function addGetTTLSetting(
+    private function addGetAccessTokenTTLSetting(
         AbstractServiceProvider $abstractServiceProvider,
         int $ttl = null
     ): AbstractServiceProviderTest
     {
         $abstractServiceProvider
-            ->shouldReceive('getTTLSetting')
+            ->shouldReceive('getAccessTokenTTLSetting')
             ->andReturn($ttl);
+
+        return $this;
+    }
+
+    /**
+     * @param AbstractServiceProvider|MockInterface $abstractServiceProvider
+     * @param int|null                              $ttl
+     *
+     * @return AbstractServiceProviderTest
+     */
+    private function addGetRefreshTokenTTLSetting(
+        AbstractServiceProvider $abstractServiceProvider,
+        int $ttl = null
+    ): AbstractServiceProviderTest
+    {
+        $abstractServiceProvider
+            ->shouldReceive('getRefreshTokenTTLSetting')
+            ->andReturn($ttl);
+
+        return $this;
+    }
+
+    /**
+     * @param AbstractServiceProvider|MockInterface $abstractServiceProvider
+     * @param string|null                           $refreshTokenRepositoryClass
+     *
+     * @return AbstractServiceProviderTest
+     */
+    private function addGetRefreshTokenRepositoryClass(
+        AbstractServiceProvider $abstractServiceProvider,
+        string $refreshTokenRepositoryClass = null
+    ): AbstractServiceProviderTest
+    {
+        $abstractServiceProvider
+            ->shouldReceive('getRefreshTokenRepositoryClass')
+            ->andReturn($refreshTokenRepositoryClass);
 
         return $this;
     }
