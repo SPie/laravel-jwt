@@ -13,6 +13,7 @@ use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use SPie\LaravelJWT\Exceptions\JWTException;
+use SPie\LaravelJWT\Exceptions\MissingRefreshTokenProviderException;
 use SPie\LaravelJWT\Exceptions\MissingRefreshTokenRepositoryException;
 use SPie\LaravelJWT\Exceptions\NotAuthenticatedException;
 use SPie\LaravelJWT\JWT;
@@ -497,11 +498,12 @@ class JWTGuard implements Guard
      * @return Response
      *
      * @throws NotAuthenticatedException
+     * @throws MissingRefreshTokenProviderException
      */
     public function returnRefreshToken(Response $response): Response
     {
         if (!$this->getRefreshTokenProvider()) {
-            return $response;
+            throw new MissingRefreshTokenProviderException();
         }
 
         if (empty($this->getRefreshToken())) {
