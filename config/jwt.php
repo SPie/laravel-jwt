@@ -4,8 +4,7 @@ use SPie\LaravelJWT\Providers\AbstractServiceProvider;
 
 return [
     AbstractServiceProvider::SETTING_SECRET                 => env('JWT_SECRET'),
-    AbstractServiceProvider::SETTING_SECRET                 => env('JWT_ISSUER'),
-    AbstractServiceProvider::SETTING_TTL                    => env('JWT_TTL', 10),
+    AbstractServiceProvider::SETTING_ISSUER                 => env('JWT_ISSUER'),
     AbstractServiceProvider::SETTING_SIGNER                 => env(
         'JWT_SIGNER', Lcobucci\JWT\Signer\Hmac\Sha256::class
     ),
