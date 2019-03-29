@@ -134,8 +134,11 @@ class JWTHandler
         $builder = (new Builder())
             ->setIssuer($this->getIssuer())
             ->setSubject($subject)
-            ->setIssuedAt($issuedAt)
-            ->setExpiration($expiresAt);
+            ->setIssuedAt($issuedAt);
+
+        if ($expiresAt) {
+            $builder->setExpiration($expiresAt);
+        }
 
         foreach ($payload as $name => $value) {
             $builder->set($name, $value);

@@ -21,7 +21,7 @@ return [
     AbstractServiceProvider::SETTING_REFRESH_TOKEN_PROVIDER => [
         AbstractServiceProvider::SETTING_CLASS => env('JWT_REFRESH_TOKEN_PROVIDER', null),
         AbstractServiceProvider::SETTING_KEY   => env('JWT_REFRESH_TOKEN_KEY', null),
-        AbstractServiceProvider::SETTING_TTL   => env('JWT_REFRESH_TOKEN_KEY', null)
+        AbstractServiceProvider::SETTING_TTL   => env('JWT_REFRESH_TOKEN_TTL', null)
     ],
     AbstractServiceProvider::SETTING_REFRESH_TOKEN_REPOSITORY => env('JWT_REFRESH_TOKEN_REPOSITORY', null)
 ];

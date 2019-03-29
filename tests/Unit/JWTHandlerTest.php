@@ -128,6 +128,7 @@ class JWTHandlerTest extends TestCase
         $this->assertEquals($subject, $jwt->getSubject());
         $this->assertEquals($payloadItemValue, $jwt->getClaim($payloadItemName));
         $this->assertEmpty($jwt->getExpiresAt());
+        $this->assertArrayNotHasKey('exp', $jwt->getToken()->getClaims());
     }
 
     /**
