@@ -7,16 +7,23 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Cache\Store;
 use Illuminate\Http\Request;
+use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Token;
+use Mockery\MockInterface;
 use SPie\LaravelJWT\Auth\JWTGuard;
 use SPie\LaravelJWT\Blacklist\CacheTokenBlacklist;
 use SPie\LaravelJWT\Contracts\JWTAuthenticatable;
+use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use SPie\LaravelJWT\Exceptions\InvalidSecretException;
 use SPie\LaravelJWT\Exceptions\InvalidTokenException;
+use SPie\LaravelJWT\Exceptions\MissingRefreshTokenProviderException;
+use SPie\LaravelJWT\Exceptions\MissingRefreshTokenRepositoryException;
+use SPie\LaravelJWT\Exceptions\NotAuthenticatedException;
 use SPie\LaravelJWT\JWT;
 use SPie\LaravelJWT\JWTHandler;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Class JWTGuardTest
@@ -37,14 +44,19 @@ class JWTGuardTest extends TestCase
     public function testUser(): void
     {
         $user = $this->createUser();
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addGetValidJWT(
+            $jwtHandler,
+            $this->createJWT($this->createToken([JWT::CLAIM_SUBJECT => $this->getFaker()->uuid,]))
+        );
 
         $this->assertEquals(
             $user,
             $this->createJWTGuard(
-                $this->createJWTHandler($this->createJWT($this->createToken([JWT::CLAIM_SUBJECT => $this->getFaker()->uuid,]))),
+                $jwtHandler,
                 $this->createUserProvider($user),
                 new Request(),
-                $this->createTokenProvider($this->createToken())
+                $this->createAccessTokenProvider($this->createToken())
             )->user()
         );
     }
@@ -83,12 +95,15 @@ class JWTGuardTest extends TestCase
      */
     public function testUserInvalidToken(): void
     {
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addGetValidJWT($jwtHandler, new InvalidTokenException());
+
         $this->assertEmpty(
             $this->createJWTGuard(
-                $this->createJWTHandler()->setJWTException(new InvalidTokenException()),
+                $jwtHandler,
                 null,
                 null,
-                $this->createTokenProvider($this->createToken())
+                $this->createAccessTokenProvider($this->createToken())
             )->user()
         );
     }
@@ -102,14 +117,20 @@ class JWTGuardTest extends TestCase
     public function testUserWithEmptyBlacklist(): void
     {
         $user = $this->createUser();
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addGetValidJWT(
+            $jwtHandler,
+            $this->createJWT($this->createToken([JWT::CLAIM_SUBJECT => $this->getFaker()->uuid,]))
+        );
 
         $this->assertEquals(
             $user,
             $this->createJWTGuard(
-                $this->createJWTHandler($this->createJWT($this->createToken([JWT::CLAIM_SUBJECT => $this->getFaker()->uuid,]))),
+                $jwtHandler,
                 $this->createUserProvider($user),
                 new Request(),
-                $this->createTokenProvider($this->createToken()),
+                $this->createAccessTokenProvider($this->createToken()),
+                null,
                 $this->createTokenBlacklist(new ArrayStore())
             )->user()
         );
@@ -126,16 +147,122 @@ class JWTGuardTest extends TestCase
         $jwt = $this->createJWT($this->createToken([JWT::CLAIM_SUBJECT => $this->getFaker()->uuid,]));
         $arrayStore = new ArrayStore();
         $arrayStore->put(\md5($jwt->getJWT()), $jwt->getJWT(), 60);
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addGetValidJWT($jwtHandler, $jwt);
 
         $this->assertEmpty(
             $this->createJWTGuard(
-                $this->createJWTHandler($jwt),
+                $jwtHandler,
                 $this->createUserProvider($this->createUser()),
                 new Request(),
-                $this->createTokenProvider($jwt->getJWT()),
+                $this->createAccessTokenProvider($jwt->getJWT()),
+                null,
                 $this->createTokenBlacklist($arrayStore)
             )->user()
         );
+    }
+
+    /**
+     * @return void
+     *
+     * @throws InvalidSecretException
+     * @throws \Exception
+     */
+    public function testUserWithoutRevokedRefreshToken(): void
+    {
+        $user = $this->createUser();
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addGetValidJWT(
+            $jwtHandler,
+            $this->createJWT(
+                $this->createToken([
+                    JWT::CLAIM_SUBJECT              => $this->getFaker()->uuid,
+                    JWT::CUSTOM_CLAIM_REFRESH_TOKEN => $this->getFaker()->uuid,
+                ])
+            )
+        );
+
+        $this->assertEquals(
+            $user,
+            $this->createJWTGuard(
+                $jwtHandler,
+                $this->createUserProvider($user),
+                new Request(),
+                $this->createAccessTokenProvider($this->createToken()),
+                null,
+                null,
+                null,
+                null,
+                $this->createRefreshTokenRepository()
+            )->user()
+        );
+    }
+
+    /**
+     * @return void
+     *
+     * @throws InvalidSecretException
+     * @throws \Exception
+     */
+    public function testUserWithRevokedRefreshToken(): void
+    {
+        $refreshTokenId = $this->getFaker()->uuid;
+        $refreshTokenRepository = $this->createRefreshTokenRepository();
+        $refreshTokenRepository->getDisabledRefreshTokens()->push($refreshTokenId);
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addGetValidJWT(
+            $jwtHandler,
+            $this->createJWT(
+                $this->createToken([
+                    JWT::CLAIM_SUBJECT              => $this->getFaker()->uuid,
+                    JWT::CUSTOM_CLAIM_REFRESH_TOKEN => $refreshTokenId,
+                ])
+            )
+        );
+
+        $this->assertEmpty(
+            $this->createJWTGuard(
+                $jwtHandler,
+                $this->createUserProvider($this->createUser()),
+                new Request(),
+                $this->createAccessTokenProvider($this->createToken()),
+                null,
+                null,
+                null,
+                null,
+                $refreshTokenRepository
+            )->user()
+        );
+    }
+
+    /**
+     * @return void
+     *
+     * @throws InvalidSecretException
+     * @throws \Exception
+     */
+    public function testUserWithRefreshToken(): void
+    {
+        $user = $this->createUser();
+        $jwt = $this->createJWT($this->createToken([JWT::CLAIM_SUBJECT => $this->getFaker()->uuid,]));
+
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addGetValidJWT($jwtHandler, $jwt);
+
+        $jwtGuard = $this->createJWTGuard(
+            $jwtHandler,
+            $this->createUserProvider($user),
+            new Request(),
+            null,
+            null,
+            null,
+            $this->createRefreshTokenProvider($this->createToken()),
+            null,
+            $this->createRefreshTokenRepository()
+        );
+
+        $this->assertEquals($user, $jwtGuard->user());
+        $this->assertEquals($jwt, $jwtGuard->getRefreshToken());
     }
 
     /**
@@ -189,20 +316,35 @@ class JWTGuardTest extends TestCase
      * @throws InvalidSecretException
      * @throws Exception
      */
-    public function testIssueJWT(): void
+    public function testIssueAccessToken(): void
     {
         $user = $this->createUser();
         $jwt = $this->createJWT($this->createToken([JWT::CLAIM_SUBJECT => $user->getAuthIdentifier()]));
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addCreateJWT($jwtHandler, $jwt);
+        $accessTokenTTL = $this->getFaker()->numberBetween();
 
-        $this->assertEquals(
-            $jwt,
-            $this->createJWTGuard(
-                $this->createJWTHandler($jwt),
-                $this->createUserProvider($user),
-                new Request(),
-                $this->createTokenProvider()
-            )->issueJWT($user)
+        $jwtGuard = $this->createJWTGuard(
+            $jwtHandler,
+            $this->createUserProvider($user),
+            new Request(),
+            $this->createAccessTokenProvider(),
+            $accessTokenTTL
         );
+
+        $accessToken = $jwtGuard->issueAccessToken($user);
+
+        $this->assertEquals($jwt, $accessToken);
+        $this->assertEquals($jwt, $jwtGuard->getAccessToken());
+
+        $jwtHandler
+            ->shouldHaveReceived('createJWT')
+            ->with(
+                $user->getAuthIdentifier(),
+                $user->getCustomClaims(),
+                $accessTokenTTL
+            )
+            ->once();
     }
 
     /**
@@ -216,19 +358,21 @@ class JWTGuardTest extends TestCase
     {
         $user = $this->createUser();
         $jwt = $this->createJWT();
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addCreateJWT($jwtHandler, $jwt);
 
         $jwtGuard = $this->createJWTGuard(
-            $this->createJWTHandler($jwt),
+            $jwtHandler,
             $this->createUserProvider($user)->setValidCredentials(true),
             new Request(),
-            $this->createTokenProvider()
+            $this->createAccessTokenProvider()
         )->login([
             $this->getFaker()->uuid => $this->getFaker()->uuid,
             $this->getFaker()->uuid => $this->getFaker()->uuid,
         ]);
 
         $this->assertEquals($user, $jwtGuard->user());
-        $this->assertEquals($jwt, $jwtGuard->getJWT());
+        $this->assertEquals($jwt, $jwtGuard->getAccessToken());
     }
 
     /**
@@ -239,11 +383,14 @@ class JWTGuardTest extends TestCase
      */
     public function testLoginWithoutUser(): void
     {
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addGetValidJWT($jwtHandler, $this->createJWT());
+
         $jwtGuard = $this->createJWTGuard(
-            $this->createJWTHandler($this->createJWT()),
+            $jwtHandler,
             $this->createUserProvider(),
             new Request(),
-            $this->createTokenProvider()
+            $this->createAccessTokenProvider()
         );
 
         try {
@@ -257,7 +404,7 @@ class JWTGuardTest extends TestCase
             $this->assertTrue(true);
         }
 
-        $this->assertEmpty($jwtGuard->getJWT());
+        $this->assertEmpty($jwtGuard->getAccessToken());
         $this->assertEmpty($jwtGuard->user());
     }
 
@@ -269,8 +416,11 @@ class JWTGuardTest extends TestCase
      */
     public function testLoginWithoutJWTAuthenticatable(): void
     {
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addGetValidJWT($jwtHandler, $this->createJWT());
+
         $jwtGuard = $this->createJWTGuard(
-            $this->createJWTHandler($this->createJWT()),
+            $jwtHandler,
             $this->createUserProvider(
                 new class implements Authenticatable {
                     public function getAuthIdentifierName() {}
@@ -282,7 +432,7 @@ class JWTGuardTest extends TestCase
                 }
             ),
             new Request(),
-            $this->createTokenProvider()
+            $this->createAccessTokenProvider()
         );
 
         try {
@@ -296,7 +446,7 @@ class JWTGuardTest extends TestCase
             $this->assertTrue(true);
         }
 
-        $this->assertEmpty($jwtGuard->getJWT());
+        $this->assertEmpty($jwtGuard->getAccessToken());
         $this->assertEmpty($jwtGuard->user());
     }
 
@@ -308,11 +458,14 @@ class JWTGuardTest extends TestCase
      */
     public function testLoginWithInvalidCredentials(): void
     {
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addGetValidJWT($jwtHandler, $this->createJWT());
+
         $jwtGuard = $this->createJWTGuard(
-            $this->createJWTHandler($this->createJWT()),
+            $jwtHandler,
             $this->createUserProvider($this->createUser())->setValidCredentials(false),
             new Request(),
-            $this->createTokenProvider()
+            $this->createAccessTokenProvider()
         );
 
         try {
@@ -326,7 +479,7 @@ class JWTGuardTest extends TestCase
             $this->assertTrue(true);
         }
 
-        $this->assertEmpty($jwtGuard->getJWT());
+        $this->assertEmpty($jwtGuard->getAccessToken());
         $this->assertEmpty($jwtGuard->user());
     }
 
@@ -338,23 +491,28 @@ class JWTGuardTest extends TestCase
     public function testLogout(): void
     {
         $jwt = $this->createJWT($this->createToken());
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addGetValidJWT($jwtHandler, $jwt);
         $arrayStore = new ArrayStore();
 
         $jwtGuard = $this->createJWTGuard(
-            $this->createJWTHandler($jwt),
+            $jwtHandler,
             null,
             new Request(),
-            $this->createTokenProvider(),
+            $this->createAccessTokenProvider(),
+            null,
             $this->createTokenBlacklist($arrayStore)
         );
 
-        $jwtGuard
-            ->setJWT($jwt)
-            ->setUser($this->createUser());
+        $setJwtMethod = (new \ReflectionObject($jwtGuard))->getMethod('setAccessToken');
+        $setJwtMethod->setAccessible(true);
+        $setJwtMethod->invoke($jwtGuard, $jwt);
+
+        $jwtGuard->setUser($this->createUser());
 
         $jwtGuard->logout();
 
-        $this->assertEmpty($jwtGuard->getJWT());
+        $this->assertEmpty($jwtGuard->getAccessToken());
         $this->assertEmpty($jwtGuard->user());
         $this->assertEquals($jwt->getJWT(), $arrayStore->get(\md5($jwt->getJWT())));
     }
@@ -368,21 +526,25 @@ class JWTGuardTest extends TestCase
     public function testLogoutWithoutTokenBlacklist(): void
     {
         $jwt = $this->createJWT($this->createToken());
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addGetValidJWT($jwtHandler, $jwt);
 
         $jwtGuard = $this->createJWTGuard(
-            $this->createJWTHandler($jwt),
+            $jwtHandler,
             null,
             new Request(),
-            $this->createTokenProvider()
+            $this->createAccessTokenProvider()
         );
 
-        $jwtGuard
-            ->setJWT($jwt)
-            ->setUser($this->createUser());
+        $setJwtMethod = (new \ReflectionObject($jwtGuard))->getMethod('setAccessToken');
+        $setJwtMethod->setAccessible(true);
+        $setJwtMethod->invoke($jwtGuard, $jwt);
+
+        $jwtGuard->setUser($this->createUser());
 
         $jwtGuard->logout();
 
-        $this->assertEmpty($jwtGuard->getJWT());
+        $this->assertEmpty($jwtGuard->getAccessToken());
         $this->assertEmpty($jwtGuard->user());
     }
 
@@ -395,13 +557,16 @@ class JWTGuardTest extends TestCase
     public function testLogoutWithoutJWT(): void
     {
         $jwt = $this->createJWT($this->createToken());
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addGetValidJWT($jwtHandler, $jwt);
         $arrayStore = new ArrayStore();
 
         $jwtGuard = $this->createJWTGuard(
-            $this->createJWTHandler($jwt),
+            $jwtHandler,
             null,
             new Request(),
-            $this->createTokenProvider(),
+            $this->createAccessTokenProvider(),
+            null,
             $this->createTokenBlacklist($arrayStore)
         );
 
@@ -412,20 +577,602 @@ class JWTGuardTest extends TestCase
         $storageProperty = $arrayStoreObject->getProperty('storage');
         $storageProperty->setAccessible(true);
 
-        $this->assertEmpty($jwtGuard->getJWT());
+        $this->assertEmpty($jwtGuard->getAccessToken());
         $this->assertEmpty($storageProperty->getValue($arrayStore));
+    }
+
+    /**
+     * @return void
+     *
+     * @throws InvalidSecretException
+     * @throws \Exception
+     */
+    public function testLogoutWithRefreshToken(): void
+    {
+        $refreshTokenId = $this->getFaker()->uuid;
+
+        $jwt = $this->createJWT($this->createToken([
+            JWT::CUSTOM_CLAIM_REFRESH_TOKEN => $refreshTokenId,
+        ]));
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addGetValidJWT($jwtHandler, $jwt);
+        $arrayStore = new ArrayStore();
+        $refreshTokenRepository = $this->createRefreshTokenRepository();
+
+        $jwtGuard = $this->createJWTGuard(
+            $jwtHandler,
+            null,
+            new Request(),
+            $this->createAccessTokenProvider(),
+            null,
+            $this->createTokenBlacklist($arrayStore),
+            null,
+            null,
+            $refreshTokenRepository
+        );
+
+        $setJwtMethod = (new \ReflectionObject($jwtGuard))->getMethod('setAccessToken');
+        $setJwtMethod->setAccessible(true);
+        $setJwtMethod->invoke($jwtGuard, $jwt);
+
+        $jwtGuard->setUser($this->createUser());
+
+        $jwtGuard->logout();
+
+        $this->assertEmpty($jwtGuard->getAccessToken());
+        $this->assertEmpty($jwtGuard->user());
+        $this->assertEquals($jwt->getJWT(), $arrayStore->get(\md5($jwt->getJWT())));
+        $this->assertEquals($refreshTokenId, $refreshTokenRepository->getDisabledRefreshTokens()->first());
+    }
+
+    /**
+     * @return void
+     *
+     * @throws InvalidSecretException
+     * @throws \Exception
+     */
+    public function testLogoutWithoutRefreshToken(): void
+    {
+        $jwt = $this->createJWT($this->createToken());
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addGetValidJWT($jwtHandler, $jwt);
+        $arrayStore = new ArrayStore();
+        $refreshTokenRepository = $this->createRefreshTokenRepository();
+
+        $jwtGuard = $this->createJWTGuard(
+            $jwtHandler,
+            null,
+            new Request(),
+            $this->createAccessTokenProvider(),
+            null,
+            $this->createTokenBlacklist($arrayStore),
+            null,
+            null,
+            $refreshTokenRepository
+        );
+
+        $setJwtMethod = (new \ReflectionObject($jwtGuard))->getMethod('setAccessToken');
+        $setJwtMethod->setAccessible(true);
+        $setJwtMethod->invoke($jwtGuard, $jwt);
+
+        $jwtGuard->setUser($this->createUser());
+
+        $jwtGuard->logout();
+
+        $this->assertEmpty($jwtGuard->getAccessToken());
+        $this->assertEmpty($jwtGuard->user());
+        $this->assertEquals($jwt->getJWT(), $arrayStore->get(\md5($jwt->getJWT())));
+        $this->assertEmpty($refreshTokenRepository->getDisabledRefreshTokens()->first());
+    }
+
+    /**
+     * @return void
+     *
+     * @throws Exception
+     */
+    public function testIssueRefreshToken(): void
+    {
+        $user = $this->createUser();
+        $jwt = $this->createJWT($this->createToken());
+        $refreshTokenRepository = $this->createRefreshTokenRepository();
+        $accessTokenTTL = $this->getFaker()->numberBetween();
+
+        $jwtGuard = $this->createJWTGuard(
+            $this->createJWTHandlerMock(),
+            $this->createUserProvider($user),
+            new Request(),
+            $this->createAccessTokenProvider($jwt->getJWT()),
+            $accessTokenTTL,
+            null,
+            null,
+            null,
+            $refreshTokenRepository
+        );
+
+        $setJwtMethod = (new \ReflectionObject($jwtGuard))->getMethod('setAccessToken');
+        $setJwtMethod->setAccessible(true);
+        $setJwtMethod->invoke($jwtGuard, $jwt);
+        $jwtGuard->setUser($user);
+
+        $refreshJwt = $jwtGuard->issueRefreshToken();
+
+        $this->assertNotEmpty($refreshJwt);
+        $this->assertTrue($refreshTokenRepository->getRefreshTokens()->containsStrict($refreshJwt));
+        $this->assertNotEmpty($refreshJwt->getRefreshTokenId());
+        $this->assertNotEmpty($jwtGuard->getAccessToken());
+        $this->assertEquals(
+            $jwtGuard->getAccessToken()->getIssuedAt()->add(new \DateInterval('PT' . $accessTokenTTL . 'M')),
+            $jwtGuard->getAccessToken()->getExpiresAt()
+        );
+        $this->assertNotEquals($jwt, $jwtGuard->getAccessToken());
+    }
+
+    /**
+     * @return void
+     *
+     * @throws Exception
+     */
+    public function testIssueRefreshTokenWithTTL(): void
+    {
+        $user = $this->createUser();
+        $jwt = $this->createJWT($this->createToken());
+        $ttl = $this->getFaker()->numberBetween();
+
+        $jwtGuard = $this->createJWTGuard(
+            $this->createJWTHandlerMock(),
+            $this->createUserProvider($user),
+            new Request(),
+            $this->createAccessTokenProvider($jwt->getJWT()),
+            null,
+            null,
+            null,
+            $ttl,
+            $this->createRefreshTokenRepository()
+        );
+
+        $setJwtMethod = (new \ReflectionObject($jwtGuard))->getMethod('setAccessToken');
+        $setJwtMethod->setAccessible(true);
+        $setJwtMethod->invoke($jwtGuard, $jwt);
+        $jwtGuard->setUser($user);
+
+        $refreshJwt = $jwtGuard->issueRefreshToken();
+
+        $this->assertEquals(
+            $refreshJwt->getIssuedAt()->add(new DateInterval('PT' . $ttl . 'M')),
+            $refreshJwt->getExpiresAt()
+        );
+    }
+
+    /**
+     * @return void
+     *
+     * @throws InvalidSecretException
+     * @throws \Exception
+     */
+    public function testIssueRefreshTokenWithTokenBlacklist(): void
+    {
+        $user = $this->createUser();
+        $jwt = $this->createJWT($this->createToken());
+        $arrayStore = new ArrayStore();
+        $refreshTokenRepository = $this->createRefreshTokenRepository();
+
+        $jwtGuard = $this->createJWTGuard(
+            $this->createJWTHandlerMock(),
+            $this->createUserProvider($user),
+            new Request(),
+            $this->createAccessTokenProvider($jwt->getJWT()),
+            null,
+            $this->createTokenBlacklist($arrayStore),
+            null,
+            null,
+            $refreshTokenRepository
+        );
+
+        $setJwtMethod = (new \ReflectionObject($jwtGuard))->getMethod('setAccessToken');
+        $setJwtMethod->setAccessible(true);
+        $setJwtMethod->invoke($jwtGuard, $jwt);
+        $jwtGuard->setUser($user);
+
+        $refreshJwt = $jwtGuard->issueRefreshToken();
+
+        $this->assertNotEmpty($refreshJwt);
+        $this->assertTrue($refreshTokenRepository->getRefreshTokens()->containsStrict($refreshJwt));
+        $this->assertNotEmpty($refreshJwt->getRefreshTokenId());
+        $this->assertNotEmpty($jwtGuard->getAccessToken());
+        $this->assertNotEquals($jwt, $jwtGuard->getAccessToken());
+        $this->assertNotEmpty($arrayStore->get(\md5($jwt->getJWT())));
+    }
+
+    /**
+     * @return void
+     *
+     * @throws Exception
+     */
+    public function testIssueRefreshTokenWithoutRefreshTokenRepository(): void
+    {
+        try {
+            $this->createJWTGuard()->issueRefreshToken();
+
+            $this->assertTrue(false);
+        } catch (MissingRefreshTokenRepositoryException $e) {
+            $this->assertTrue(true);
+        }
+    }
+
+    /**
+     * @return void
+     *
+     * @throws Exception
+     */
+    public function testIssueRefreshTokenWithoutLoggedInUser(): void
+    {
+        $jwtGuard = $this->createJWTGuard(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            $this->createRefreshTokenRepository()
+        );
+
+        $setJwtMethod = (new \ReflectionObject($jwtGuard))->getMethod('setAccessToken');
+        $setJwtMethod->setAccessible(true);
+        $setJwtMethod->invoke($jwtGuard, $this->createJWT($this->createToken()));
+
+        try {
+            $jwtGuard->issueRefreshToken();
+
+            $this->assertTrue(false);
+        } catch (NotAuthenticatedException $e) {
+            $this->assertTrue(true);
+        }
+    }
+
+    /**
+     * @return void
+     *
+     * @throws Exception
+     */
+    public function testIssueRefreshTokenWithoutAccessToken(): void
+    {
+        $jwtGuard = $this->createJWTGuard(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            $this->createRefreshTokenRepository()
+        );
+        $jwtGuard->setUser($this->createUser());
+
+        try {
+            $jwtGuard->issueRefreshToken();
+
+            $this->assertTrue(false);
+        } catch (NotAuthenticatedException $e) {
+            $this->assertTrue(true);
+        }
+    }
+
+    /**
+     * @return void
+     *
+     * @throws \Exception
+     */
+    public function testRefreshAccessToken(): void
+    {
+        $accessTokenTTL = $this->getFaker()->numberBetween();
+        $refreshToken = $this->createJWT($this->createRefreshToken([JWT::CLAIM_SUBJECT => $this->getFaker()->uuid]));
+        $accessToken = $this->createJWT();
+        $user = $this->createUserMock(
+            null,
+            $refreshToken->getSubject(),
+            null,
+            [
+                $this->getFaker()->uuid => $this->getFaker()->uuid,
+            ]
+        );
+
+        $tokenBlacklist = $this->createTokenBlacklistMock();
+        $this->addIsRevoked($tokenBlacklist, false);
+
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this
+            ->addGetValidJWT($jwtHandler, $refreshToken)
+            ->addCreateJWT($jwtHandler, $accessToken);
+
+        $jwtGuard = $this->createJWTGuard(
+            $jwtHandler,
+            $this->createUserProviderMock($user),
+            null,
+            null,
+            $accessTokenTTL,
+            $tokenBlacklist,
+            $this->createRefreshTokenProvider($refreshToken->getToken())
+        );
+
+        $this->assertEquals($accessToken, $jwtGuard->refreshAccessToken());
+        $this->assertEquals($accessToken, $jwtGuard->getAccessToken());
+        $this->assertEquals($user, $jwtGuard->user());
+
+        $jwtHandler
+            ->shouldHaveReceived('createJWT')
+            ->with(
+                $refreshToken->getSubject(),
+                \array_merge(
+                    $user->getCustomClaims(),
+                    [JWT::CUSTOM_CLAIM_REFRESH_TOKEN => $refreshToken->getRefreshTokenId()]
+                ),
+                $accessTokenTTL
+            )
+            ->once();
+    }
+
+    /**
+     * @return void
+     *
+     * @throws \Exception
+     */
+    public function testRefreshAccessTokenWithoutRefreshToken(): void
+    {
+        $jwtGuard = $this->createJWTGuard(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            $this->createRefreshTokenProvider()
+        );
+
+        $this->expectException(NotAuthenticatedException::class);
+
+        $jwtGuard->refreshAccessToken();
+    }
+
+    /**
+     * @return void
+     *
+     * @throws \Exception
+     */
+    public function testRefreshAccessTokenWithoutValidRefreshToken(): void
+    {
+        $tokenBlacklist = $this->createTokenBlacklistMock();
+        $this->addIsRevoked($tokenBlacklist, false);
+
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addGetValidJWT($jwtHandler, new InvalidTokenException());
+
+        $jwtGuard = $this->createJWTGuard(
+            $jwtHandler,
+            null,
+            null,
+            null,
+            null,
+            $tokenBlacklist,
+            $this->createRefreshTokenProvider($this->getFaker()->uuid)
+        );
+
+        $this->expectException(NotAuthenticatedException::class);
+
+        $jwtGuard->refreshAccessToken();
+    }
+
+    /**
+     * @return void
+     *
+     * @throws \Exception
+     */
+    public function testRefreshAccessTokenWithRevokedRefreshToken(): void
+    {
+        $tokenBlacklist = $this->createTokenBlacklistMock();
+        $this->addIsRevoked($tokenBlacklist, true);
+
+        $jwtGuard = $this->createJWTGuard(
+            null,
+            null,
+            null,
+            null,
+            null,
+            $tokenBlacklist,
+            $this->createRefreshTokenProvider($this->getFaker()->uuid)
+        );
+
+        $this->expectException(NotAuthenticatedException::class);
+
+        $jwtGuard->refreshAccessToken();
+    }
+
+    /**
+     * @return void
+     *
+     * @throws \Exception
+     */
+    public function testRefreshAccessTokenWithoutUser(): void
+    {
+        $tokenBlacklist = $this->createTokenBlacklistMock();
+        $this->addIsRevoked($tokenBlacklist, false);
+
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addGetValidJWT(
+            $jwtHandler,
+            $this->createJWT($this->createRefreshToken([JWT::CLAIM_SUBJECT => $this->getFaker()->uuid]))
+        );
+
+        $jwtGuard = $this->createJWTGuard(
+            $jwtHandler,
+            $this->createUserProviderMock(),
+            null,
+            null,
+            null,
+            $tokenBlacklist,
+            $this->createRefreshTokenProvider($this->getFaker()->uuid)
+        );
+
+        $this->expectException(NotAuthenticatedException::class);
+
+        $jwtGuard->refreshAccessToken();
+    }
+
+    /**
+     * @return void
+     *
+     * @throws \Exception
+     */
+    public function testRefreshAccessTokenWithoutRefreshTokenId(): void
+    {
+        $tokenBlacklist = $this->createTokenBlacklistMock();
+        $this->addIsRevoked($tokenBlacklist, false);
+
+        $jwtHandler = $this->createJWTHandlerMock();
+        $this->addGetValidJWT(
+            $jwtHandler,
+            $this->createJWT($this->createToken([JWT::CLAIM_SUBJECT => $this->getFaker()->uuid]))
+        );
+
+        $jwtGuard = $this->createJWTGuard(
+            $jwtHandler,
+            null,
+            null,
+            null,
+            null,
+            $tokenBlacklist,
+            $this->createRefreshTokenProvider($this->getFaker()->uuid)
+        );
+
+        $this->expectException(NotAuthenticatedException::class);
+
+        $jwtGuard->refreshAccessToken();
+    }
+
+    /**
+     * @return void
+     *
+     * @throws \Exception
+     */
+    public function testReturnAccessToken(): void
+    {
+        $response = new Response();
+        $responseWithToken = new Response();
+        $responseWithToken->headers->set($this->getFaker()->uuid, $this->getFaker()->uuid);
+        $accessToken = $this->createJWT();
+        $accessTokenProvider = $this->createAccessTokenProviderMock(null, $responseWithToken);
+
+        $jwtGuard = $this->createJWTGuard(null, null, null, $accessTokenProvider);
+        $this->addGetAccessToken($jwtGuard, $accessToken);
+
+        $this->assertEquals($responseWithToken, $jwtGuard->returnAccessToken($response));
+
+        $accessTokenProvider
+            ->shouldHaveReceived('setResponseToken')
+            ->with(
+                $response,
+                $accessToken->getJWT()
+            )
+            ->once();
+    }
+
+    /**
+     * @return void
+     *
+     * @throws \Exception
+     */
+    public function testReturnAccessTokenWithoutAccessToken(): void
+    {
+        $this->expectException(NotAuthenticatedException::class);
+
+        $this->createJWTGuard()->returnAccessToken(new Response());
+    }
+
+    /**
+     * @return void
+     *
+     * @throws \Exception
+     */
+    public function testReturnRefreshToken(): void
+    {
+        $response = new Response();
+        $responseWithToken = new Response();
+        $responseWithToken->headers->set($this->getFaker()->uuid, $this->getFaker()->uuid);
+        $refreshToken = $this->createJWT();
+        $refreshTokenProvider = $this->createRefreshTokenProvider(null, $responseWithToken);
+
+        $jwtGuard = $this->createJWTGuard(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            $refreshTokenProvider
+        );
+        $this->addGetRefreshToken($jwtGuard, $refreshToken);
+
+        $this->assertEquals($responseWithToken, $jwtGuard->returnRefreshToken($response));
+
+        $refreshTokenProvider
+            ->shouldHaveReceived('setResponseToken')
+            ->with(
+                $response,
+                $refreshToken->getJWT()
+            )
+            ->once();
+    }
+
+    /**
+     * @return void
+     *
+     * @throws InvalidSecretException
+     * @throws NotAuthenticatedException
+     */
+    public function testReturnRefreshTokenWithoutRefreshToken(): void
+    {
+        $this->expectException(NotAuthenticatedException::class);
+
+        $this->createJWTGuard(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            $this->createRefreshTokenProvider()
+        )->returnRefreshToken(new Response());
+    }
+
+    /**
+     * @return void
+     *
+     * @throws InvalidSecretException
+     * @throws NotAuthenticatedException
+     */
+    public function testReturnRefreshTokenWithoutRefreshTokenProvider(): void
+    {
+        $this->expectException(MissingRefreshTokenProviderException::class);
+
+        $this->createJWTGuard()->returnRefreshToken(new Response());
     }
 
     //endregion
 
     /**
-     * @param JWTHandler|null     $jwtHandler
-     * @param UserProvider|null   $userProvider
-     * @param Request|null        $request
-     * @param TokenProvider|null  $tokenProvider
-     * @param TokenBlacklist|null $tokenBlacklist
+     * @param JWTHandler|null             $jwtHandler
+     * @param UserProvider|null           $userProvider
+     * @param Request|null                $request
+     * @param TokenProvider|null          $accessTokenProvider
+     * @param int|null                    $accessTokenTTL
+     * @param TokenBlacklist|null         $tokenBlacklist
+     * @param TokenProvider|null          $refreshTokenProvider
+     * @param int|null                    $refreshTokenTTL
+     * @param RefreshTokenRepository|null $refreshTokenRepository
      *
-     * @return JWTGuard
+     * @return JWTGuard|MockInterface
      *
      * @throws InvalidSecretException
      */
@@ -433,17 +1180,63 @@ class JWTGuardTest extends TestCase
         JWTHandler $jwtHandler = null,
         UserProvider $userProvider = null,
         Request $request = null,
-        TokenProvider $tokenProvider = null,
-        TokenBlacklist $tokenBlacklist = null
+        TokenProvider $accessTokenProvider = null,
+        int $accessTokenTTL = null,
+        TokenBlacklist $tokenBlacklist = null,
+        TokenProvider $refreshTokenProvider = null,
+        int $refreshTokenTTL = null,
+        RefreshTokenRepository $refreshTokenRepository = null
     ): JWTGuard
     {
-        return new JWTGuard(
-            $jwtHandler ?: $this->createJWTHandler(),
-            $userProvider ?: $this->createUserProvider(),
-            $request ?: new Request(),
-            $tokenProvider ?: $this->createTokenProvider(),
-            $tokenBlacklist
+        $jwtGuard = Mockery::spy(
+            JWTGuard::class,
+            [
+                $jwtHandler ?: $this->createJWTHandlerMock(),
+                $userProvider ?: $this->createUserProvider(),
+                $request ?: new Request(),
+                $accessTokenProvider ?: $this->createAccessTokenProvider(),
+                $accessTokenTTL ?: $this->getFaker()->numberBetween(),
+                $tokenBlacklist,
+                $refreshTokenProvider,
+                $refreshTokenTTL,
+                $refreshTokenRepository,
+            ]
         );
+        $jwtGuard
+            ->makePartial()
+            ->shouldAllowMockingProtectedMethods();
+
+        return $jwtGuard;
+    }
+
+    /**
+     * @param JWTGuard|MockInterface $jwtGuard
+     * @param JWT|null               $accessToken
+     *
+     * @return JWTGuardTest
+     */
+    private function addGetAccessToken(JWTGuard $jwtGuard, JWT $accessToken = null): JWTGuardTest
+    {
+        $jwtGuard
+            ->shouldReceive('getAccessToken')
+            ->andReturn($accessToken);
+
+        return $this;
+    }
+
+    /**
+     * @param JWTGuard|MockInterface $jwtGuard
+     *
+     * @param JWT|null               $refreshToken
+     * @return JWTGuardTest
+     */
+    private function addGetRefreshToken(JWTGuard $jwtGuard, JWT $refreshToken = null): JWTGuardTest
+    {
+        $jwtGuard
+            ->shouldReceive('getRefreshToken')
+            ->andReturn($refreshToken);
+
+        return $this;
     }
 
     /**
@@ -457,9 +1250,67 @@ class JWTGuardTest extends TestCase
     {
         return (new TestJWTHandler(
             $this->getFaker()->uuid,
-            $this->getFaker()->uuid,
-            $this->getFaker()->numberBetween()
+            $this->getFaker()->uuid
         ))->setJWT($jwt);
+    }
+
+    /**
+     * @param string|null $secret
+     * @param string|null $issuer
+     * @param Signer|null $signer
+     *
+     * @return JWTHandler|MockInterface
+     */
+    private function createJWTHandlerMock(
+        string $secret = null,
+        string $issuer = null,
+        Signer $signer = null
+    ): JWTHandler
+    {
+        return Mockery::spy(
+            JWTHandler::class,
+            [
+                $secret ?: $this->getFaker()->password,
+                $issuer ?: $this->getFaker()->uuid,
+                $signer
+            ]
+        )->makePartial();
+    }
+
+    /**
+     * @param JWTHandler|MockInterface $jwtHandler
+     * @param JWT|\Exception           $jwt
+     *
+     * @return JWTGuardTest
+     */
+    private function addGetValidJWT(JWTHandler $jwtHandler, $jwt): JWTGuardTest
+    {
+        $getValidJWTExpectation = $jwtHandler->shouldReceive('getValidJWT');
+
+        if ($jwt instanceof \Exception) {
+            $getValidJWTExpectation->andThrow($jwt);
+
+            return $this;
+        }
+
+        $getValidJWTExpectation->andReturn($jwt);
+
+        return $this;
+    }
+
+    /**
+     * @param JWTHandler|MockInterface $jwtHandler
+     * @param JWT                      $jwt
+     *
+     * @return JWTGuardTest
+     */
+    private function addCreateJWT(JWTHandler $jwtHandler, JWT $jwt): JWTGuardTest
+    {
+        $jwtHandler
+            ->shouldReceive('createJWT')
+            ->andReturn($jwt);
+
+        return $this;
     }
 
     /**
@@ -470,6 +1321,35 @@ class JWTGuardTest extends TestCase
     private function createUserProvider(Authenticatable $user = null): TestUserProvider
     {
         return (new TestUserProvider())->setUser($user);
+    }
+
+    /**
+     * @param Authenticatable|null $user
+     * @param bool                 $validCredentials
+     *
+     * @return UserProvider|MockInterface
+     */
+    private function createUserProviderMock(Authenticatable $user = null, bool $validCredentials = false): UserProvider
+    {
+        $userProvider = Mockery::spy(UserProvider::class);
+
+        $userProvider
+            ->shouldReceive('retrieveById')
+            ->andReturn($user);
+
+        $userProvider
+            ->shouldReceive('retrieveByToken')
+            ->andReturn($user);
+
+        $userProvider
+            ->shouldReceive('retrieveByCredentials')
+            ->andReturn($user);
+
+        $userProvider
+            ->shouldReceive('validateCredentials')
+            ->andReturn($validCredentials);
+
+        return $userProvider;
     }
 
     /**
@@ -493,13 +1373,91 @@ class JWTGuardTest extends TestCase
     }
 
     /**
+     * @param string|null $authIdentifierName
+     * @param string|null $authIdentifier
+     * @param string|null $authPassword
+     * @param array       $customClaims
+     *
+     * @return JWTAuthenticatable|MockInterface
+     */
+    private function createUserMock(
+        string $authIdentifierName = null,
+        string $authIdentifier = null,
+        string $authPassword = null,
+        array $customClaims = []
+    ): JWTAuthenticatable
+    {
+        $user = Mockery::spy(JWTAuthenticatable::class);
+
+        $user
+            ->shouldReceive('getAuthIdentifierName')
+            ->andReturn($authIdentifierName ?: $this->getFaker()->uuid);
+
+        $user
+            ->shouldReceive('getAuthIdentifier')
+            ->andReturn($authIdentifier ?: $this->getFaker()->uuid);
+
+        $user
+            ->shouldReceive('getAuthPassword')
+            ->andReturn($authPassword ?: $this->getFaker()->password);
+
+        $user
+            ->shouldReceive('getCustomClaims')
+            ->andReturn($customClaims);
+
+        return $user;
+    }
+
+    /**
      * @param string|null $token
      *
      * @return TokenProvider
      */
-    private function createTokenProvider(string $token = null): TokenProvider
+    private function createAccessTokenProvider(string $token = null): TokenProvider
     {
         return (new TestTokenProvider())->setToken($token);
+    }
+
+    /**
+     * @param string|null   $token
+     * @param Response|null $response
+     *
+     * @return TokenProvider|MockInterface
+     */
+    private function createAccessTokenProviderMock(string $token = null, Response $response = null): TokenProvider
+    {
+        $accessTokenProvider = Mockery::spy(TokenProvider::class);
+
+        $accessTokenProvider
+            ->shouldReceive('getRequestToken')
+            ->andReturn($token);
+
+        $accessTokenProvider
+            ->shouldReceive('setResponseToken')
+            ->andReturn($response);
+
+        return $accessTokenProvider;
+    }
+
+    /**
+     * @param string|null   $token
+     * @param Response|null $response
+     *
+     * @return TokenProvider|MockInterface
+     */
+    private function createRefreshTokenProvider(string $token = null, Response $response = null): TokenProvider
+    {
+        $refreshTokenProvider = Mockery::spy(TokenProvider::class);
+
+        $refreshTokenProvider
+            ->shouldReceive('getRequestToken')
+            ->andReturn($token);
+
+        $refreshTokenProvider
+            ->shouldReceive('setResponseToken')
+            ->andReturn($response);
+
+        return $refreshTokenProvider;
     }
 
     /**
@@ -522,5 +1480,50 @@ class JWTGuardTest extends TestCase
     private function createTokenBlacklist(Store $store): CacheTokenBlacklist
     {
         return new CacheTokenBlacklist(new Repository($store));
+    }
+
+    /**
+     * @return TokenBlacklist|MockInterface
+     */
+    private function createTokenBlacklistMock(): TokenBlacklist
+    {
+        return Mockery::spy(TokenBlacklist::class);
+    }
+
+    /**
+     * @param TokenBlacklist|MockInterface $tokenBlacklist
+     *
+     * @return JWTGuardTest
+     */
+    private function addRevoke(TokenBlacklist $tokenBlacklist): JWTGuardTest
+    {
+        $tokenBlacklist
+            ->shouldReceive('revoke')
+            ->andReturn($tokenBlacklist);
+
+        return $this;
+    }
+
+    /**
+     * @param TokenBlacklist|MockInterface $tokenBlacklist
+     * @param bool                         $isRevoked
+     *
+     * @return JWTGuardTest
+     */
+    private function addIsRevoked(TokenBlacklist $tokenBlacklist, bool $isRevoked): JWTGuardTest
+    {
+        $tokenBlacklist
+            ->shouldReceive('isRevoked')
+            ->andReturn($isRevoked);
+
+        return $this;
+    }
+
+    /**
+     * @return TestRefreshTokenRepository
+     */
+    private function createRefreshTokenRepository(): TestRefreshTokenRepository
+    {
+        return new TestRefreshTokenRepository();
     }
 }

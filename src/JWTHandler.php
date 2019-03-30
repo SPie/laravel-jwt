@@ -20,8 +20,6 @@ use SPie\LaravelJWT\Exceptions\InvalidSignatureException;
 class JWTHandler
 {
 
-    const HASH_ALGO_HS256 = 'HS256';
-
     /**
      * @var string
      */
@@ -33,11 +31,6 @@ class JWTHandler
     private $issuer;
 
     /**
-     * @var int|null
-     */
-    private $ttl;
-
-    /**
      * @var Signer
      */
     private $signer;
@@ -47,7 +40,6 @@ class JWTHandler
      *
      * @param string      $secret
      * @param string      $issuer
-     * @param int|null    $ttl
      * @param Signer|null $signer
      *
      * @throws InvalidSecretException
@@ -55,7 +47,6 @@ class JWTHandler
     public function __construct(
         string $secret,
         string $issuer,
-        int $ttl = null,
         Signer $signer = null
     )
     {
@@ -65,7 +56,6 @@ class JWTHandler
 
         $this->secret = $secret;
         $this->issuer = $issuer;
-        $this->ttl = $ttl;
         $this->signer = $signer ?: new Sha256();
     }
 
@@ -83,14 +73,6 @@ class JWTHandler
     protected function getIssuer(): string
     {
         return $this->issuer;
-    }
-
-    /**
-     * @return int|null
-     */
-    protected function getTtl(): ?int
-    {
-        return $this->ttl;
     }
 
     /**
@@ -137,22 +119,26 @@ class JWTHandler
     }
 
     /**
-     * @param string $subject
-     * @param array  $payload
+     * @param string   $subject
+     * @param array    $payload
+     * @param int|null $ttl
      *
      * @return JWT
      *
      * @throws \Exception
      */
-    public function createJWT(string $subject, array $payload = []): JWT
+    public function createJWT(string $subject, array $payload = [], int $ttl = null): JWT
     {
-        list($issuedAt, $expiresAt) = $this->createTimestamps();
+        list($issuedAt, $expiresAt) = $this->createTimestamps($ttl);
 
         $builder = (new Builder())
             ->setIssuer($this->getIssuer())
             ->setSubject($subject)
-            ->setIssuedAt($issuedAt)
-            ->setExpiration($expiresAt);
+            ->setIssuedAt($issuedAt);
+
+        if ($expiresAt) {
+            $builder->setExpiration($expiresAt);
+        }
 
         foreach ($payload as $name => $value) {
             $builder->set($name, $value);
@@ -164,19 +150,21 @@ class JWTHandler
     }
 
     /**
+     * @param int|null $ttl
+     *
      * @return array
      *
      * @throws \Exception
      */
-    protected function createTimestamps(): array
+    protected function createTimestamps(int $ttl = null): array
     {
         $issuedAt = new \DateTimeImmutable();
 
         return [
             $issuedAt->getTimestamp(),
-            $this->getTtl()
+            $ttl
                 ? (clone $issuedAt)
-                    ->add(new \DateInterval('PT' . $this->getTtl() . 'M'))
+                    ->add(new \DateInterval('PT' . $ttl . 'M'))
                     ->getTimestamp()
                 : null
         ];

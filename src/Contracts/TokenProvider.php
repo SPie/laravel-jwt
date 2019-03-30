@@ -2,7 +2,7 @@
 
 namespace SPie\LaravelJWT\Contracts;
 
-use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -13,6 +13,12 @@ use Symfony\Component\HttpFoundation\Response;
 interface TokenProvider
 {
 
+    /**
+     * @param string $key
+     *
+     * @return TokenProvider
+     */
+    public function setKey(string $key): TokenProvider;
 
     /**
      * @param Request $request

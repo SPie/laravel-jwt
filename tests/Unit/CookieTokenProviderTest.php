@@ -67,6 +67,6 @@ class CookieTokenProviderTest extends TestCase {
      */
     private function createCookieTokenProvider(string $cookieName): CookieTokenProvider
     {
-        return new CookieTokenProvider($cookieName);
+        return (new CookieTokenProvider())->setKey($cookieName);
     }
 }

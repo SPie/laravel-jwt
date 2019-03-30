@@ -15,6 +15,8 @@ class JWTTest extends TestCase
 
     /**
      * @return void
+     *
+     * @throws Exception
      */
     public function testGetToken(): void
     {
@@ -25,6 +27,8 @@ class JWTTest extends TestCase
 
     /**
      * @return void
+     *
+     * @throws Exception
      */
     public function testGetJWT(): void
     {
@@ -35,6 +39,8 @@ class JWTTest extends TestCase
 
     /**
      * @return void
+     *
+     * @throws Exception
      */
     public function testGetIssuer(): void
     {
@@ -59,6 +65,8 @@ class JWTTest extends TestCase
 
     /**
      * @return void
+     *
+     * @throws Exception
      */
     public function testGetSubject(): void
     {
@@ -140,6 +148,8 @@ class JWTTest extends TestCase
 
     /**
      * @return void
+     *
+     * @throws Exception
      */
     public function testGetClaims(): void
     {
@@ -148,6 +158,33 @@ class JWTTest extends TestCase
         ];
 
         $this->assertEquals($payload, $this->createJWT($this->createToken($payload))->getClaims());
+    }
+
+    /**
+     * @return void
+     *
+     * @throws Exception
+     */
+    public function testGetRefreshTokenId(): void
+    {
+        $payload = [
+            JWT::CUSTOM_CLAIM_REFRESH_TOKEN => $this->getFaker()->uuid,
+        ];
+
+        $this->assertEquals(
+            $payload[JWT::CUSTOM_CLAIM_REFRESH_TOKEN],
+            $this->createJWT($this->createToken($payload))->getRefreshTokenId()
+        );
+    }
+
+    /**
+     * @return void
+     *
+     * @throws Exception
+     */
+    public function testGetRefreshTokenIdEmpty(): void
+    {
+        $this->assertEmpty($this->createJWT($this->createToken())->getRefreshTokenId());
     }
 
     //endregion

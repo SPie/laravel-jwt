@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Http\Request;
 use SPie\LaravelJWT\Contracts\TokenProvider;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -9,6 +9,11 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class TestTokenProvider implements TokenProvider
 {
+
+    /**
+     * @var string|null
+     */
+    private $key;
 
     /**
      * @var string|null
@@ -52,4 +57,24 @@ class TestTokenProvider implements TokenProvider
      * @return Response
      */
     public function setResponseToken(Response $response, string $token): Response {}
+
+    /**
+     * @param string $key
+     *
+     * @return TokenProvider
+     */
+    public function setKey(string $key): TokenProvider
+    {
+        $this->key = $key;
+
+        return $this;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getKey(): ?string
+    {
+        return $this->key;
+    }
 }

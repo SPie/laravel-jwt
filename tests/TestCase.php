@@ -26,4 +26,14 @@ class TestCase extends BaseTestCase
 
         return $this->faker;
     }
+
+    /**
+     * @return void
+     */
+    protected function tearDown()
+    {
+        Mockery::close();
+
+        parent::tearDown();
+    }
 }
