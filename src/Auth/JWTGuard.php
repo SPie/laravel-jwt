@@ -235,14 +235,81 @@ class JWTGuard implements Guard
         }
 
         $token = $this->getAccessTokenProvider()->getRequestToken($this->getRequest());
+        if (empty($token) && $this->getRefreshTokenProvider()) {
+            return $this->authenticateWithRefreshToken();
+        }
+
         if (empty($token)) {
             return null;
         }
 
+        return $this->authenticateWithAccessToken($token);
+    }
+
+    /**
+     * @param string $token
+     *
+     * @return Authenticatable|null
+     *
+     * @throws \Exception
+     */
+    protected function authenticateWithAccessToken(string $token): ?Authenticatable
+    {
         if ($this->getTokenBlacklist() && $this->getTokenBlacklist()->isRevoked($token)) {
             return null;
         }
 
+        $jwt = $this->getJWT($token);
+        if (empty($jwt)) {
+            return null;
+        }
+
+        $user = $this->getUserByJWT($jwt);
+        if ($user) {
+            $this
+                ->setAccessToken($jwt)
+                ->setUser($user);
+        }
+
+        return $user;
+    }
+
+    /**
+     * @return Authenticatable|null
+     *
+     * @throws \Exception
+     */
+    protected function authenticateWithRefreshToken(): ?Authenticatable
+    {
+        $token = $this->getRefreshTokenProvider()->getRequestToken($this->getRequest());
+        if (empty($token)) {
+            return null;
+        }
+
+        $jwt = $this->getJWT($token);
+        if (empty($jwt)) {
+            return null;
+        }
+
+        $user = $this->getUserByJWT($jwt);
+        if ($user) {
+            $this
+                ->setRefreshToken($jwt)
+                ->setUser($user);
+        }
+
+        return $user;
+    }
+
+    /**
+     * @param string $token
+     *
+     * @return JWT|null
+     *
+     * @throws \Exception
+     */
+    protected function getJWT(string $token): ?JWT
+    {
         try {
             $jwt = $this->getJWTHandler()->getValidJWT($token);
         } catch (JWTException $e) {
@@ -257,14 +324,7 @@ class JWTGuard implements Guard
             return null;
         }
 
-        $user = $this->getUserByJWT($jwt);
-        if ($user) {
-            $this
-                ->setAccessToken($jwt)
-                ->setUser($user);
-        }
-
-        return $user;
+        return $jwt;
     }
 
     /**
