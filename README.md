@@ -3,6 +3,9 @@
 This package provides a Laravel `Guard` for JWT authentication.
 It uses [`lcobucci/jwt:3.2`](https://github.com/lcobucci/jwt) to create and validate the tokens.
 
+This package provides a access and refresh token workflow. You need to create an access token first. With the access token
+you can issue a refresh token. Then this refresh token can be used to create access tokens if required.
+
 ## Requirements
   * PHP >= 7.1
   
@@ -39,13 +42,15 @@ You can configure the JWT package in your `.env` file. You can find the availabl
 ```ini
 JWT_SECRET=
 JWT_ISSUER=App
-JWT_TTL=10
 JWT_SIGNER=Lcobucci\JWT\Signer\Hmac\Sha256
-JWT_TOKEN_PROVIDER=SPie\\LaravelJWT\\TokenProvider\\HeaderTokenProvider
-JWT_TOKEN_KEY=Authorization
-JWT_TOKEN_PREFIX=Bearer
+JWT_ACCESSS_TOKEN_PROVIDER=SPie\LaravelJWT\TokenProvider\HeaderTokenProvider
+JWT_ACCESS_TOKEN_TTL=10
+JWT_ACCESS_TOKEN_KEY=Authorization
 JWT_BLACKLIST=SPie\LaravelJWT\Blacklist\CacheTokenBlacklist
-
+JWT_REFRESH_TOKEN_PROVIDER=SPie\LaravelJWT\TokenProvider\CookieTokenProvider
+JWT_REFRESH_TOKEN_TTL=
+JWT_REFRESH_TOKEN_KEY=refresh-token
+JWT_REFRESH_TOKEN_REPOSITORY=
 ```
 You can also copy the `config/jwt.php` file from the repo to your projects config directory to configure JWT without an `.env` file.
 
@@ -94,13 +99,14 @@ If the login fails, the `JWTGuard` will throw an `Illuminate\Auth\Access\Authori
 The `JWTGuard::user()` method gets and authenticates a user by token, provided by the request.
 ```php
 /** @var SPie\LaravelJWT\Contracts\JWTAuthenticatable|null $user */
-$user = $jwtToken->user();
+$user = $jwtGuard->user();
 ```
-If no token was send by request or the token was invalid, the method will return `NULL`.
+If no token was send by request or the token was invalid, the method will return `NULL`. This will work with the access or the refresh token.
 
 ### Logout
 The `JWTGuard::logout()` method will unset the `$jwt` and `$user` property.
-If a `TokenBlacklist` is configured, the token will be revoked.
+If a `TokenBlacklist` is configured, the token will be revoked. If a refresh token was used to issue the current access token,
+this refresh token will get revoked.
 
 ### TokenProvider
 You have to specify a `TokenProvider` to be able to extract a token from request.
@@ -108,6 +114,9 @@ This package includes two `TokenProvider` already: the `SPie\LaravelJWT\TokenPro
 the `SPie\LaravelJWT\TokenProvider\CookieTokenProvider`.
 Of course you can create a custom `TokenProvider`, implementing the `SPie\LaravelJWT\Contracts\TokenProvider` interface 
 and specify it in the JWT config.
+
+You have to specify a `TokenProvider` for refresh tokens too, if you want to use them. It is recommended to use different 
+`TokenProvider` types for each of the tokens.
 
 ### JWTHandler
 To create or validate JWTs, you can use the `SPie\LaravelJWT\JWTHandler`. Just use dependency injection or use the `make` 
@@ -148,6 +157,10 @@ interface. The interface provide two methods: `revoke(SPie\LaravelJWT\JWT $jwt)`
 The `revoke` method will store the JWT until it would expire, or forever if no expiration date is set.
 The `isRevoked` method will check for a revoked token.
 
+### RefreshTokenRepository
+You have to implement the `SPie\LaravelJWT\RefreshTokenRepository` if you want to use refresh tokens. The `RefreshTokenRepository`
+will store and revoke the refresh tokens if needed and also checks if a refresh token is already revoked.
+
 ## Upcoming
-Future features:
-  * Access token - refresh token logic
+Upcoming features:
+  * Use of event dispatchers
