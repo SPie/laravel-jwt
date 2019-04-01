@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use SPie\LaravelJWT\TokenProvider\CookieTokenProvider;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -10,6 +9,8 @@ use Symfony\Component\HttpFoundation\Cookie;
  * Class CookieTokenProviderTest
  */
 class CookieTokenProviderTest extends TestCase {
+
+    use HttpHelper;
 
     //region Tests
 
@@ -20,10 +21,12 @@ class CookieTokenProviderTest extends TestCase {
     {
         $cookieName = $this->getFaker()->uuid;
         $token = $this->getFaker()->uuid;
-        $request = new Request();
-        $request->cookies->set($cookieName, $token);
 
-        $this->assertEquals($token, $this->createCookieTokenProvider($cookieName)->getRequestToken($request));
+        $this->assertEquals(
+            $token,
+            $this->createCookieTokenProvider($cookieName)
+                 ->getRequestToken($this->createRequestWithCookie($cookieName, $token))
+        );
     }
 
     /**
@@ -32,7 +35,7 @@ class CookieTokenProviderTest extends TestCase {
     public function testGetRequestTokenWithoutToken(): void
     {
         $this->assertEmpty(
-            $this->createCookieTokenProvider($this->getFaker()->uuid)->getRequestToken(new Request())
+            $this->createCookieTokenProvider($this->getFaker()->uuid)->getRequestToken($this->createEmptyRequest())
         );
     }
 
@@ -48,7 +51,7 @@ class CookieTokenProviderTest extends TestCase {
             $token,
             (new Collection(
                 $this->createCookieTokenProvider($cookieName)
-                    ->setResponseToken(new Response(), $token)
+                    ->setResponseToken($this->createEmptyResponse(), $token)
                     ->headers->getCookies())
             )
                 ->first(function (Cookie $cookie) use ($cookieName) {
@@ -68,5 +71,19 @@ class CookieTokenProviderTest extends TestCase {
     private function createCookieTokenProvider(string $cookieName): CookieTokenProvider
     {
         return (new CookieTokenProvider())->setKey($cookieName);
+    }
+
+    /**
+     * @param string $cookieName
+     * @param string $token
+     *
+     * @return Request
+     */
+    private function createRequestWithCookie(string $cookieName, string $token): Request
+    {
+        $request = $this->createEmptyRequest();
+        $request->cookies->set($cookieName, $token);
+
+        return $request;
     }
 }

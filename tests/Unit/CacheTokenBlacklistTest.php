@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Cache\ArrayStore;
 use Illuminate\Cache\Repository;
+use Mockery\MockInterface;
 use SPie\LaravelJWT\Blacklist\CacheTokenBlacklist;
 use SPie\LaravelJWT\JWT;
 
@@ -22,13 +22,24 @@ class CacheTokenBlacklistTest extends TestCase
      */
     public function testRevoke(): void
     {
-        $arrayStore = new ArrayStore();
+        $repository = $this->createRepository();
+        $jwt = $this->createJWT(10);
 
-        $jwt = new JWT($this->createToken([], null, 1));
+        $this->assertInstanceOf(
+            CacheTokenBlacklist::class,
+            $this->createCacheTokenBlacklist($repository)->revoke($jwt)
+        );
 
-        $this->createCacheTokenBlacklist($arrayStore)->revoke($jwt);
-
-        $this->assertNotEmpty($arrayStore->get(\md5($jwt->getJWT())));
+        $repository
+            ->shouldHaveReceived('put')
+            ->with(
+                $this->hashJWT($jwt->getJWT()),
+                $jwt->getJWT(),
+                Mockery::on(function ($argument) {
+                    return $argument <= 600 && $argument >595;
+                })
+            )
+            ->once();
     }
 
     /**
@@ -38,13 +49,22 @@ class CacheTokenBlacklistTest extends TestCase
      */
     public function testRevokeForever(): void
     {
-        $arrayStore = new ArrayStore();
+        $repository = $this->createRepository();
+        $jwt = $this->createJWT();
 
-        $jwt = new JWT($this->createToken());
 
-        $this->createCacheTokenBlacklist($arrayStore)->revoke($jwt);
+        $this->assertInstanceOf(
+            CacheTokenBlacklist::class,
+            $this->createCacheTokenBlacklist($repository)->revoke($jwt)
+        );
 
-        $this->assertNotEmpty($arrayStore->get(\md5($jwt->getJWT())));
+        $repository
+            ->shouldHaveReceived('forever')
+            ->with(
+                $this->hashJWT($jwt->getJWT()),
+                $jwt->getJWT()
+            )
+            ->once();
     }
 
     /**
@@ -54,11 +74,17 @@ class CacheTokenBlacklistTest extends TestCase
      */
     public function testIsRevoked(): void
     {
-        $jwt = new JWT($this->createToken());
-        $arrayStore = new ArrayStore();
-        $arrayStore->put(\md5($jwt->getJWT()), (string)$jwt->getJWT(), CacheTokenBlacklist::EXPIRATION_MINUTES_DEFAULT);
+        $jwt = $this->createJWT();
+        $repository = $this->createRepository();
+        $repository
+            ->shouldReceive('has')
+            ->andReturn(true);
 
-        $this->assertTrue($this->createCacheTokenBlacklist($arrayStore)->isRevoked((string)$jwt->getJWT()));
+        $this->assertTrue($this->createCacheTokenBlacklist($repository)->isRevoked((string)$jwt->getJWT()));
+        $repository
+            ->shouldHaveReceived('has')
+            ->with($this->hashJWT($jwt->getJWT()))
+            ->once();
     }
 
     /**
@@ -66,20 +92,65 @@ class CacheTokenBlacklistTest extends TestCase
      */
     public function testIsRevokedWithoutToken(): void
     {
-        $this->assertFalse($this->createCacheTokenBlacklist(new ArrayStore())->isRevoked($this->getFaker()->uuid));
+        $repository = $this->createRepository();
+        $repository
+            ->shouldReceive('has')
+            ->andReturn(false);
+
+        $this->assertFalse($this->createCacheTokenBlacklist($repository)->isRevoked($this->getFaker()->uuid));
     }
 
     //endregion
 
     /**
-     * @param ArrayStore|null $arrayStore
+     * @param Repository|null $repository
      *
      * @return CacheTokenBlacklist
      */
-    private function createCacheTokenBlacklist(ArrayStore $arrayStore = null): CacheTokenBlacklist
+    private function createCacheTokenBlacklist(Repository $repository = null): CacheTokenBlacklist
     {
-        return new CacheTokenBlacklist(new Repository(
-            $arrayStore ?: new ArrayStore()
-        ));
+        return new CacheTokenBlacklist($repository ?: $this->createRepository());
+    }
+
+    /**
+     * @return Repository|MockInterface
+     */
+    private function createRepository(): Repository
+    {
+        return Mockery::spy(Repository::class);
+    }
+
+    /**
+     * @param string $jwt
+     *
+     * @return string
+     */
+    private function hashJWT(string $jwt): string
+    {
+        return \md5($jwt);
+    }
+
+    /**
+     * @param int|null $ttl
+     *
+     * @return JWT
+     *
+     * @throws \Exception
+     */
+    private function createJWT(int $ttl = null): JWT
+    {
+        $jwt = Mockery::spy(JWT::class);
+        $jwt
+            ->shouldReceive('getJWT')
+            ->andReturn($this->getFaker()->uuid)
+            ->getMock()
+            ->shouldReceive('getExpiresAt')
+            ->andReturn(
+                $ttl
+                    ? (new \DateTimeImmutable())->add(new \DateInterval('PT' . $ttl . 'M'))
+                    : null
+            );
+
+        return $jwt;
     }
 }

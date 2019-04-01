@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use SPie\LaravelJWT\TokenProvider\HeaderTokenProvider;
 
 /**
@@ -9,6 +8,8 @@ use SPie\LaravelJWT\TokenProvider\HeaderTokenProvider;
  */
 class HeaderTokenProviderTest extends TestCase
 {
+
+    use HttpHelper;
 
     //region Tests
 
@@ -19,10 +20,12 @@ class HeaderTokenProviderTest extends TestCase
     {
         $headerName = $this->getFaker()->uuid;
         $token = $this->getFaker()->uuid;
-        $request = new Request();
-        $request->headers->set($headerName, HeaderTokenProvider::BEARER_PREFIX . ' ' . $token);
 
-        $this->assertEquals($token, $this->createHeaderTokenProvider($headerName)->getRequestToken($request));
+        $this->assertEquals(
+            $token,
+            $this->createHeaderTokenProvider($headerName)
+                 ->getRequestToken($this->createRequestWithHeader($headerName, 'Bearer ' . $token))
+        );
     }
 
     /**
@@ -30,7 +33,9 @@ class HeaderTokenProviderTest extends TestCase
      */
     public function testGetRequestTokenWithoutToken(): void
     {
-        $this->assertEmpty($this->createHeaderTokenProvider($this->getFaker()->uuid)->getRequestToken(new Request()));
+        $this->assertEmpty(
+            $this->createHeaderTokenProvider($this->getFaker()->uuid)->getRequestToken($this->createEmptyRequest())
+        );
     }
 
     /**
@@ -39,11 +44,10 @@ class HeaderTokenProviderTest extends TestCase
     public function testGetRequestTokenWithoutMatch(): void
     {
         $headerName = $this->getFaker()->uuid;
-        $request = new Request();
-        $request->headers->set($headerName, $this->getFaker()->uuid);
 
         $this->assertEmpty(
-            $this->createHeaderTokenProvider($headerName)->getRequestToken($request)
+            $this->createHeaderTokenProvider($headerName)
+                 ->getRequestToken($this->createRequestWithHeader($headerName, $this->getFaker()->uuid))
         );
     }
 
@@ -56,9 +60,9 @@ class HeaderTokenProviderTest extends TestCase
         $headerName = $this->getFaker()->uuid;
 
         $this->assertEquals(
-            HeaderTokenProvider::BEARER_PREFIX . ' ' . $token,
+            'Bearer ' . $token,
             $this->createHeaderTokenProvider($headerName)
-                ->setResponseToken(new Response(), $token)->headers->get($headerName)
+                ->setResponseToken($this->createEmptyResponse(), $token)->headers->get($headerName)
         );
     }
 
@@ -72,5 +76,19 @@ class HeaderTokenProviderTest extends TestCase
     private function createHeaderTokenProvider(string $headerName): HeaderTokenProvider
     {
         return (new HeaderTokenProvider())->setKey($headerName);
+    }
+
+    /**
+     * @param string $headerName
+     * @param string $value
+     *
+     * @return Request
+     */
+    private function createRequestWithHeader(string $headerName, string $value): Request
+    {
+        $request = $this->createEmptyRequest();
+        $request->headers->set($headerName, $value);
+
+        return $request;
     }
 }
