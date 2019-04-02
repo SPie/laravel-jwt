@@ -2,6 +2,7 @@
 
 use Mockery\MockInterface;
 use SPie\LaravelJWT\Exceptions\BeforeValidException;
+use SPie\LaravelJWT\Exceptions\MissingClaimException;
 use SPie\LaravelJWT\Exceptions\TokenExpiredException;
 use SPie\LaravelJWT\Exceptions\InvalidSecretException;
 use SPie\LaravelJWT\Exceptions\InvalidTokenException;
@@ -152,6 +153,8 @@ class JWTHandlerTest extends TestCase
     public function testGetValidJWTWithEmptyPayload(): void
     {
         $secret = $this->getFaker()->uuid;
+
+        $this->expectException(MissingClaimException::class);
 
         $jwt = $this->createJWTHandler($secret, $this->getFaker()->uuid)
                     ->getValidJWT($this->createToken([], $secret));
