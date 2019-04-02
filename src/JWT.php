@@ -4,6 +4,8 @@ namespace SPie\LaravelJWT;
 
 use Lcobucci\JWT\Claim;
 use Lcobucci\JWT\Token;
+use OutOfBoundsException;
+use SPie\LaravelJWT\Exceptions\MissingClaimException;
 
 /**
  * Class Token
@@ -69,28 +71,39 @@ class JWT
 
     /**
      * @param string $claim
+     * @param bool   $required
      *
      * @return mixed|null
+     *
+     * @throws MissingClaimException
      */
-    public function getClaim(string $claim)
+    public function getClaim(string $claim, bool $required = true)
     {
         try {
             return $this->getToken()->getClaim($claim);
         } catch (\OutOfBoundsException $e) {
-            return null;
+            if ($required) {
+                throw new MissingClaimException($claim);
+            }
         }
+
+        return null;
     }
 
     /**
      * @return string
+     *
+     * @throws MissingClaimException
      */
     public function getIssuer(): string
     {
-        return $this->getToken()->getClaim(self::CLAIM_ISSUER);
+        return $this->getClaim(self::CLAIM_ISSUER);
     }
 
     /**
      * @return string
+     *
+     * @throws MissingClaimException
      */
     public function getSubject(): string
     {
@@ -104,7 +117,7 @@ class JWT
      */
     public function getExpiresAt(): ?\DateTimeImmutable
     {
-        $expiresAt = $this->getClaim(self::CLAIM_EXPIRES_AT);
+        $expiresAt = $this->getClaim(self::CLAIM_EXPIRES_AT, false);
 
         return $expiresAt
             ? (new \DateTimeImmutable())->setTimestamp($expiresAt)
@@ -123,9 +136,11 @@ class JWT
 
     /**
      * @return null|string
+     *
+     * @throws MissingClaimException
      */
     public function getRefreshTokenId(): ?string
     {
-        return $this->getClaim(self::CUSTOM_CLAIM_REFRESH_TOKEN);
+        return $this->getClaim(self::CUSTOM_CLAIM_REFRESH_TOKEN, false);
     }
 }
