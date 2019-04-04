@@ -37,7 +37,9 @@ class JWTTest extends TestCase
     {
         $jwt = $this->getFaker()->uuid;
         $token = $this->createJWTToken();
-        $this->addToString($token, $jwt);
+        $token
+            ->shouldReceive('__toString')
+            ->andReturn($jwt);
 
         $this->assertEquals($jwt, $this->createJWT($token)->getJWT());
     }
@@ -240,20 +242,5 @@ class JWTTest extends TestCase
         $getClaimExpectation->andReturn($claim);
 
         return $token;
-    }
-
-    /**
-     * @param Token|MockInterface $token
-     * @param string|null         $jwt
-     *
-     * @return JWTTest
-     */
-    private function addToString(Token $token, string $jwt = null): JWTTest
-    {
-        $token
-            ->shouldReceive('__toString')
-            ->andReturn($jwt);
-
-        return $this;
     }
 }

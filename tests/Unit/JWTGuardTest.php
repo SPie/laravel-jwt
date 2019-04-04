@@ -7,6 +7,8 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Cache\Store;
 use Illuminate\Http\Request;
+use Lcobucci\JWT\Builder;
+use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Token;
 use Mockery\MockInterface;
@@ -1255,15 +1257,19 @@ class JWTGuardTest extends TestCase
     }
 
     /**
-     * @param string|null $secret
-     * @param string|null $issuer
-     * @param Signer|null $signer
+     * @param string|null  $secret
+     * @param string|null  $issuer
+     * @param Builder|null $builder
+     * @param Parser|null  $parser
+     * @param Signer|null  $signer
      *
      * @return JWTHandler|MockInterface
      */
     private function createJWTHandlerMock(
         string $secret = null,
         string $issuer = null,
+        Builder $builder = null,
+        Parser $parser = null,
         Signer $signer = null
     ): JWTHandler
     {
@@ -1272,7 +1278,9 @@ class JWTGuardTest extends TestCase
             [
                 $secret ?: $this->getFaker()->password,
                 $issuer ?: $this->getFaker()->uuid,
-                $signer
+                $builder ?: $this->createBuilder(),
+                $parser ?: $this->createParser(),
+                $signer ?: $this->createSigner()
             ]
         )->makePartial();
     }
@@ -1488,20 +1496,6 @@ class JWTGuardTest extends TestCase
     private function createTokenBlacklistMock(): TokenBlacklist
     {
         return Mockery::spy(TokenBlacklist::class);
-    }
-
-    /**
-     * @param TokenBlacklist|MockInterface $tokenBlacklist
-     *
-     * @return JWTGuardTest
-     */
-    private function addRevoke(TokenBlacklist $tokenBlacklist): JWTGuardTest
-    {
-        $tokenBlacklist
-            ->shouldReceive('revoke')
-            ->andReturn($tokenBlacklist);
-
-        return $this;
     }
 
     /**

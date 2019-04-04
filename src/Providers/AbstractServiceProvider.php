@@ -3,6 +3,8 @@
 namespace SPie\LaravelJWT\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Lcobucci\JWT\Builder;
+use Lcobucci\JWT\Parser;
 use SPie\LaravelJWT\Auth\JWTGuard;
 use SPie\LaravelJWT\Console\GenerateSecret;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
@@ -61,6 +63,8 @@ abstract class AbstractServiceProvider extends ServiceProvider
             return new JWTHandler(
                 $this->getSecretSetting(),
                 $this->getIssuerSetting(),
+                $this->app->get(Builder::class),
+                $this->app->get(Parser::class),
                 new $signerClass()
             );
         });

@@ -4,6 +4,8 @@ use Illuminate\Auth\AuthManager;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
+use Lcobucci\JWT\Builder;
+use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Mockery\Exception\InvalidCountException;
 use Mockery\MockInterface;
@@ -21,6 +23,8 @@ use SPie\LaravelJWT\Providers\AbstractServiceProvider;
  */
 class AbstractServiceProviderTest extends TestCase
 {
+
+    use JWTHelper;
 
     //region Tests
 
@@ -89,10 +93,22 @@ class AbstractServiceProviderTest extends TestCase
      */
     public function testRegisterJWTHandler(): void
     {
-        $app = $this->createApp();
         $signer = Sha256::class;
         $secret = $this->getFaker()->uuid;
         $issuer = $this->getFaker()->uuid;
+        $builder = $this->createBuilder();
+        $parser = $this->createParser();
+        $app = $this->createApp();
+        $this->addGet(
+            $app,
+            null,
+            null,
+            null,
+            null,
+            null,
+            $builder,
+            $parser
+        );
 
         $abstractServiceProvider = $this->createAbstractServiceProvider($app);
         $this
@@ -111,10 +127,12 @@ class AbstractServiceProviderTest extends TestCase
                 Mockery::on(function (string $abstract) {
                     return ($abstract == JWTHandler::class);
                 }),
-                Mockery::on(function (\Closure $concrete) use ($signer, $secret, $issuer) {
+                Mockery::on(function (\Closure $concrete) use ($signer, $secret, $issuer, $builder, $parser) {
                     $expectedJwtHandler = new JWTHandler(
                         $secret,
                         $issuer,
+                        $builder,
+                        $parser,
                         new $signer()
                     );
 
@@ -549,28 +567,32 @@ class AbstractServiceProviderTest extends TestCase
 
     /**
      * @param Application|MockInterface   $app
-     * @param AuthManager                 $authManager
-     * @param TokenBlacklist              $withTokenBlacklist
+     * @param AuthManager|null            $authManager
+     * @param TokenBlacklist|null         $withTokenBlacklist
      * @param Request|null                $request
      * @param JWTHandler|null             $jwtHandler
      * @param RefreshTokenRepository|null $refreshTokenRepository
+     * @param Builder|null                $builder
+     * @param Parser|null                 $parser
      *
      * @return AbstractServiceProviderTest
      */
     private function addGet(
         Application $app,
-        AuthManager $authManager,
+        AuthManager $authManager = null,
         TokenBlacklist $withTokenBlacklist = null,
         Request $request = null,
         JWTHandler $jwtHandler = null,
-        RefreshTokenRepository $refreshTokenRepository = null
+        RefreshTokenRepository $refreshTokenRepository = null,
+        Builder $builder = null,
+        Parser $parser = null
     ): AbstractServiceProviderTest
     {
         $app
             ->shouldReceive('get')
             ->andReturnUsing(
                 function (string $argument)
-                use ($authManager, $withTokenBlacklist, $request, $jwtHandler, $refreshTokenRepository) {
+                use ($authManager, $withTokenBlacklist, $request, $jwtHandler, $refreshTokenRepository, $builder, $parser) {
                     switch ($argument) {
                         case 'auth':
                             return $authManager;
@@ -586,6 +608,12 @@ class AbstractServiceProviderTest extends TestCase
 
                         case RefreshTokenRepository::class:
                             return $refreshTokenRepository;
+
+                        case Builder::class:
+                            return $builder;
+
+                        case Parser::class:
+                            return $parser;
 
                         default:
                             return $this->getFaker()->uuid;
