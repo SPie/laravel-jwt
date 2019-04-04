@@ -4,7 +4,6 @@ namespace SPie\LaravelJWT;
 
 use Lcobucci\JWT\Claim;
 use Lcobucci\JWT\Token;
-use OutOfBoundsException;
 use SPie\LaravelJWT\Exceptions\MissingClaimException;
 
 /**

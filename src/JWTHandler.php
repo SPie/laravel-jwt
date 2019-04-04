@@ -31,6 +31,16 @@ class JWTHandler
     private $issuer;
 
     /**
+     * @var Builder
+     */
+    private $builder;
+
+    /**
+     * @var Parser
+     */
+    private $parser;
+
+    /**
      * @var Signer
      */
     private $signer;
@@ -40,6 +50,8 @@ class JWTHandler
      *
      * @param string      $secret
      * @param string      $issuer
+     * @param Parser      $parser
+     * @param Builder     $builder
      * @param Signer|null $signer
      *
      * @throws InvalidSecretException
@@ -47,7 +59,9 @@ class JWTHandler
     public function __construct(
         string $secret,
         string $issuer,
-        Signer $signer = null
+        Builder $builder,
+        Parser $parser,
+        Signer $signer
     )
     {
         if (empty($secret)) {
@@ -56,6 +70,8 @@ class JWTHandler
 
         $this->secret = $secret;
         $this->issuer = $issuer;
+        $this->builder = $builder;
+        $this->parser = $parser;
         $this->signer = $signer ?: new Sha256();
     }
 
@@ -73,6 +89,22 @@ class JWTHandler
     protected function getIssuer(): string
     {
         return $this->issuer;
+    }
+
+    /**
+     * @return Builder
+     */
+    protected function getBuilder(): Builder
+    {
+        return $this->builder;
+    }
+
+    /**
+     * @return Parser
+     */
+    protected function getParser(): Parser
+    {
+        return $this->parser;
     }
 
     /**
@@ -97,7 +129,7 @@ class JWTHandler
     public function getValidJWT(string $token): JWT
     {
         try {
-            $token = (new Parser())->parse($token);
+            $token = $this->getParser()->parse($token);
         } catch (\InvalidArgumentException $e) {
             throw new InvalidTokenException();
         }
@@ -131,7 +163,7 @@ class JWTHandler
     {
         list($issuedAt, $expiresAt) = $this->createTimestamps($ttl);
 
-        $builder = (new Builder())
+        $builder = $this->getBuilder()
             ->setIssuer($this->getIssuer())
             ->setSubject($subject)
             ->setIssuedAt($issuedAt);
@@ -163,7 +195,7 @@ class JWTHandler
         return [
             $issuedAt->getTimestamp(),
             $ttl
-                ? (clone $issuedAt)
+                ? $issuedAt
                     ->add(new \DateInterval('PT' . $ttl . 'M'))
                     ->getTimestamp()
                 : null
