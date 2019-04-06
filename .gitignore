@@ -1,5 +1,6 @@
+tags
 vendor/
 report/
 .idea/
 composer.lock
-
+*.swp

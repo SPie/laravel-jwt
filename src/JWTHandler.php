@@ -72,7 +72,7 @@ class JWTHandler
         $this->issuer = $issuer;
         $this->builder = $builder;
         $this->parser = $parser;
-        $this->signer = $signer ?: new Sha256();
+        $this->signer = $signer;
     }
 
     /**
@@ -113,6 +113,14 @@ class JWTHandler
     protected function getSigner(): Signer
     {
         return $this->signer;
+    }
+
+    /**
+     * @return Builder
+     */
+    protected function getNewBuilder(): Builder
+    {
+        return clone $this->builder;
     }
 
     /**
@@ -163,7 +171,7 @@ class JWTHandler
     {
         list($issuedAt, $expiresAt) = $this->createTimestamps($ttl);
 
-        $builder = $this->getBuilder()
+        $builder = $this->getNewBuilder()
             ->setIssuer($this->getIssuer())
             ->setSubject($subject)
             ->setIssuedAt($issuedAt);
