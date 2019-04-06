@@ -5,7 +5,6 @@ use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer;
 use Mockery\MockInterface;
 use SPie\LaravelJWT\Exceptions\BeforeValidException;
-use SPie\LaravelJWT\Exceptions\MissingClaimException;
 use SPie\LaravelJWT\Exceptions\TokenExpiredException;
 use SPie\LaravelJWT\Exceptions\InvalidSecretException;
 use SPie\LaravelJWT\Exceptions\InvalidTokenException;
@@ -41,6 +40,26 @@ class JWTHandlerTest extends TestCase
         } catch (InvalidSecretException $e) {
             $this->assertTrue(true);
         }
+    }
+
+    /**
+     * @return void
+     */
+    public function testGetNewBuilder(): void
+    {
+        $builder = $this->createBuilder();
+        $jwtHandler = new JWTHandler(
+            $this->getFaker()->password,
+            $this->getFaker()->uuid,
+            $builder,
+            $this->createParser(),
+            $this->createSigner()
+        );
+
+        $newBuilder = $this->runGetNewBuilderMethod($jwtHandler);
+
+        $this->assertEquals($builder, $newBuilder);
+        $this->assertFalse($builder === $newBuilder);
     }
 
     /**
@@ -88,11 +107,16 @@ class JWTHandlerTest extends TestCase
         $payloadItemName = $this->getFaker()->uuid;
         $payloadItemValue = $this->getFaker()->uuid;
 
+        $jwtHandler = $this->createJWTHandler($secret, $issuer, $builder, null, $signer);
+        $jwtHandler
+            ->shouldReceive('getNewBuilder')
+            ->andReturn($builder);
+
         $before = new \DateTimeImmutable();
 
         $this->assertEquals(
             new JWT($token),
-            $this->createJWTHandler($secret, $issuer, $builder, null, $signer)->createJWT(
+            $jwtHandler->createJWT(
                 $subject,
                 [
                     $payloadItemName => $payloadItemValue,
@@ -347,15 +371,46 @@ class JWTHandlerTest extends TestCase
      * @param JWTHandler $jwtHandler
      * @param int|null   $minutes
      *
-     * @return mixed
+     * @return array
+     *
      * @throws ReflectionException
      */
-    private function runCreateTimestampsMethod(JWTHandler $jwtHandler, int $minutes = null)
+    private function runCreateTimestampsMethod(JWTHandler $jwtHandler, int $minutes = null): array
+    {
+        return $this->runReflectionMethod($jwtHandler, 'createTimestamps', [$minutes]);
+    }
+
+    /**
+     * @param JWTHandler $jwtHandler
+     *
+     * @return Builder
+     *
+     * @throws \ReflectionException
+     */
+    private function runGetNewBuilderMethod(JWTHandler $jwtHandler): Builder
+    {
+        return $this->runReflectionMethod($jwtHandler, 'getNewBuilder');
+    }
+
+    /**
+     * @param JWTHandler $jwtHandler
+     * @param string     $methodName
+     * @param array      $arguments
+     *
+     * @return mixed
+     *
+     * @throws ReflectionException
+     */
+    private function runReflectionMethod(
+        JWTHandler $jwtHandler,
+        string $methodName,
+        array $arguments = []
+    )
     {
         $reflectionObject = new \ReflectionObject($jwtHandler);
-        $reflectionMethod = $reflectionObject->getMethod('createTimestamps');
+        $reflectionMethod = $reflectionObject->getMethod($methodName);
         $reflectionMethod->setAccessible(true);
 
-        return $reflectionMethod->invokeArgs($jwtHandler, [$minutes]);
+        return $reflectionMethod->invokeArgs($jwtHandler, $arguments);
     }
 }
