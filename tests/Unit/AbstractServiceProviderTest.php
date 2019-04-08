@@ -122,6 +122,15 @@ class AbstractServiceProviderTest extends TestCase
         )->invoke($abstractServiceProvider);
 
         $app
+            ->shouldHaveReceived('bind')
+            ->with(Builder::class)
+            ->once();
+        $app
+            ->shouldHaveReceived('bind')
+            ->with(Parser::class)
+            ->once();
+
+        $app
             ->shouldHaveReceived('singleton')
             ->with(
                 Mockery::on(function (string $abstract) {

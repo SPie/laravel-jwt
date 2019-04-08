@@ -235,15 +235,15 @@ class JWTGuard implements Guard
         }
 
         $token = $this->getAccessTokenProvider()->getRequestToken($this->getRequest());
-        if (empty($token) && $this->getRefreshTokenProvider()) {
+        if (!empty($token)) {
+            return $this->authenticateWithAccessToken($token);
+        }
+
+        if ($this->getRefreshTokenProvider()) {
             return $this->authenticateWithRefreshToken();
         }
 
-        if (empty($token)) {
-            return null;
-        }
-
-        return $this->authenticateWithAccessToken($token);
+        return null;
     }
 
     /**
@@ -328,17 +328,13 @@ class JWTGuard implements Guard
     }
 
     /**
-     * Validate a user's credentials.
+     * @param JWT $jwt
      *
-     * @param  array $credentials
-     *
-     * @return bool
+     * @return Authenticatable|JWTAuthenticatable|null
      */
-    public function validate(array $credentials = []): bool
+    protected function getUserByJWT(JWT $jwt): ?Authenticatable
     {
-        $user = $this->getProvider()->retrieveByCredentials($credentials);
-
-        return ($user && $this->getProvider()->validateCredentials($user, $credentials));
+        return $this->getProvider()->retrieveById($jwt->getSubject());
     }
 
     /**
@@ -354,13 +350,17 @@ class JWTGuard implements Guard
     }
 
     /**
-     * @param JWT $jwt
+     * Validate a user's credentials.
      *
-     * @return Authenticatable|JWTAuthenticatable|null
+     * @param  array $credentials
+     *
+     * @return bool
      */
-    protected function getUserByJWT(JWT $jwt): ?Authenticatable
+    public function validate(array $credentials = []): bool
     {
-        return $this->getProvider()->retrieveById($jwt->getSubject());
+        $user = $this->getProvider()->retrieveByCredentials($credentials);
+
+        return ($user && $this->getProvider()->validateCredentials($user, $credentials));
     }
 
     /**

@@ -6,6 +6,7 @@ use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Lcobucci\JWT\Token;
 use Mockery\MockInterface;
+use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\JWT;
 
 /**
@@ -73,6 +74,14 @@ trait JWTHelper
             $secret,
             $ttl
         );
+    }
+
+    /**
+     * @return JWT|MockInterface
+     */
+    protected function createJWTMock(): JWT
+    {
+        return Mockery::spy(JWT::class);
     }
 
     /**
@@ -151,5 +160,13 @@ trait JWTHelper
     protected function createSigner(): Signer
     {
         return Mockery::spy(Signer::class);
+    }
+
+    /**
+     * @return RefreshTokenRepository|MockInterface
+     */
+    protected function createRefreshTokenRepositoryMock(): RefreshTokenRepository
+    {
+        return Mockery::spy(RefreshTokenRepository::class);
     }
 }
