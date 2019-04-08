@@ -57,6 +57,9 @@ abstract class AbstractServiceProvider extends ServiceProvider
      */
     protected function registerJWTHandler(): AbstractServiceProvider
     {
+        $this->app->bind(Builder::class);
+        $this->app->bind(Parser::class);
+
         $this->app->singleton(JWTHandler::class, function () {
             $signerClass = $this->getSignerSetting();
 
