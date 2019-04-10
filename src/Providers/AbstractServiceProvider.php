@@ -7,7 +7,6 @@ use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
 use SPie\LaravelJWT\Auth\JWTGuard;
 use SPie\LaravelJWT\Console\GenerateSecret;
-use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use SPie\LaravelJWT\Exceptions\InvalidTokenProviderKeyException;

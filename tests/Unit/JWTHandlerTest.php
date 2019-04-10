@@ -1,9 +1,6 @@
 <?php
 
 use Lcobucci\JWT\Builder;
-use Lcobucci\JWT\Parser;
-use Lcobucci\JWT\Signer;
-use Mockery\MockInterface;
 use SPie\LaravelJWT\Exceptions\BeforeValidException;
 use SPie\LaravelJWT\Exceptions\TokenExpiredException;
 use SPie\LaravelJWT\Exceptions\InvalidSecretException;
@@ -19,6 +16,7 @@ class JWTHandlerTest extends TestCase
 {
 
     use JWTHelper;
+    use ReflectionMethodHelper;
 
     //region Tests
 
@@ -98,7 +96,7 @@ class JWTHandlerTest extends TestCase
     public function testCreateJWT(): void
     {
         $secret = $this->getFaker()->password;
-        $token = $this->createTokenMock();
+        $token = $this->createToken();
         $builder = $this->createBuilder($token);
         $signer = $this->createSigner();
         $expiryMinutes = $this->getFaker()->numberBetween();
@@ -175,7 +173,7 @@ class JWTHandlerTest extends TestCase
      */
     public function testCreateJWTWithEmptyPayload(): void
     {
-        $token = $this->createTokenMock();
+        $token = $this->createToken();
         $builder = $this->createBuilder($token);
 
         $this->assertEquals(
@@ -197,7 +195,7 @@ class JWTHandlerTest extends TestCase
      */
     public function testCreateJWTWithoutTTL(): void
     {
-        $token = $this->createTokenMock();
+        $token = $this->createToken();
         $builder = $this->createBuilder($token);
 
         $this->assertEquals(
@@ -215,7 +213,7 @@ class JWTHandlerTest extends TestCase
      */
     public function testGetValidJWT(): void
     {
-        $token = $this->createTokenMock();
+        $token = $this->createToken();
         $token
             ->shouldReceive('verify')
             ->andReturn(true)
@@ -252,7 +250,7 @@ class JWTHandlerTest extends TestCase
      */
     public function testGetValidJWTExpired(): void
     {
-        $token = $this->createTokenMock();
+        $token = $this->createToken();
         $token
             ->shouldReceive('verify')
             ->andReturn(true)
@@ -273,7 +271,7 @@ class JWTHandlerTest extends TestCase
      */
     public function testGetValidJWTBeforeValid(): void
     {
-        $token = $this->createTokenMock();
+        $token = $this->createToken();
         $token
             ->shouldReceive('verify')
             ->andReturn(true)
@@ -301,7 +299,7 @@ class JWTHandlerTest extends TestCase
      */
     public function testGetValidJWTSignatureInvalid(): void
     {
-        $token = $this->createTokenMock();
+        $token = $this->createToken();
         $token
             ->shouldReceive('verify')
             ->andReturn(false);
@@ -336,38 +334,6 @@ class JWTHandlerTest extends TestCase
     //endregion
 
     /**
-     * @param string|null  $secret
-     * @param string|null  $issuer
-     * @param Builder|null $builder
-     * @param Parser|null  $parser
-     * @param Signer|null  $signer
-     *
-     * @return JWTHandler|MockInterface
-     */
-    private function createJWTHandler(
-        string $secret = null,
-        string $issuer = null,
-        Builder $builder = null,
-        Parser $parser = null,
-        Signer $signer = null
-    ): JWTHandler
-    {
-        $jwtHandler = Mockery::spy(
-            JWTHandler::class, [
-                $secret ?: $this->getFaker()->uuid,
-                $issuer ?: $this->getFaker()->uuid,
-                $builder ?: $this->createBuilder(),
-                $parser ?: $this->createParser(),
-                $signer ?: $this->getSigner()
-            ]
-        );
-
-        return $jwtHandler
-            ->makePartial()
-            ->shouldAllowMockingProtectedMethods();
-    }
-
-    /**
      * @param JWTHandler $jwtHandler
      * @param int|null   $minutes
      *
@@ -390,27 +356,5 @@ class JWTHandlerTest extends TestCase
     private function runGetNewBuilderMethod(JWTHandler $jwtHandler): Builder
     {
         return $this->runReflectionMethod($jwtHandler, 'getNewBuilder');
-    }
-
-    /**
-     * @param JWTHandler $jwtHandler
-     * @param string     $methodName
-     * @param array      $arguments
-     *
-     * @return mixed
-     *
-     * @throws ReflectionException
-     */
-    private function runReflectionMethod(
-        JWTHandler $jwtHandler,
-        string $methodName,
-        array $arguments = []
-    )
-    {
-        $reflectionObject = new \ReflectionObject($jwtHandler);
-        $reflectionMethod = $reflectionObject->getMethod($methodName);
-        $reflectionMethod->setAccessible(true);
-
-        return $reflectionMethod->invokeArgs($jwtHandler, $arguments);
     }
 }

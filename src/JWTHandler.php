@@ -5,7 +5,6 @@ namespace SPie\LaravelJWT;
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer;
-use Lcobucci\JWT\Signer\Hmac\Sha256;
 use SPie\LaravelJWT\Exceptions\BeforeValidException;
 use SPie\LaravelJWT\Exceptions\TokenExpiredException;
 use SPie\LaravelJWT\Exceptions\InvalidSecretException;
@@ -89,14 +88,6 @@ class JWTHandler
     protected function getIssuer(): string
     {
         return $this->issuer;
-    }
-
-    /**
-     * @return Builder
-     */
-    protected function getBuilder(): Builder
-    {
-        return $this->builder;
     }
 
     /**
