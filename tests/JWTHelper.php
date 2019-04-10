@@ -3,11 +3,11 @@
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer;
-use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Lcobucci\JWT\Token;
 use Mockery\MockInterface;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\JWT;
+use SPie\LaravelJWT\JWTHandler;
 
 /**
  * Trait JWTHelper
@@ -16,70 +16,41 @@ trait JWTHelper
 {
 
     /**
-     * @param array       $payload
-     * @param string|null $secret
-     * @param int         $ttl
+     * @param string|null  $secret
+     * @param string|null  $issuer
+     * @param Builder|null $builder
+     * @param Parser|null  $parser
+     * @param Signer|null  $signer
      *
-     * @return Token
-     *
-     * @throws \Exception
+     * @return JWTHandler|MockInterface
      */
-    protected function createToken(array $payload = [], string $secret = null, int $ttl = 0): Token
-    {
-        $signer = $this->getSigner();
-        $builder = (new Builder())
-            ->setHeader('alg', $signer->getAlgorithmId());
-
-        foreach ($payload as $key => $value) {
-            $builder->set($key, $value);
-        }
-
-        if ($ttl !== 0) {
-            $expiration = ($ttl > 0)
-                ? (new \DateTimeImmutable())->add(new \DateInterval('PT' . $ttl . 'M'))
-                : (new \DateTimeImmutable())->sub(new \DateInterval('PT' . (-1 * $ttl) . 'M'));
-
-            $builder->setExpiration($expiration->getTimestamp());
-        }
-
-        return $builder
-            ->sign($this->getSigner(), $secret ?: $this->getFaker()->uuid)
-            ->getToken();
-    }
-
-    /**
-     * @param string|null $refreshTokenId
-     * @param array       $payload
-     * @param string|null $secret
-     * @param int         $ttl
-     *
-     * @return Token
-     *
-     * @throws \Exception
-     */
-    protected function createRefreshToken(
-        array $payload = [],
+    protected function createJWTHandler(
         string $secret = null,
-        int $ttl = 0,
-        string $refreshTokenId = null
-    ): Token
+        string $issuer = null,
+        Builder $builder = null,
+        Parser $parser = null,
+        Signer $signer = null
+    ): JWTHandler
     {
-        return $this->createToken(
-            \array_merge(
-                $payload,
-                [
-                    JWT::CUSTOM_CLAIM_REFRESH_TOKEN => $refreshTokenId ?: $this->getFaker()->uuid,
-                ]
-            ),
-            $secret,
-            $ttl
+        $jwtHandler = Mockery::spy(
+            JWTHandler::class, [
+                $secret ?: $this->getFaker()->uuid,
+                $issuer ?: $this->getFaker()->uuid,
+                $builder ?: $this->createBuilder(),
+                $parser ?: $this->createParser(),
+                $signer ?: $this->getSigner()
+            ]
         );
+
+        return $jwtHandler
+            ->makePartial()
+            ->shouldAllowMockingProtectedMethods();
     }
 
     /**
      * @return JWT|MockInterface
      */
-    protected function createJWTMock(): JWT
+    protected function createJWT(): JWT
     {
         return Mockery::spy(JWT::class);
     }
@@ -87,7 +58,7 @@ trait JWTHelper
     /**
      * @return Token|MockInterface
      */
-    protected function createTokenMock(): Token
+    protected function createToken(): Token
     {
         return Mockery::spy(Token::class);
     }
@@ -97,7 +68,7 @@ trait JWTHelper
      */
     protected function getSigner(): Signer
     {
-        return new Sha256();
+        return Mockery::spy(Signer::class);
     }
 
     /**
@@ -129,7 +100,7 @@ trait JWTHelper
             ->andReturn($builder)
             ->getMock()
             ->shouldReceive('getToken')
-            ->andReturn($token ?: $this->createTokenMock())
+            ->andReturn($token ?: $this->createToken())
             ->getMock();
     }
 
@@ -149,7 +120,7 @@ trait JWTHelper
             return $parser;
         }
 
-        $parseExpectation->andReturn($token ?: $this->createTokenMock());
+        $parseExpectation->andReturn($token ?: $this->createToken());
 
         return $parser;
     }
@@ -165,7 +136,7 @@ trait JWTHelper
     /**
      * @return RefreshTokenRepository|MockInterface
      */
-    protected function createRefreshTokenRepositoryMock(): RefreshTokenRepository
+    protected function createRefreshTokenRepository(): RefreshTokenRepository
     {
         return Mockery::spy(RefreshTokenRepository::class);
     }

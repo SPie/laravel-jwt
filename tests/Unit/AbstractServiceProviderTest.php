@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
-use Mockery\Exception\InvalidCountException;
 use Mockery\MockInterface;
 use SPie\LaravelJWT\Auth\JWTGuard;
 use SPie\LaravelJWT\Console\GenerateSecret;
@@ -25,6 +24,7 @@ class AbstractServiceProviderTest extends TestCase
 {
 
     use JWTHelper;
+    use ReflectionMethodHelper;
 
     //region Tests
 
@@ -48,17 +48,17 @@ class AbstractServiceProviderTest extends TestCase
             ->shouldReceive('registerCommands')
             ->andReturn($abstractServiceProvider);
 
-        $abstractServiceProvider->register();
+        $this->assertEmpty($abstractServiceProvider->register());
 
-        try {
-            $abstractServiceProvider->shouldHaveReceived('registerJWTHandler');
-            $abstractServiceProvider->shouldHaveReceived('registerTokenBlacklist');
-            $abstractServiceProvider->shouldHaveReceived('registerCommands');
-
-            $this->assertTrue(true);
-        } catch (InvalidCountException $e) {
-            $this->assertTrue(false);
-        }
+        $abstractServiceProvider
+            ->shouldHaveReceived('registerJWTHandler')
+            ->once();
+        $abstractServiceProvider
+            ->shouldHaveReceived('registerTokenBlacklist')
+            ->once();
+        $abstractServiceProvider
+            ->shouldHaveReceived('registerCommands')
+            ->once();
     }
 
     /**
@@ -75,15 +75,11 @@ class AbstractServiceProviderTest extends TestCase
             ->shouldReceive('extendAuthGuard')
             ->andReturn($abstractServiceProvider);
 
-        $abstractServiceProvider->boot();
+        $this->assertEmpty($abstractServiceProvider->boot());
 
-        try {
-            $abstractServiceProvider->shouldHaveReceived('extendAuthGuard');
-
-            $this->assertTrue(true);
-        } catch (InvalidCountException $e) {
-            $this->assertTrue(false);
-        }
+        $abstractServiceProvider
+            ->shouldHaveReceived('extendAuthGuard')
+            ->once();
     }
 
     /**
@@ -116,10 +112,7 @@ class AbstractServiceProviderTest extends TestCase
             ->addGetSecretSetting($abstractServiceProvider, $secret)
             ->addGetIssuerSetting($abstractServiceProvider, $issuer);
 
-        $this->getReflectionMethod(
-            $this->getReflectionObject($abstractServiceProvider),
-            'registerJWTHandler'
-        )->invoke($abstractServiceProvider);
+        $this->runReflectionMethod($abstractServiceProvider, 'registerJWTHandler');
 
         $app
             ->shouldHaveReceived('bind')
@@ -170,10 +163,7 @@ class AbstractServiceProviderTest extends TestCase
         $abstractServiceProvider = $this->createAbstractServiceProvider($app);
         $this->addGetBlacklistSetting($abstractServiceProvider, $tokenBlacklistClass);
 
-        $this->getReflectionMethod(
-            $this->getReflectionObject($abstractServiceProvider),
-            'registerTokenBlacklist'
-        )->invoke($abstractServiceProvider);
+        $this->runReflectionMethod($abstractServiceProvider, 'registerTokenBlacklist');
 
         $app
             ->shouldHaveReceived('singleton')
@@ -204,10 +194,7 @@ class AbstractServiceProviderTest extends TestCase
         $abstractServiceProvider = $this->createAbstractServiceProvider($app);
         $this->addGetBlacklistSetting($abstractServiceProvider);
 
-        $this->getReflectionMethod(
-            $this->getReflectionObject($abstractServiceProvider),
-            'registerTokenBlacklist'
-        )->invoke($abstractServiceProvider);
+        $this->runReflectionMethod($abstractServiceProvider, 'registerTokenBlacklist');
 
         $app
             ->shouldHaveReceived('singleton')
@@ -235,8 +222,7 @@ class AbstractServiceProviderTest extends TestCase
     {
         $abstractServiceProvider = $this->createAbstractServiceProvider();
 
-        $this->getReflectionMethod($this->getReflectionObject($abstractServiceProvider), 'registerCommands')
-             ->invoke($abstractServiceProvider);
+        $this->runReflectionMethod($abstractServiceProvider, 'registerCommands');
 
         $abstractServiceProvider
             ->shouldHaveReceived('commands')
@@ -302,8 +288,7 @@ class AbstractServiceProviderTest extends TestCase
             ->addGetRefreshTokenTTLSetting($abstractServiceProvider, $refreshTokenTTL)
             ->addGetRefreshTokenRepositoryClass($abstractServiceProvider, RefreshTokenRepository::class);
 
-        $this->getReflectionMethod($this->getReflectionObject($abstractServiceProvider), 'extendAuthGuard')
-            ->invoke($abstractServiceProvider);
+        $this->runReflectionMethod($abstractServiceProvider, 'extendAuthGuard');
 
         $authManager
             ->shouldHaveReceived('extend')
@@ -344,7 +329,6 @@ class AbstractServiceProviderTest extends TestCase
      */
     public function testExtendAuthGuardOnlyWithRequiredProperties(): void
     {
-        $userProvider = Mockery::mock(UserProvider::class);
         $request = new Request();
         $jwtHandler = Mockery::mock(JWTHandler::class);
 
@@ -367,7 +351,7 @@ class AbstractServiceProviderTest extends TestCase
 
         $jwtGuard = new JWTGuard(
             $jwtHandler,
-            $userProvider,
+            Mockery::mock(UserProvider::class),
             $request,
             (new TestTokenProvider())->setKey($accessTokenProviderKey),
             $accessTokenTTL
@@ -383,8 +367,7 @@ class AbstractServiceProviderTest extends TestCase
             ->addGetRefreshTokenTTLSetting($abstractServiceProvider, null)
             ->addGetRefreshTokenRepositoryClass($abstractServiceProvider, null);
 
-        $this->getReflectionMethod($this->getReflectionObject($abstractServiceProvider), 'extendAuthGuard')
-             ->invoke($abstractServiceProvider);
+        $this->runReflectionMethod($abstractServiceProvider, 'extendAuthGuard');
 
         $authManager
             ->shouldHaveReceived('extend')
@@ -431,10 +414,7 @@ class AbstractServiceProviderTest extends TestCase
             ->addGetAccessTokenProviderClassSetting($abstractServiceProvider, TestTokenProvider::class)
             ->addGetAccessTokenProviderKeySetting($abstractServiceProvider, $key);
 
-        $tokenProvider = $this->getReflectionMethod(
-            $this->getReflectionObject($abstractServiceProvider),
-            'getAccessTokenProvider'
-        )->invoke($abstractServiceProvider);
+        $tokenProvider = $this->runReflectionMethod($abstractServiceProvider, 'getAccessTokenProvider');
 
         $this->assertInstanceOf(TokenProvider::class, $tokenProvider);
         $this->assertEquals($key, $tokenProvider->getKey());
@@ -457,10 +437,7 @@ class AbstractServiceProviderTest extends TestCase
             )
             ->addGetRefreshTokenProviderKeySetting($abstractServiceProvider, $key);
 
-        $tokenProvider = $this->getReflectionMethod(
-            $this->getReflectionObject($abstractServiceProvider),
-            'getRefreshTokenProvider'
-        )->invoke($abstractServiceProvider);
+        $tokenProvider = $this->runReflectionMethod($abstractServiceProvider, 'getRefreshTokenProvider');
 
         $this->assertInstanceOf(TokenProvider::class, $tokenProvider);
         $this->assertEquals($key, $tokenProvider->getKey());
@@ -482,10 +459,7 @@ class AbstractServiceProviderTest extends TestCase
             ->addGetRefreshTokenProviderKeySetting($abstractServiceProvider, null);
 
         $this->assertEmpty(
-            $this->getReflectionMethod(
-                $this->getReflectionObject($abstractServiceProvider),
-                'getRefreshTokenProvider'
-            )->invoke($abstractServiceProvider)
+            $this->runReflectionMethod($abstractServiceProvider, 'getRefreshTokenProvider')
         );
     }
 
@@ -504,45 +478,13 @@ class AbstractServiceProviderTest extends TestCase
             )
             ->addGetRefreshTokenProviderKeySetting($abstractServiceProvider, null);
 
-        try {
-            $this->getReflectionMethod(
-                $this->getReflectionObject($abstractServiceProvider),
-                'getRefreshTokenProvider'
-            )->invoke($abstractServiceProvider);
 
-            $this->assertTrue(false);
-        } catch (InvalidTokenProviderKeyException $e) {
-            $this->assertTrue(true);
-        }
+        $this->expectException(InvalidTokenProviderKeyException::class);
+
+        $this->runReflectionMethod($abstractServiceProvider, 'getRefreshTokenProvider');
     }
 
     //endregion
-
-    /**
-     * @param AbstractServiceProvider $abstractServiceProvider
-     *
-     * @return ReflectionObject
-     */
-    private function getReflectionObject(AbstractServiceProvider $abstractServiceProvider): \ReflectionObject
-    {
-        return new \ReflectionObject($abstractServiceProvider);
-    }
-
-    /**
-     * @param ReflectionObject $reflectionObject
-     * @param string           $methodName
-     *
-     * @return ReflectionMethod
-     *
-     * @throws ReflectionException
-     */
-    private function getReflectionMethod(\ReflectionObject $reflectionObject, string $methodName): \ReflectionMethod
-    {
-        $reflectionMethod = $reflectionObject->getMethod($methodName);
-        $reflectionMethod->setAccessible(true);
-
-        return $reflectionMethod;
-    }
 
     /**
      * @param Application|null $app

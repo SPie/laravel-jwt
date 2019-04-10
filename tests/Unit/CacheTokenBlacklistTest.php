@@ -23,7 +23,7 @@ class CacheTokenBlacklistTest extends TestCase
     public function testRevoke(): void
     {
         $repository = $this->createRepository();
-        $jwt = $this->createJWT(10);
+        $jwt = $this->createJWTToRevoke(10);
 
         $this->assertInstanceOf(
             CacheTokenBlacklist::class,
@@ -50,7 +50,7 @@ class CacheTokenBlacklistTest extends TestCase
     public function testRevokeForever(): void
     {
         $repository = $this->createRepository();
-        $jwt = $this->createJWT();
+        $jwt = $this->createJWTToRevoke();
 
 
         $this->assertInstanceOf(
@@ -74,7 +74,7 @@ class CacheTokenBlacklistTest extends TestCase
      */
     public function testIsRevoked(): void
     {
-        $jwt = $this->createJWT();
+        $jwt = $this->createJWTToRevoke();
         $repository = $this->createRepository();
         $repository
             ->shouldReceive('has')
@@ -133,14 +133,13 @@ class CacheTokenBlacklistTest extends TestCase
     /**
      * @param int|null $ttl
      *
-     * @return JWT
+     * @return JWT|MockInterface
      *
      * @throws \Exception
      */
-    private function createJWT(int $ttl = null): JWT
+    private function createJWTToRevoke(int $ttl = null): JWT
     {
-        $jwt = Mockery::spy(JWT::class);
-        $jwt
+        return $this->createJWT()
             ->shouldReceive('getJWT')
             ->andReturn($this->getFaker()->uuid)
             ->getMock()
@@ -149,8 +148,7 @@ class CacheTokenBlacklistTest extends TestCase
                 $ttl
                     ? (new \DateTimeImmutable())->add(new \DateInterval('PT' . $ttl . 'M'))
                     : null
-            );
-
-        return $jwt;
+            )
+            ->getMock();
     }
 }

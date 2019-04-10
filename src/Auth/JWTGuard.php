@@ -222,6 +222,18 @@ class JWTGuard implements Guard
     }
 
     /**
+     * Set the current user.
+     *
+     * @param Authenticatable $user
+     *
+     * @return void
+     */
+    public function setUser(Authenticatable $user): void
+    {
+        $this->user = $user;
+    }
+
+    /**
      * Get the currently authenticated user.
      *
      * @return Authenticatable|JWTAuthenticatable|null
@@ -338,18 +350,6 @@ class JWTGuard implements Guard
     }
 
     /**
-     * Set the current user.
-     *
-     * @param Authenticatable $user
-     *
-     * @return void
-     */
-    public function setUser(Authenticatable $user): void
-    {
-        $this->user = $user;
-    }
-
-    /**
      * Validate a user's credentials.
      *
      * @param  array $credentials
@@ -461,11 +461,9 @@ class JWTGuard implements Guard
             throw new NotAuthenticatedException();
         }
 
-        $claims = \array_merge(
+        $claims = $this->createClaimsWithRefreshTokenIdentifier(
             $user->getCustomClaims(),
-            [
-                JWT::CUSTOM_CLAIM_REFRESH_TOKEN => $this->createRefreshTokenIdentifier($user->getAuthIdentifier())
-            ]
+            $this->createRefreshTokenIdentifier($user->getAuthIdentifier())
         );
 
         $refreshJwt = $this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $claims, $this->getRefreshTokenTtl());
@@ -494,46 +492,75 @@ class JWTGuard implements Guard
      */
     public function refreshAccessToken(): JWT
     {
-        $token = $this->getRefreshTokenProvider()->getRequestToken($this->getRequest());
-        if (empty($token)) {
-            throw new NotAuthenticatedException();
-        }
-
-        if ($this->getTokenBlacklist()->isRevoked($token)) {
-            throw new NotAuthenticatedException();
-        }
-
-        try {
-            $refreshJWT = $this->getJWTHandler()->getValidJWT($token);
-        } catch (JWTException $e) {
-            throw new NotAuthenticatedException();
-        }
-
-        if (empty($refreshJWT->getRefreshTokenId())) {
-            throw new NotAuthenticatedException();
-        }
+        $refreshJWT = $this->getValidRefreshToken();
 
         $user = $this->getUserByJWT($refreshJWT);
         if (!$user) {
             throw new NotAuthenticatedException();
         }
 
-        $payload = \array_merge(
-            $user->getCustomClaims(),
-            [
-                JWT::CUSTOM_CLAIM_REFRESH_TOKEN => $refreshJWT->getRefreshTokenId()
-            ]
-        );
-
         $this
             ->setAccessToken(
-                $this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $payload, $this->getAccessTokenTtl())
+                $this->getJWTHandler()->createJWT(
+                    $user->getAuthIdentifier(),
+                    $this->createClaimsWithRefreshTokenIdentifier(
+                        $user->getCustomClaims(),
+                        $refreshJWT->getRefreshTokenId()
+                    ),
+                    $this->getAccessTokenTtl())
             )
             ->setUser($user);
 
         //TODO refresh access token event
 
         return $this->getAccessToken();
+    }
+
+    /**
+     * @return JWT
+     */
+    protected function getValidRefreshToken(): JWT
+    {
+        if (empty($this->getRefreshToken())) {
+            $token = $this->getRefreshTokenProvider()->getRequestToken($this->getRequest());
+            if (empty($token)) {
+                throw new NotAuthenticatedException();
+            }
+
+            if ($this->getTokenBlacklist()->isRevoked($token)) {
+                throw new NotAuthenticatedException();
+            }
+
+            try {
+                $refreshJWT = $this->getJWTHandler()->getValidJWT($token);
+            } catch (JWTException $e) {
+                throw new NotAuthenticatedException();
+            }
+        } else {
+            $refreshJWT = $this->getRefreshToken();
+        }
+
+        if (empty($refreshJWT->getRefreshTokenId())) {
+            throw new NotAuthenticatedException();
+        }
+
+        return $refreshJWT;
+    }
+
+    /**
+     * @param array  $claims
+     * @param string $refreshTokenId
+     *
+     * @return array
+     */
+    protected function createClaimsWithRefreshTokenIdentifier(array $claims, string $refreshTokenId): array
+    {
+        return \array_merge(
+            $claims,
+            [
+                JWT::CUSTOM_CLAIM_REFRESH_TOKEN => $refreshTokenId
+            ]
+        );
     }
 
     /**

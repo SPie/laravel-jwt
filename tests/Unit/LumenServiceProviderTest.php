@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Contracts\Foundation\Application;
-use Mockery\MockInterface;
 use SPie\LaravelJWT\Providers\LumenServiceProvider;
 
 /**
