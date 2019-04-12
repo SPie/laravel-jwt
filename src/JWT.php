@@ -4,6 +4,7 @@ namespace SPie\LaravelJWT;
 
 use Lcobucci\JWT\Claim;
 use Lcobucci\JWT\Token;
+use SPie\LaravelJWT\Contracts\JWT as JWTContract;
 use SPie\LaravelJWT\Exceptions\MissingClaimException;
 
 /**
@@ -11,7 +12,7 @@ use SPie\LaravelJWT\Exceptions\MissingClaimException;
  *
  * @package SPie\LaravelJWT
  */
-class JWT
+class JWT implements JWTContract
 {
 
     const CLAIM_ISSUER     = 'iss';
@@ -42,7 +43,7 @@ class JWT
     /**
      * @return Token
      */
-    public function getToken(): Token
+    protected function getToken(): Token
     {
         return $this->token;
     }

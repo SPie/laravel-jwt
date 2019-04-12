@@ -7,7 +7,7 @@ namespace SPie\LaravelJWT\Exceptions;
  *
  * @package SPie\LaravelJWT\Exceptions
  */
-class InvalidTokenProviderKeyException extends JWTException
+final class InvalidTokenProviderKeyException extends \Exception implements JWTException
 {
 
 }

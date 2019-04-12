@@ -1,14 +1,16 @@
 <?php
 
 use Illuminate\Http\Request;
+use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\TokenProvider\HeaderTokenProvider;
 
 /**
  * Class HeaderTokenProviderTest
  */
-class HeaderTokenProviderTest extends TestCase
+final class HeaderTokenProviderTest extends TestCase
 {
 
+    use TestHelper;
     use HttpHelper;
 
     //region Tests

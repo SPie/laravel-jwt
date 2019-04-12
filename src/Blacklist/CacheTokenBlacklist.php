@@ -4,14 +4,14 @@ namespace SPie\LaravelJWT\Blacklist;
 
 use Illuminate\Contracts\Cache\Repository;
 use SPie\LaravelJWT\Contracts\TokenBlacklist;
-use SPie\LaravelJWT\JWT;
+use SPie\LaravelJWT\Contracts\JWT;
 
 /**
  * Class CacheTokenBlacklist
  *
  * @package SPie\LaravelJWT\Blacklist
  */
-class CacheTokenBlacklist implements TokenBlacklist
+final class CacheTokenBlacklist implements TokenBlacklist
 {
 
     const EXPIRATION_MINUTES_DEFAULT = 129600;

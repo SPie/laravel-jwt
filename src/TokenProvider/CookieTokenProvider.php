@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * @package SPie\LaravelJWT\TokenProvider
  */
-class CookieTokenProvider implements TokenProvider
+final class CookieTokenProvider implements TokenProvider
 {
 
     /**
@@ -35,7 +35,7 @@ class CookieTokenProvider implements TokenProvider
     /**
      * @return string
      */
-    protected function getKey(): string
+    private function getKey(): string
     {
         return $this->key;
     }

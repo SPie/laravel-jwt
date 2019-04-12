@@ -7,7 +7,7 @@ namespace SPie\LaravelJWT\Exceptions;
  *
  * @package SPie\LaravelJWT\Exceptions
  */
-class InvalidTokenException extends JWTException
+final class InvalidTokenException extends \Exception implements JWTException
 {
 
 }

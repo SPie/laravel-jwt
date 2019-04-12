@@ -7,6 +7,7 @@ namespace SPie\LaravelJWT\Exceptions;
  *
  * @package SPie\LaravelJWT\Exceptions
  */
-class MissingClaimException extends JWTException {
+final class MissingClaimException extends \Exception implements JWTException
+{
 
 }

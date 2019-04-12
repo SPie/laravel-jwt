@@ -1,13 +1,16 @@
 <?php
 
 use Illuminate\Contracts\Foundation\Application;
+use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Providers\LumenServiceProvider;
 
 /**
  * Class LumenServiceProviderTest
  */
-class LumenServiceProviderTest extends TestCase
+final class LumenServiceProviderTest extends TestCase
 {
+
+    use TestHelper;
 
     //region Tests
 

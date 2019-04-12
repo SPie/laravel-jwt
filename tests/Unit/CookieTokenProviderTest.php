@@ -2,14 +2,17 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\TokenProvider\CookieTokenProvider;
 use Symfony\Component\HttpFoundation\Cookie;
 
 /**
  * Class CookieTokenProviderTest
  */
-class CookieTokenProviderTest extends TestCase {
+final class CookieTokenProviderTest extends TestCase
+{
 
+    use TestHelper;
     use HttpHelper;
 
     //region Tests

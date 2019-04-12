@@ -7,7 +7,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Class TestTokenProvider
  */
-class TestTokenProvider implements TokenProvider
+final class TestTokenProvider implements TokenProvider
 {
 
     /**

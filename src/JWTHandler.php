@@ -5,6 +5,8 @@ namespace SPie\LaravelJWT;
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer;
+use SPie\LaravelJWT\Contracts\JWT;
+use SPie\LaravelJWT\Contracts\JWTFactory;
 use SPie\LaravelJWT\Exceptions\BeforeValidException;
 use SPie\LaravelJWT\Exceptions\TokenExpiredException;
 use SPie\LaravelJWT\Exceptions\InvalidSecretException;
@@ -30,6 +32,11 @@ class JWTHandler
     private $issuer;
 
     /**
+     * @var JWTFactory
+     */
+    private $jwtFactory;
+
+    /**
      * @var Builder
      */
     private $builder;
@@ -49,8 +56,9 @@ class JWTHandler
      *
      * @param string      $secret
      * @param string      $issuer
-     * @param Parser      $parser
+     * @param JWTFactory  $jwtFactory
      * @param Builder     $builder
+     * @param Parser      $parser
      * @param Signer|null $signer
      *
      * @throws InvalidSecretException
@@ -58,6 +66,7 @@ class JWTHandler
     public function __construct(
         string $secret,
         string $issuer,
+        JWTFactory $jwtFactory,
         Builder $builder,
         Parser $parser,
         Signer $signer
@@ -69,6 +78,7 @@ class JWTHandler
 
         $this->secret = $secret;
         $this->issuer = $issuer;
+        $this->jwtFactory = $jwtFactory;
         $this->builder = $builder;
         $this->parser = $parser;
         $this->signer = $signer;
@@ -88,6 +98,14 @@ class JWTHandler
     protected function getIssuer(): string
     {
         return $this->issuer;
+    }
+
+    /**
+     * @return JWTFactory
+     */
+    protected function getJWTFactory(): JWTFactory
+    {
+        return $this->jwtFactory;
     }
 
     /**
@@ -141,7 +159,7 @@ class JWTHandler
             throw new TokenExpiredException();
         }
 
-        $jwt = new JWT($token);
+        $jwt = $this->getJWTFactory()->createJWT($token);
         if ($jwt->getIssuedAt() > new \DateTimeImmutable()) {
             throw new BeforeValidException();
         }
@@ -175,7 +193,7 @@ class JWTHandler
             $builder->set($name, $value);
         }
 
-        return new JWT(
+        return $this->getJWTFactory()->createJWT(
             $builder->sign($this->getSigner(), $this->getSecret())->getToken()
         );
     }

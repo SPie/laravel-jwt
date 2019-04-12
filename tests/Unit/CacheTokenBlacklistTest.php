@@ -2,15 +2,17 @@
 
 use Illuminate\Cache\Repository;
 use Mockery\MockInterface;
+use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Blacklist\CacheTokenBlacklist;
-use SPie\LaravelJWT\JWT;
+use SPie\LaravelJWT\Contracts\JWT;
 
 /**
  * Class CacheTokenBlacklistTest
  */
-class CacheTokenBlacklistTest extends TestCase
+final class CacheTokenBlacklistTest extends TestCase
 {
 
+    use TestHelper;
     use JWTHelper;
 
     //region Tests
