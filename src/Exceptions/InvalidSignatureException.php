@@ -7,7 +7,7 @@ namespace SPie\LaravelJWT\Exceptions;
  *
  * @package SPie\LaravelJWT\Exceptions
  */
-class InvalidSignatureException extends JWTException
+final class InvalidSignatureException extends \Exception implements JWTException
 {
 
 }

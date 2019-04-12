@@ -3,30 +3,20 @@
 use Lcobucci\JWT\Claim;
 use Lcobucci\JWT\Token;
 use Mockery\MockInterface;
+use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Exceptions\MissingClaimException;
 use SPie\LaravelJWT\JWT;
 
 /**
  * Class JWTTest
  */
-class JWTTest extends TestCase
+final class JWTTest extends TestCase
 {
 
+    use TestHelper;
     use JWTHelper;
 
     //region Tests
-
-    /**
-     * @return void
-     *
-     * @throws Exception
-     */
-    public function testGetToken(): void
-    {
-        $token = $this->createJWTToken();
-
-        $this->assertEquals($token, $this->createJWT($token)->getToken());
-    }
 
     /**
      * @return void

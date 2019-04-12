@@ -2,6 +2,7 @@
 
 use Illuminate\Contracts\Auth\Factory;
 use Mockery\MockInterface;
+use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Auth\JWTGuard;
 use SPie\LaravelJWT\Exceptions\NotAuthenticatedException;
 use SPie\LaravelJWT\Middleware\AuthMiddleware;
@@ -10,8 +11,10 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Class AuthMiddlewareTest
  */
-class AuthMiddlewareTest extends TestCase
+final class AuthMiddlewareTest extends TestCase
 {
+
+    use TestHelper;
 
     //region Tests
 

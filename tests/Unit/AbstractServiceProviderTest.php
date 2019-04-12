@@ -8,21 +8,25 @@ use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Mockery\MockInterface;
+use PHPUnit\Framework\TestCase;
+use SPie\LaravelJWT\Contracts\JWTFactory as JWTFactoryContract;
 use SPie\LaravelJWT\Auth\JWTGuard;
 use SPie\LaravelJWT\Console\GenerateSecret;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use SPie\LaravelJWT\Exceptions\InvalidTokenProviderKeyException;
+use SPie\LaravelJWT\JWTFactory;
 use SPie\LaravelJWT\JWTHandler;
 use SPie\LaravelJWT\Providers\AbstractServiceProvider;
 
 /**
  * Class AbstractServiceProviderTest
  */
-class AbstractServiceProviderTest extends TestCase
+final class AbstractServiceProviderTest extends TestCase
 {
 
+    use TestHelper;
     use JWTHelper;
     use ReflectionMethodHelper;
 
@@ -84,6 +88,29 @@ class AbstractServiceProviderTest extends TestCase
 
     /**
      * @return void
+     */
+    public function testRegisterJWTFactory(): void
+    {
+        $app = $this->createApp();
+
+        $abstractServiceProvider = $this->createAbstractServiceProvider($app);
+
+        $this->assertEquals(
+            $abstractServiceProvider,
+            $this->runReflectionMethod($abstractServiceProvider, 'registerJWTFactory')
+        );
+
+        $app
+            ->shouldHaveReceived('singleton')
+            ->with(
+                JWTFactoryContract::class,
+                JWTFactory::class
+            )
+            ->once();
+    }
+
+    /**
+     * @return void
      *
      * @throws ReflectionException
      */
@@ -94,6 +121,7 @@ class AbstractServiceProviderTest extends TestCase
         $issuer = $this->getFaker()->uuid;
         $builder = $this->createBuilder();
         $parser = $this->createParser();
+        $jwtFactory = $this->createJWTFactory();
         $app = $this->createApp();
         $this->addGet(
             $app,
@@ -103,7 +131,8 @@ class AbstractServiceProviderTest extends TestCase
             null,
             null,
             $builder,
-            $parser
+            $parser,
+            $jwtFactory
         );
 
         $abstractServiceProvider = $this->createAbstractServiceProvider($app);
@@ -129,10 +158,11 @@ class AbstractServiceProviderTest extends TestCase
                 Mockery::on(function (string $abstract) {
                     return ($abstract == JWTHandler::class);
                 }),
-                Mockery::on(function (\Closure $concrete) use ($signer, $secret, $issuer, $builder, $parser) {
+                Mockery::on(function (\Closure $concrete) use ($signer, $secret, $issuer, $builder, $parser, $jwtFactory) {
                     $expectedJwtHandler = new JWTHandler(
                         $secret,
                         $issuer,
+                        $jwtFactory,
                         $builder,
                         $parser,
                         new $signer()
@@ -525,6 +555,7 @@ class AbstractServiceProviderTest extends TestCase
      * @param RefreshTokenRepository|null $refreshTokenRepository
      * @param Builder|null                $builder
      * @param Parser|null                 $parser
+     * @param JWTFactoryContract|null     $jwtFactory
      *
      * @return AbstractServiceProviderTest
      */
@@ -536,14 +567,24 @@ class AbstractServiceProviderTest extends TestCase
         JWTHandler $jwtHandler = null,
         RefreshTokenRepository $refreshTokenRepository = null,
         Builder $builder = null,
-        Parser $parser = null
+        Parser $parser = null,
+        JWTFactoryContract $jwtFactory = null
     ): AbstractServiceProviderTest
     {
         $app
             ->shouldReceive('get')
             ->andReturnUsing(
                 function (string $argument)
-                use ($authManager, $withTokenBlacklist, $request, $jwtHandler, $refreshTokenRepository, $builder, $parser) {
+                use (
+                    $authManager,
+                    $withTokenBlacklist,
+                    $request,
+                    $jwtHandler,
+                    $refreshTokenRepository,
+                    $builder,
+                    $parser,
+                    $jwtFactory
+                ) {
                     switch ($argument) {
                         case 'auth':
                             return $authManager;
@@ -565,6 +606,9 @@ class AbstractServiceProviderTest extends TestCase
 
                         case Parser::class:
                             return $parser;
+
+                        case JWTFactoryContract::class:
+                            return $jwtFactory;
 
                         default:
                             return $this->getFaker()->uuid;

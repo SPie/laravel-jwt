@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\Request;
  *
  * @package SPie\LaravelJWT\Middleware
  */
-class AuthMiddleware
+final class AuthMiddleware
 {
 
     /**

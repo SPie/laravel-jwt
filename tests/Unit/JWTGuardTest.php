@@ -4,10 +4,8 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Http\Request;
-use Lcobucci\JWT\Builder;
-use Lcobucci\JWT\Parser;
-use Lcobucci\JWT\Signer;
 use Mockery\MockInterface;
+use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Auth\JWTGuard;
 use SPie\LaravelJWT\Contracts\JWTAuthenticatable;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
@@ -25,9 +23,10 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Class JWTGuardTest
  */
-class JWTGuardTest extends TestCase
+final class JWTGuardTest extends TestCase
 {
 
+    use TestHelper;
     use JWTHelper;
 
     //region Tests

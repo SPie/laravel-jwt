@@ -7,7 +7,7 @@ namespace SPie\LaravelJWT\Exceptions;
  *
  * @package SPie\LaravelJWT\Exceptions
  */
-class BeforeValidException extends JWTException
+final class BeforeValidException extends \Exception implements JWTException
 {
 
 }

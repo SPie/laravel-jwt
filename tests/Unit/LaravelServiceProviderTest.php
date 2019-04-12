@@ -1,12 +1,15 @@
 <?php
 
+use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Providers\LaravelServiceProvider;
 
 /**
  * Class LaravelServiceProviderTest
  */
-class LaravelServiceProviderTest extends TestCase
+final class LaravelServiceProviderTest extends TestCase
 {
+
+    use TestHelper;
 
     //region Tests
 

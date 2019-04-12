@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * @package SPie\LaravelJWT\TokenProvider
  */
-class HeaderTokenProvider implements TokenProvider
+final class HeaderTokenProvider implements TokenProvider
 {
 
     const BEARER_PREFIX = 'Bearer';
@@ -36,7 +36,7 @@ class HeaderTokenProvider implements TokenProvider
     /**
      * @return string
      */
-    protected function getKey(): string
+    private function getKey(): string
     {
         return $this->key;
     }

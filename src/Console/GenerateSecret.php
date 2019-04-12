@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
  *
  * @package SPie\LaravelJWT\Console
  */
-class GenerateSecret extends Command
+final class GenerateSecret extends Command
 {
 
     const COMMAND      = 'jwt:generate:secret';

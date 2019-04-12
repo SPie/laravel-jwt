@@ -7,7 +7,7 @@ namespace SPie\LaravelJWT\Exceptions;
  *
  * @package SPie\LaravelJWT\Exceptions
  */
-class MissingRefreshTokenRepositoryException extends JWTException
+final class MissingRefreshTokenRepositoryException extends \Exception implements JWTException
 {
 
 }

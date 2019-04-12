@@ -5,8 +5,10 @@ use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Token;
 use Mockery\MockInterface;
+use SPie\LaravelJWT\Contracts\JWTFactory;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\JWT;
+use SPie\LaravelJWT\Contracts\JWT as JWTContract;
 use SPie\LaravelJWT\JWTHandler;
 
 /**
@@ -16,17 +18,19 @@ trait JWTHelper
 {
 
     /**
-     * @param string|null  $secret
-     * @param string|null  $issuer
-     * @param Builder|null $builder
-     * @param Parser|null  $parser
-     * @param Signer|null  $signer
+     * @param string|null     $secret
+     * @param string|null     $issuer
+     * @param JWTFactory|null $jwtFactory
+     * @param Builder|null    $builder
+     * @param Parser|null     $parser
+     * @param Signer|null     $signer
      *
      * @return JWTHandler|MockInterface
      */
     protected function createJWTHandler(
         string $secret = null,
         string $issuer = null,
+        JWTFactory $jwtFactory = null,
         Builder $builder = null,
         Parser $parser = null,
         Signer $signer = null
@@ -36,6 +40,7 @@ trait JWTHelper
             JWTHandler::class, [
                 $secret ?: $this->getFaker()->uuid,
                 $issuer ?: $this->getFaker()->uuid,
+                $jwtFactory ?: $this->createJWTFactory(),
                 $builder ?: $this->createBuilder(),
                 $parser ?: $this->createParser(),
                 $signer ?: $this->getSigner()
@@ -139,5 +144,18 @@ trait JWTHelper
     protected function createRefreshTokenRepository(): RefreshTokenRepository
     {
         return Mockery::spy(RefreshTokenRepository::class);
+    }
+
+    /**
+     * @param JWTContract|null $jwt
+     *
+     * @return JWTFactory
+     */
+    protected function createJWTFactory(JWTContract $jwt = null): JWTFactory
+    {
+        return Mockery::spy(JWTFactory::class)
+            ->shouldReceive('createJWT')
+            ->andReturn($jwt ?: $this->createJWT())
+            ->getMock();
     }
 }

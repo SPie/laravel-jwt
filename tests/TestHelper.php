@@ -2,12 +2,11 @@
 
 use Faker\Factory;
 use Faker\Generator;
-use PHPUnit\Framework\TestCase as BaseTestCase;
 
 /**
- * Class TestCase
+ * Trait TestCase
  */
-class TestCase extends BaseTestCase
+trait TestHelper
 {
 
     /**

@@ -7,7 +7,7 @@ namespace SPie\LaravelJWT\Exceptions;
  *
  * @package SPie\LaravelJWT\Exceptions
  */
-class NotAuthenticatedException extends JWTException
+final class NotAuthenticatedException extends \Exception implements JWTException
 {
 
 }
