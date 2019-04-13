@@ -10,6 +10,16 @@ namespace SPie\LaravelJWT\Contracts;
 interface JWT
 {
 
+    const CLAIM_ISSUER     = 'iss';
+    const CLAIM_SUBJECT    = 'sub';
+    const CLAIM_AUDIENCE   = 'aud';
+    const CLAIM_EXPIRES_AT = 'exp';
+    const CLAIM_NOT_BEFORE = 'nbf';
+    const CLAIM_ISSUED_AT  = 'iat';
+    const CLAIM_JWT_ID     = 'jti';
+
+    const CUSTOM_CLAIM_REFRESH_TOKEN = 'rti';
+
     /**
      * @return string
      */

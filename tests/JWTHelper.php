@@ -7,8 +7,7 @@ use Lcobucci\JWT\Token;
 use Mockery\MockInterface;
 use SPie\LaravelJWT\Contracts\JWTFactory;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
-use SPie\LaravelJWT\JWT;
-use SPie\LaravelJWT\Contracts\JWT as JWTContract;
+use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\JWTHandler;
 
 /**
@@ -147,11 +146,11 @@ trait JWTHelper
     }
 
     /**
-     * @param JWTContract|null $jwt
+     * @param JWT|null $jwt
      *
      * @return JWTFactory
      */
-    protected function createJWTFactory(JWTContract $jwt = null): JWTFactory
+    protected function createJWTFactory(JWT $jwt = null): JWTFactory
     {
         return Mockery::spy(JWTFactory::class)
             ->shouldReceive('createJWT')

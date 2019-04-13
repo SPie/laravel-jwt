@@ -2,8 +2,6 @@
 
 namespace SPie\LaravelJWT\Contracts;
 
-use SPie\LaravelJWT\JWT;
-
 /**
  * Interface RefreshTokenRepository
  *
