@@ -7,6 +7,7 @@ use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer;
 use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\Contracts\JWTFactory;
+use SPie\LaravelJWT\Contracts\JWTHandler as JWTHandlerContract;
 use SPie\LaravelJWT\Exceptions\BeforeValidException;
 use SPie\LaravelJWT\Exceptions\TokenExpiredException;
 use SPie\LaravelJWT\Exceptions\InvalidSecretException;
@@ -18,7 +19,7 @@ use SPie\LaravelJWT\Exceptions\InvalidSignatureException;
  *
  * @package SPie\LaravelJWT
  */
-class JWTHandler
+final class JWTHandler implements JWTHandlerContract
 {
 
     /**

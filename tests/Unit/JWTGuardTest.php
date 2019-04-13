@@ -17,7 +17,7 @@ use SPie\LaravelJWT\Exceptions\MissingRefreshTokenProviderException;
 use SPie\LaravelJWT\Exceptions\MissingRefreshTokenRepositoryException;
 use SPie\LaravelJWT\Exceptions\NotAuthenticatedException;
 use SPie\LaravelJWT\Contracts\JWT;
-use SPie\LaravelJWT\JWTHandler;
+use SPie\LaravelJWT\Contracts\JWTHandler;
 use Symfony\Component\HttpFoundation\Response;
 
 /**

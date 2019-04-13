@@ -8,6 +8,7 @@ use Lcobucci\JWT\Parser;
 use SPie\LaravelJWT\Auth\JWTGuard;
 use SPie\LaravelJWT\Contracts\JWTFactory as JWTFactoryContract;
 use SPie\LaravelJWT\Console\GenerateSecret;
+use SPie\LaravelJWT\Contracts\JWTHandler as JWTHandlerContract;
 use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use SPie\LaravelJWT\Exceptions\InvalidTokenProviderKeyException;
@@ -71,7 +72,7 @@ abstract class AbstractServiceProvider extends ServiceProvider
         $this->app->bind(Builder::class);
         $this->app->bind(Parser::class);
 
-        $this->app->singleton(JWTHandler::class, function () {
+        $this->app->singleton(JWTHandlerContract::class, function () {
             $signerClass = $this->getSignerSetting();
 
             return new JWTHandler(
@@ -122,7 +123,7 @@ abstract class AbstractServiceProvider extends ServiceProvider
     {
         $this->app->get('auth')->extend('jwt', function ($app, $name, array $config) {
             $jwtGuard = new JWTGuard(
-                $this->app->get(JWTHandler::class),
+                $this->app->get(JWTHandlerContract::class),
                 $this->app->get('auth')->createUserProvider($config['provider']),
                 $this->app->get('request'),
                 $this->getAccessTokenProvider(),
