@@ -1,7 +1,10 @@
 <?php
 
 use Lcobucci\JWT\Builder;
+use Lcobucci\JWT\Parser;
+use Lcobucci\JWT\Signer;
 use PHPUnit\Framework\TestCase;
+use SPie\LaravelJWT\Contracts\JWTFactory;
 use SPie\LaravelJWT\Exceptions\BeforeValidException;
 use SPie\LaravelJWT\Exceptions\TokenExpiredException;
 use SPie\LaravelJWT\Exceptions\InvalidSecretException;
@@ -96,75 +99,25 @@ final class JWTHandlerTest extends TestCase
     public function testCreateJWT(): void
     {
         $jwt = $this->createJWT();
-        $secret = $this->getFaker()->password;
         $token = $this->createToken();
         $jwtFactory = $this->createJWTFactory($jwt);
-        $builder = $this->createBuilder($token);
-        $signer = $this->createSigner();
-        $expiryMinutes = $this->getFaker()->numberBetween();
-        $issuer = $this->getFaker()->uuid;
-        $subject = $this->getFaker()->uuid;
-        $payloadItemName = $this->getFaker()->uuid;
-        $payloadItemValue = $this->getFaker()->uuid;
 
-        $jwtHandler = $this->createJWTHandler($secret, $issuer, $jwtFactory, $builder, null, $signer);
-        $jwtHandler
-            ->shouldReceive('getNewBuilder')
-            ->andReturn($builder);
-
-        $before = new \DateTimeImmutable();
+        $jwtHandler = $this->createJWTHandler(null, null, $jwtFactory, $this->createBuilder($token));
 
         $this->assertEquals(
             $jwt,
             $jwtHandler->createJWT(
-                $subject,
+                $this->getFaker()->uuid,
                 [
-                    $payloadItemName => $payloadItemValue,
+                    $this->getFaker()->uuid => $this->getFaker()->uuid,
                 ],
-                $expiryMinutes
+                $this->getFaker()->numberBetween()
             )
         );
 
-        $after = new \DateTimeImmutable();
-
-        $builder
-            ->shouldHaveReceived('setIssuer')
-            ->with($issuer)
-            ->once();
-        $builder
-            ->shouldHaveReceived('setSubject')
-            ->with($subject)
-            ->once();
-        $builder
-            ->shouldHaveReceived('setIssuedAt')
-            ->with(Mockery::on(function ($argument) use ($before, $after) {
-                return ($argument >= $before->getTimestamp() && $argument <= $after->getTimestamp());
-            }))
-            ->once();
-        $builder
-            ->shouldHaveReceived('setExpiration')
-            ->with(Mockery::on(function ($argument) use ($before, $after, $expiryMinutes) {
-                return (
-                    $argument >= $after->add(new \DateInterval('PT' . $expiryMinutes . 'M'))->getTimestamp()
-                    && $argument <= $after->add(new \DateInterval('PT' . $expiryMinutes . 'M'))->getTimestamp()
-                );
-            }))
-            ->once();
-        $builder
-            ->shouldHaveReceived('set')
-            ->with(
-                $payloadItemName,
-                $payloadItemValue
-            )
-            ->once();
-        $builder
-            ->shouldHaveReceived('sign')
-            ->with(
-                Mockery::on(function ($argument) use ($signer) {
-                    return $argument == $signer;
-                }),
-                $secret
-            )
+        $jwtFactory
+            ->shouldHaveReceived('createJWT')
+            ->with($token)
             ->once();
     }
 
@@ -350,6 +303,36 @@ final class JWTHandlerTest extends TestCase
     }
 
     //endregion
+
+    /**
+     * @param string|null     $secret
+     * @param string|null     $issuer
+     * @param JWTFactory|null $jwtFactory
+     * @param Builder|null    $builder
+     * @param Parser|null     $parser
+     * @param Signer|null     $signer
+     *
+     * @return JWTHandler
+     * @throws InvalidSecretException
+     */
+    private function createJWTHandler(
+        string $secret = null,
+        string $issuer = null,
+        JWTFactory $jwtFactory = null,
+        Builder $builder = null,
+        Parser $parser = null,
+        Signer $signer = null
+    ): JWTHandler
+    {
+        return new JWTHandler(
+            $secret ?: $this->getFaker()->uuid,
+            $issuer ?: $this->getFaker()->uuid,
+            $jwtFactory ?: $this->createJWTFactory(),
+            $builder ?: $this->createBuilder(),
+            $parser ?: $this->createParser(),
+            $signer ?: $this->getSigner()
+        );
+    }
 
     /**
      * @param JWTHandler $jwtHandler

@@ -33,7 +33,7 @@ final class JWT implements JWTContract
     /**
      * @return Token
      */
-    protected function getToken(): Token
+    private function getToken(): Token
     {
         return $this->token;
     }

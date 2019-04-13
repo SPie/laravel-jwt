@@ -12,6 +12,7 @@ use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Contracts\JWTFactory as JWTFactoryContract;
 use SPie\LaravelJWT\Auth\JWTGuard;
 use SPie\LaravelJWT\Console\GenerateSecret;
+use SPie\LaravelJWT\Contracts\JWTHandler as JWTHandlerContract;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
@@ -156,7 +157,7 @@ final class AbstractServiceProviderTest extends TestCase
             ->shouldHaveReceived('singleton')
             ->with(
                 Mockery::on(function (string $abstract) {
-                    return ($abstract == JWTHandler::class);
+                    return ($abstract == JWTHandlerContract::class);
                 }),
                 Mockery::on(function (\Closure $concrete) use ($signer, $secret, $issuer, $builder, $parser, $jwtFactory) {
                     $expectedJwtHandler = new JWTHandler(
@@ -272,7 +273,7 @@ final class AbstractServiceProviderTest extends TestCase
     {
         $userProvider = Mockery::mock(UserProvider::class);
         $request = new Request();
-        $jwtHandler = Mockery::mock(JWTHandler::class);
+        $jwtHandler = Mockery::mock(JWTHandlerContract::class);
         $tokenBlacklist = Mockery::mock(TokenBlacklist::class);
         $refreshTokenRepository = Mockery::mock(RefreshTokenRepository::class);
 
@@ -360,7 +361,7 @@ final class AbstractServiceProviderTest extends TestCase
     public function testExtendAuthGuardOnlyWithRequiredProperties(): void
     {
         $request = new Request();
-        $jwtHandler = Mockery::mock(JWTHandler::class);
+        $jwtHandler = Mockery::mock(JWTHandlerContract::class);
 
         $authManager = Mockery::spy(AuthManager::class);
         $authManager
@@ -551,7 +552,7 @@ final class AbstractServiceProviderTest extends TestCase
      * @param AuthManager|null            $authManager
      * @param TokenBlacklist|null         $withTokenBlacklist
      * @param Request|null                $request
-     * @param JWTHandler|null             $jwtHandler
+     * @param JWTHandlerContract|null     $jwtHandler
      * @param RefreshTokenRepository|null $refreshTokenRepository
      * @param Builder|null                $builder
      * @param Parser|null                 $parser
@@ -564,7 +565,7 @@ final class AbstractServiceProviderTest extends TestCase
         AuthManager $authManager = null,
         TokenBlacklist $withTokenBlacklist = null,
         Request $request = null,
-        JWTHandler $jwtHandler = null,
+        JWTHandlerContract $jwtHandler = null,
         RefreshTokenRepository $refreshTokenRepository = null,
         Builder $builder = null,
         Parser $parser = null,
@@ -589,8 +590,8 @@ final class AbstractServiceProviderTest extends TestCase
                         case 'auth':
                             return $authManager;
 
-                        case JWTHandler::class:
-                            return $jwtHandler ?: Mockery::mock(JWTHandler::class);
+                        case JWTHandlerContract::class:
+                            return $jwtHandler ?: Mockery::mock(JWTHandlerContract::class);
 
                         case 'request':
                             return $request ?: new Request();

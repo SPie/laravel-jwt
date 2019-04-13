@@ -8,7 +8,7 @@ use Mockery\MockInterface;
 use SPie\LaravelJWT\Contracts\JWTFactory;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\JWT;
-use SPie\LaravelJWT\JWTHandler;
+use SPie\LaravelJWT\Contracts\JWTHandler;
 
 /**
  * Trait JWTHelper
@@ -17,38 +17,11 @@ trait JWTHelper
 {
 
     /**
-     * @param string|null     $secret
-     * @param string|null     $issuer
-     * @param JWTFactory|null $jwtFactory
-     * @param Builder|null    $builder
-     * @param Parser|null     $parser
-     * @param Signer|null     $signer
-     *
      * @return JWTHandler|MockInterface
      */
-    protected function createJWTHandler(
-        string $secret = null,
-        string $issuer = null,
-        JWTFactory $jwtFactory = null,
-        Builder $builder = null,
-        Parser $parser = null,
-        Signer $signer = null
-    ): JWTHandler
+    protected function createJWTHandler(): JWTHandler
     {
-        $jwtHandler = Mockery::spy(
-            JWTHandler::class, [
-                $secret ?: $this->getFaker()->uuid,
-                $issuer ?: $this->getFaker()->uuid,
-                $jwtFactory ?: $this->createJWTFactory(),
-                $builder ?: $this->createBuilder(),
-                $parser ?: $this->createParser(),
-                $signer ?: $this->getSigner()
-            ]
-        );
-
-        return $jwtHandler
-            ->makePartial()
-            ->shouldAllowMockingProtectedMethods();
+        return Mockery::spy(JWTHandler::class);
     }
 
     /**
@@ -148,7 +121,7 @@ trait JWTHelper
     /**
      * @param JWT|null $jwt
      *
-     * @return JWTFactory
+     * @return JWTFactory|MockInterface
      */
     protected function createJWTFactory(JWT $jwt = null): JWTFactory
     {
