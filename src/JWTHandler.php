@@ -88,7 +88,7 @@ final class JWTHandler implements JWTHandlerContract
     /**
      * @return string
      */
-    protected function getSecret(): string
+    private function getSecret(): string
     {
         return $this->secret;
     }
@@ -96,7 +96,7 @@ final class JWTHandler implements JWTHandlerContract
     /**
      * @return string
      */
-    protected function getIssuer(): string
+    private function getIssuer(): string
     {
         return $this->issuer;
     }
@@ -104,7 +104,7 @@ final class JWTHandler implements JWTHandlerContract
     /**
      * @return JWTFactory
      */
-    protected function getJWTFactory(): JWTFactory
+    private function getJWTFactory(): JWTFactory
     {
         return $this->jwtFactory;
     }
@@ -112,7 +112,7 @@ final class JWTHandler implements JWTHandlerContract
     /**
      * @return Parser
      */
-    protected function getParser(): Parser
+    private function getParser(): Parser
     {
         return $this->parser;
     }
@@ -120,7 +120,7 @@ final class JWTHandler implements JWTHandlerContract
     /**
      * @return Signer
      */
-    protected function getSigner(): Signer
+    private function getSigner(): Signer
     {
         return $this->signer;
     }
@@ -128,7 +128,7 @@ final class JWTHandler implements JWTHandlerContract
     /**
      * @return Builder
      */
-    protected function getNewBuilder(): Builder
+    private function getNewBuilder(): Builder
     {
         return clone $this->builder;
     }
@@ -206,7 +206,7 @@ final class JWTHandler implements JWTHandlerContract
      *
      * @throws \Exception
      */
-    protected function createTimestamps(int $ttl = null): array
+    private function createTimestamps(int $ttl = null): array
     {
         $issuedAt = new \DateTimeImmutable();
 

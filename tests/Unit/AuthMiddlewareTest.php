@@ -3,7 +3,7 @@
 use Illuminate\Contracts\Auth\Factory;
 use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
-use SPie\LaravelJWT\Auth\JWTGuard;
+use SPie\LaravelJWT\Contracts\JWTGuard;
 use SPie\LaravelJWT\Exceptions\NotAuthenticatedException;
 use SPie\LaravelJWT\Middleware\AuthMiddleware;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,6 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 final class AuthMiddlewareTest extends TestCase
 {
 
+    use JWTHelper;
     use TestHelper;
 
     //region Tests
@@ -28,7 +29,9 @@ final class AuthMiddlewareTest extends TestCase
         $request = new Request();
         $response = $this->getFaker()->uuid;
         $guardIdentifier = $this->getFaker()->uuid;
-        $authFactory = $this->createAuthFactory($this->createJWTGuard(false));
+        $jwtGuard = $this->createJWTGuard();
+        $this->addGuest($jwtGuard, false);
+        $authFactory = $this->createAuthFactory($jwtGuard);
 
         $this->assertEquals(
             $response,
@@ -58,9 +61,12 @@ final class AuthMiddlewareTest extends TestCase
      */
     public function testHandleWithError(): void
     {
+        $jwtGuard = $this->createJWTGuard();
+        $this->addGuest($jwtGuard, true);
+
         $this->expectException(NotAuthenticatedException::class);
 
-        $this->createAuthMiddleware($this->createAuthFactory($this->createJWTGuard(true)))
+        $this->createAuthMiddleware($this->createAuthFactory($jwtGuard))
              ->handle(new Request(), function () {});
     }
 
@@ -94,18 +100,18 @@ final class AuthMiddlewareTest extends TestCase
     }
 
     /**
-     * @param bool $isGuest
+     * @param JWTGuard|MockInterface $jwtGuard
+     * @param bool                   $isGuest
      *
-     * @return JWTGuard|MockInterface
+     * @return AuthMiddlewareTest
      */
-    private function createJWTGuard(bool $isGuest): JWTGuard
+    private function addGuest(JWTGuard $jwtGuard, bool $isGuest): AuthMiddlewareTest
     {
-        $jwtGuard = Mockery::spy(JWTGuard::class);
         $jwtGuard
             ->shouldReceive('guest')
             ->andReturn($isGuest);
 
-        return $jwtGuard;
+        return $this;
     }
 
     //endregion

@@ -6,6 +6,7 @@ use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Token;
 use Mockery\MockInterface;
 use SPie\LaravelJWT\Contracts\JWTFactory;
+use SPie\LaravelJWT\Contracts\JWTGuard;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\Contracts\JWTHandler;
@@ -15,6 +16,14 @@ use SPie\LaravelJWT\Contracts\JWTHandler;
  */
 trait JWTHelper
 {
+
+    /**
+     * @return JWTGuard
+     */
+    protected function createJWTGuard(): JWTGuard
+    {
+        return Mockery::spy(JWTGuard::class);
+    }
 
     /**
      * @return JWTHandler|MockInterface

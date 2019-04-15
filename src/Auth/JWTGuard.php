@@ -5,10 +5,10 @@ namespace SPie\LaravelJWT\Auth;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\GuardHelpers;
 use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Http\Request;
 use SPie\LaravelJWT\Contracts\JWTAuthenticatable;
+use SPie\LaravelJWT\Contracts\JWTGuard as JWTGuardContract;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
@@ -25,7 +25,7 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * @package SPie\LaravelJWT\Auth
  */
-class JWTGuard implements Guard
+final class JWTGuard implements JWTGuardContract
 {
 
     use GuardHelpers;
@@ -121,14 +121,14 @@ class JWTGuard implements Guard
     /**
      * @return JWTHandler
      */
-    protected function getJWTHandler(): JWTHandler {
+    private function getJWTHandler(): JWTHandler {
         return $this->jwtHandler;
     }
 
     /**
      * @return Request
      */
-    protected function getRequest(): Request
+    private function getRequest(): Request
     {
         return $this->request;
     }
@@ -136,7 +136,7 @@ class JWTGuard implements Guard
     /**
      * @return TokenProvider
      */
-    protected function getAccessTokenProvider(): TokenProvider
+    private function getAccessTokenProvider(): TokenProvider
     {
         return $this->accessTokenProvider;
     }
@@ -144,7 +144,7 @@ class JWTGuard implements Guard
     /**
      * @return int
      */
-    protected function getAccessTokenTtl(): int
+    private function getAccessTokenTtl(): int
     {
         return $this->accessTokenTtl;
     }
@@ -152,7 +152,7 @@ class JWTGuard implements Guard
     /**
      * @return null|TokenBlacklist
      */
-    protected function getTokenBlacklist(): ?TokenBlacklist
+    private function getTokenBlacklist(): ?TokenBlacklist
     {
         return $this->tokenBlacklist;
     }
@@ -160,7 +160,7 @@ class JWTGuard implements Guard
     /**
      * @return TokenProvider|null
      */
-    protected function getRefreshTokenProvider(): ?TokenProvider
+    private function getRefreshTokenProvider(): ?TokenProvider
     {
         return $this->refreshTokenProvider;
     }
@@ -168,7 +168,7 @@ class JWTGuard implements Guard
     /**
      * @return int|null
      */
-    protected function getRefreshTokenTtl(): ?int
+    private function getRefreshTokenTtl(): ?int
     {
         return $this->refreshTokenTtl;
     }
@@ -176,7 +176,7 @@ class JWTGuard implements Guard
     /**
      * @return null|RefreshTokenRepository
      */
-    protected function getRefreshTokenRepository(): ?RefreshTokenRepository
+    private function getRefreshTokenRepository(): ?RefreshTokenRepository
     {
         return $this->refreshTokenRepository;
     }
@@ -186,7 +186,7 @@ class JWTGuard implements Guard
      *
      * @return JWTGuard
      */
-    protected function setAccessToken(?JWT $accessToken): JWTGuard
+    private function setAccessToken(?JWT $accessToken): JWTGuard
     {
         $this->accessToken = $accessToken;
 
@@ -206,7 +206,7 @@ class JWTGuard implements Guard
      *
      * @return JWTGuard
      */
-    protected function setRefreshToken(?JWT $refreshToken): JWTGuard
+    private function setRefreshToken(?JWT $refreshToken): JWTGuard
     {
         $this->refreshToken = $refreshToken;
 
@@ -265,7 +265,7 @@ class JWTGuard implements Guard
      *
      * @throws \Exception
      */
-    protected function authenticateWithAccessToken(string $token): ?Authenticatable
+    private function authenticateWithAccessToken(string $token): ?Authenticatable
     {
         if ($this->getTokenBlacklist() && $this->getTokenBlacklist()->isRevoked($token)) {
             return null;
@@ -291,7 +291,7 @@ class JWTGuard implements Guard
      *
      * @throws \Exception
      */
-    protected function authenticateWithRefreshToken(): ?Authenticatable
+    private function authenticateWithRefreshToken(): ?Authenticatable
     {
         $token = $this->getRefreshTokenProvider()->getRequestToken($this->getRequest());
         if (empty($token)) {
@@ -320,7 +320,7 @@ class JWTGuard implements Guard
      *
      * @throws \Exception
      */
-    protected function getJWT(string $token): ?JWT
+    private function getJWT(string $token): ?JWT
     {
         try {
             $jwt = $this->getJWTHandler()->getValidJWT($token);
@@ -344,7 +344,7 @@ class JWTGuard implements Guard
      *
      * @return Authenticatable|JWTAuthenticatable|null
      */
-    protected function getUserByJWT(JWT $jwt): ?Authenticatable
+    private function getUserByJWT(JWT $jwt): ?Authenticatable
     {
         return $this->getProvider()->retrieveById($jwt->getSubject());
     }
@@ -386,12 +386,12 @@ class JWTGuard implements Guard
     /**
      * @param array $credentials
      *
-     * @return JWTGuard
+     * @return JWTGuardContract
      *
      * @throws AuthorizationException
      * @throws \Exception
      */
-    public function login(array $credentials = []): JWTGuard
+    public function login(array $credentials = []): JWTGuardContract
     {
         //TODO attempt event
 
@@ -421,9 +421,9 @@ class JWTGuard implements Guard
     }
 
     /**
-     * @return JWTGuard
+     * @return JWTGuardContract
      */
-    public function logout(): JWTGuard
+    public function logout(): JWTGuardContract
     {
         if ($this->getAccessToken()) {
             if ($this->getTokenBlacklist()) {
@@ -519,7 +519,7 @@ class JWTGuard implements Guard
     /**
      * @return JWT
      */
-    protected function getValidRefreshToken(): JWT
+    private function getValidRefreshToken(): JWT
     {
         if (empty($this->getRefreshToken())) {
             $token = $this->getRefreshTokenProvider()->getRequestToken($this->getRequest());
@@ -553,7 +553,7 @@ class JWTGuard implements Guard
      *
      * @return array
      */
-    protected function createClaimsWithRefreshTokenIdentifier(array $claims, string $refreshTokenId): array
+    private function createClaimsWithRefreshTokenIdentifier(array $claims, string $refreshTokenId): array
     {
         return \array_merge(
             $claims,
@@ -607,7 +607,7 @@ class JWTGuard implements Guard
      *
      * @throws \Exception
      */
-    protected function createRefreshTokenIdentifier(string $subject): string
+    private function createRefreshTokenIdentifier(string $subject): string
     {
         return \md5($subject . (new \DateTimeImmutable())->getTimestamp() . \mt_rand());
     }

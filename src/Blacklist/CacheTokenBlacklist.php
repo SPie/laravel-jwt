@@ -34,7 +34,7 @@ final class CacheTokenBlacklist implements TokenBlacklist
     /**
      * @return Repository
      */
-    protected function getRepository(): Repository
+    private function getRepository(): Repository
     {
         return $this->repository;
     }
@@ -81,7 +81,7 @@ final class CacheTokenBlacklist implements TokenBlacklist
      *
      * @return string
      */
-    protected function hashJwt(string $jwt): string
+    private function hashJwt(string $jwt): string
     {
         return \md5($jwt);
     }
@@ -93,7 +93,7 @@ final class CacheTokenBlacklist implements TokenBlacklist
      *
      * @throws \Exception
      */
-    protected function getExpirationMinutes(?\DateTimeImmutable $expiration): int
+    private function getExpirationMinutes(?\DateTimeImmutable $expiration): int
     {
         if (!$expiration) {
             return 0;
