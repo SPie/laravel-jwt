@@ -32,7 +32,7 @@ final class AuthMiddleware
     /**
      * @return Factory
      */
-    protected function getAuthFactory(): Factory
+    private function getAuthFactory(): Factory
     {
         return $this->authFactory;
     }

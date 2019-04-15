@@ -22,7 +22,7 @@ final class GenerateSecret extends Command
     /**
      * @var string
      */
-    protected $signature = self::COMMAND . ' {--f|' . self::OPTION_FORCE . ' : Force replacement without confirmation.}';
+    private $signature = self::COMMAND . ' {--f|' . self::OPTION_FORCE . ' : Force replacement without confirmation.}';
 
     /**
      * @return void
@@ -56,7 +56,7 @@ final class GenerateSecret extends Command
      *
      * @return GenerateSecret
      */
-    protected function showSecret(string $secret): GenerateSecret
+    private function showSecret(string $secret): GenerateSecret
     {
         $this->info('The secret is: ' . $secret);
 
@@ -66,7 +66,7 @@ final class GenerateSecret extends Command
     /**
      * @return bool
      */
-    protected function secretExists(): bool
+    private function secretExists(): bool
     {
         return Str::contains($this->getEnvFileContents(), self::CONFIG_JWT_SECRET);
     }
@@ -74,7 +74,7 @@ final class GenerateSecret extends Command
     /**
      * @return bool
      */
-    protected function replaceConfirmed(): bool
+    private function replaceConfirmed(): bool
     {
         if ($this->isForced()) {
             return true;
@@ -88,7 +88,7 @@ final class GenerateSecret extends Command
      *
      * @return GenerateSecret
      */
-    protected function replaceSecret(string $secret): GenerateSecret
+    private function replaceSecret(string $secret): GenerateSecret
     {
         return $this->writeToFile(
             Str::replaceFirst(
@@ -105,7 +105,7 @@ final class GenerateSecret extends Command
      *
      * @return GenerateSecret
      */
-    protected function writeSecret(string $secret): GenerateSecret
+    private function writeSecret(string $secret): GenerateSecret
     {
         return $this->writeToFile($this->createConfigString($secret));
     }
@@ -115,7 +115,7 @@ final class GenerateSecret extends Command
      *
      * @throws FileNotFoundException
      */
-    protected function getEnvFileContents(): string
+    private function getEnvFileContents(): string
     {
         $content = \file_get_contents($this->getEnvPath());
 
@@ -132,7 +132,7 @@ final class GenerateSecret extends Command
      *
      * @return GenerateSecret
      */
-    protected function writeToFile(string $input, bool $append = true): GenerateSecret
+    private function writeToFile(string $input, bool $append = true): GenerateSecret
     {
         \file_put_contents($this->getEnvPath(), $input, $append ? FILE_APPEND : null);
 
@@ -144,7 +144,7 @@ final class GenerateSecret extends Command
      *
      * @return string
      */
-    protected function createConfigString(string $secret): string
+    private function createConfigString(string $secret): string
     {
         return self::CONFIG_JWT_SECRET . '=' . $secret;
     }
@@ -152,7 +152,7 @@ final class GenerateSecret extends Command
     /**
      * @return string
      */
-    protected function getEnvPath(): string
+    private function getEnvPath(): string
     {
         return $this->getLaravel()->basePath() . '/.env';
     }
@@ -160,7 +160,7 @@ final class GenerateSecret extends Command
     /**
      * @return bool
      */
-    protected function isForced(): bool
+    private function isForced(): bool
     {
         return !empty($this->option(self::OPTION_FORCE));
     }
