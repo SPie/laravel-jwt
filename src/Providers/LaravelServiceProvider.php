@@ -7,7 +7,7 @@ namespace SPie\LaravelJWT\Providers;
  *
  * @package SPie\LaravelJWT\Providers
  */
-class LaravelServiceProvider extends AbstractServiceProvider
+final class LaravelServiceProvider extends AbstractServiceProvider
 {
 
     /**

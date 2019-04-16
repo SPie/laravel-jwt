@@ -7,7 +7,7 @@ namespace SPie\LaravelJWT\Providers;
  *
  * @package SPie\LaravelJWT\Providers
  */
-class LumenServiceProvider extends AbstractServiceProvider
+final class LumenServiceProvider extends AbstractServiceProvider
 {
 
     /**
