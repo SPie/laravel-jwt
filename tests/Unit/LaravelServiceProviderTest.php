@@ -5,7 +5,9 @@ use Illuminate\Config\Repository;
 use Illuminate\Contracts\Foundation\Application;
 use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
+use SPie\LaravelJWT\Contracts\Registrar as RegistrarContract;
 use SPie\LaravelJWT\Providers\LaravelServiceProvider;
+use SPie\LaravelJWT\Providers\Registrar;
 
 /**
  * Class LaravelServiceProviderTest
@@ -13,6 +15,7 @@ use SPie\LaravelJWT\Providers\LaravelServiceProvider;
 final class LaravelServiceProviderTest extends TestCase
 {
 
+    use ReflectionMethodHelper;
     use TestHelper;
 
     //region Tests
@@ -20,8 +23,40 @@ final class LaravelServiceProviderTest extends TestCase
     /**
      * @return void
      */
+    public function testConstruct(): void
+    {
+        $app = $this->createApp();
+
+        $laravelServiceProvider = new LaravelServiceProvider($app);
+        $this->assertEquals($app, $this->getPrivateProperty($laravelServiceProvider, 'app'));
+        $registrar = $this->getPrivateProperty($laravelServiceProvider, 'registrar');
+        $this->assertInstanceOf(Registrar::class, $registrar);
+        $this->assertEquals($app, $this->getPrivateProperty($registrar, 'app'));
+    }
+
+    /**
+     * @return void
+     */
+    public function testRegister(): void
+    {
+        $registrar = Mockery::spy(RegistrarContract::class);
+
+        $laravelServiceProvider = $this->createLaravelServiceProvider();
+        $this->setPrivateProperty($laravelServiceProvider, 'registrar', $registrar);
+
+        $this->assertEmpty($laravelServiceProvider->register());
+
+        $registrar
+            ->shouldHaveReceived('register')
+            ->once();
+    }
+
+    /**
+     * @return void
+     */
     public function testBoot(): void
     {
+        $registrar = Mockery::spy(RegistrarContract::class);
         $configPath = $this->getFaker()->uuid;
         $configRepository = $this->createConfigRepository();
         $configRepository
@@ -32,6 +67,7 @@ final class LaravelServiceProviderTest extends TestCase
             ->shouldReceive('basePath')
             ->andReturn($configPath);
         $laravelServiceProvider = $this->createLaravelServiceProvider($app);
+        $this->setPrivateProperty($laravelServiceProvider, 'registrar', $registrar);
 
         $laravelServiceProvider->boot();
 
@@ -60,6 +96,9 @@ final class LaravelServiceProviderTest extends TestCase
                 'jwt',
                 []
             )
+            ->once();
+        $registrar
+            ->shouldHaveReceived('boot')
             ->once();
     }
 

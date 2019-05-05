@@ -2,13 +2,39 @@
 
 namespace SPie\LaravelJWT\Providers;
 
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Support\ServiceProvider;
+
 /**
  * Class LaravelServiceProvider
  *
  * @package SPie\LaravelJWT\Providers
  */
-final class LaravelServiceProvider extends AbstractServiceProvider
+final class LaravelServiceProvider extends ServiceProvider
 {
+
+    use RegistrarHolder;
+
+    /**
+     * LaravelServiceProvider constructor.
+     *
+     * @param Application $app
+     */
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+
+        $this->registrar = $this->createRegistrar($app);
+    }
+
+    /**
+     * @return void
+     */
+    public function register(): void
+    {
+        $this->getRegistrar()->register();
+    }
+
 
     /**
      * @return void
@@ -20,7 +46,7 @@ final class LaravelServiceProvider extends AbstractServiceProvider
         $this->publishes([$path => $this->getConfigPath()], 'config');
         $this->mergeConfigFrom($path, 'jwt');
 
-        parent::boot();
+        $this->getRegistrar()->boot();
     }
 
     /**
