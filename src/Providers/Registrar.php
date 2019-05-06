@@ -2,6 +2,7 @@
 
 namespace SPie\LaravelJWT\Providers;
 
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Foundation\Application;
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
@@ -36,24 +37,24 @@ final class Registrar implements RegistrarContract
     const SETTING_REFRESH_TOKEN_REPOSITORY = 'refreshTokenRepository';
 
     /**
-     * @var Application
+     * @var Container
      */
     private $app;
 
     /**
      * Registrar constructor.
      *
-     * @param Application $app
+     * @param Container $app
      */
-    public function __construct(Application $app)
+    public function __construct(Container $app)
     {
         $this->app = $app;
     }
 
     /**
-     * @return Application
+     * @return Container
      */
-    private function getApp(): Application
+    private function getApp(): Container
     {
         return $this->app;
     }

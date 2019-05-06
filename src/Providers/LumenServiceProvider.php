@@ -2,6 +2,7 @@
 
 namespace SPie\LaravelJWT\Providers;
 
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 
@@ -18,9 +19,9 @@ final class LumenServiceProvider extends ServiceProvider
     /**
      * LumenServiceProvider constructor.
      *
-     * @param Application $app
+     * @param Container|Application $app
      */
-    public function __construct(Application $app)
+    public function __construct(Container $app)
     {
         parent::__construct($app);
 
