@@ -2,6 +2,7 @@
 
 use Illuminate\Auth\AuthManager;
 use Illuminate\Contracts\Auth\UserProvider;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
 use Lcobucci\JWT\Builder;
@@ -507,25 +508,25 @@ final class RegistrarTest extends TestCase
     //endregion
 
     /**
-     * @param Application|null $app
+     * @param Container|null $app
      *
      * @return Registrar|MockInterface
      */
-    private function createRegistrar(Application $app = null): Registrar
+    private function createRegistrar(Container $app = null): Registrar
     {
         return new Registrar($app ?: $this->createApp());
     }
 
     /**
-     * @return Application|MockInterface
+     * @return Container|MockInterface
      */
-    private function createApp(): Application
+    private function createApp(): Container
     {
-        return Mockery::spy(Application::class);
+        return Mockery::spy(Container::class);
     }
 
     /**
-     * @param Application|MockInterface   $app
+     * @param Container|MockInterface     $app
      * @param AuthManager|null            $authManager
      * @param TokenBlacklist|null         $withTokenBlacklist
      * @param Request|null                $request
@@ -540,7 +541,7 @@ final class RegistrarTest extends TestCase
      * @return RegistrarTest
      */
     private function addGet(
-        Application $app,
+        Container $app,
         AuthManager $authManager = null,
         TokenBlacklist $withTokenBlacklist = null,
         Request $request = null,
@@ -605,12 +606,12 @@ final class RegistrarTest extends TestCase
     }
 
     /**
-     * @param Application|MockInterface $app
+     * @param Container|MockInterface $app
      * @param array                     $config
      *
      * @return $this
      */
-    private function addGetConfig(Application $app, array $config = [])
+    private function addGetConfig(Container $app, array $config = [])
     {
         $app
             ->shouldReceive('get')
@@ -621,12 +622,12 @@ final class RegistrarTest extends TestCase
     }
 
     /**
-     * @param Application|MockInterface $app
+     * @param Container|MockInterface $app
      * @param mixed|null                $concrete
      *
      * @return RegistrarTest
      */
-    private function addMake(Application $app, $concrete = null): RegistrarTest
+    private function addMake(Container $app, $concrete = null): RegistrarTest
     {
         $app
             ->shouldReceive('make')

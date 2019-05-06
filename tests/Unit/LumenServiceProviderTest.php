@@ -2,6 +2,7 @@
 
 use Illuminate\Auth\AuthManager;
 use Illuminate\Config\Repository;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Foundation\Application;
 use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
@@ -99,11 +100,11 @@ final class LumenServiceProviderTest extends TestCase
     //region Mocks
 
     /**
-     * @param Application|null $app
+     * @param Container|null $app
      *
      * @return LumenServiceProvider|MockInterface
      */
-    private function createLumenServiceProvider(Application $app = null): LumenServiceProvider
+    private function createLumenServiceProvider(Container $app = null): LumenServiceProvider
     {
         return new LumenServiceProvider($app ?: $this->createApp());
     }
@@ -114,9 +115,9 @@ final class LumenServiceProviderTest extends TestCase
      *
      * @return Application|MockInterface
      */
-    private function createApp(Repository $configRepository = null, AuthManager $authManager = null): Application
+    private function createApp(Repository $configRepository = null, AuthManager $authManager = null): Container
     {
-        $app = Mockery::spy(Application::class, ArrayAccess::class);
+        $app = Mockery::spy(Container::class, ArrayAccess::class);
         $app
             ->shouldReceive('offsetGet')
             ->andReturnUsing(function ($argument) use ($configRepository) {

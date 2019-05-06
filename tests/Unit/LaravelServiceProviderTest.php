@@ -2,6 +2,7 @@
 
 use Illuminate\Auth\AuthManager;
 use Illuminate\Config\Repository;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Foundation\Application;
 use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
@@ -107,11 +108,11 @@ final class LaravelServiceProviderTest extends TestCase
     //region Mocks
 
     /**
-     * @param Application|null $app
+     * @param Container|null $app
      *
      * @return LaravelServiceProvider|MockInterface
      */
-    private function createLaravelServiceProvider(Application $app = null): LaravelServiceProvider
+    private function createLaravelServiceProvider(Container $app = null): LaravelServiceProvider
     {
         return new LaravelServiceProvider($app ?: $this->createApp());
     }
@@ -120,11 +121,11 @@ final class LaravelServiceProviderTest extends TestCase
      * @param Repository|null  $configRepository
      * @param AuthManager|null $authManager
      *
-     * @return Application|MockInterface
+     * @return Container|MockInterface
      */
-    private function createApp(Repository $configRepository = null, AuthManager $authManager = null): Application
+    private function createApp(Repository $configRepository = null, AuthManager $authManager = null): Container
     {
-        $app = Mockery::spy(Application::class, ArrayAccess::class);
+        $app = Mockery::spy(Container::class, ArrayAccess::class);
         $app
             ->shouldReceive('offsetGet')
             ->andReturnUsing(function ($argument) use ($configRepository) {

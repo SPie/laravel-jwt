@@ -2,6 +2,7 @@
 
 namespace SPie\LaravelJWT\Providers;
 
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Foundation\Application;
 use SPie\LaravelJWT\Contracts\Registrar as RegistrarContract;
 
@@ -19,11 +20,11 @@ trait RegistrarHolder
     protected $registrar;
 
     /**
-     * @param Application $app
+     * @param Container|Application $app
      *
      * @return RegistrarContract
      */
-    protected function createRegistrar(Application $app): RegistrarContract
+    protected function createRegistrar(Container $app): RegistrarContract
     {
         return new Registrar($app);
     }
