@@ -3,7 +3,6 @@
 use Illuminate\Auth\AuthManager;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Container\Container;
-use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
@@ -459,6 +458,13 @@ final class RegistrarTest extends TestCase
 
         $this->assertEquals($registrar, $registrar->register());
 
+        $app
+            ->shouldHaveReceived('singleton')
+            ->with(
+                JWTFactoryContract::class,
+                JWTFactory::class
+            )
+            ->once();
         $app
             ->shouldHaveReceived('bind')
             ->with(Builder::class)
