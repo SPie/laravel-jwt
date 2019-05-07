@@ -65,6 +65,7 @@ final class Registrar implements RegistrarContract
     public function register(): RegistrarContract
     {
         return $this
+            ->registerJWTFactory()
             ->registerJWTHandler()
             ->registerTokenBlacklist();
     }
