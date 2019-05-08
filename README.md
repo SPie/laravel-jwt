@@ -54,7 +54,7 @@ JWT_REFRESH_TOKEN_REPOSITORY=
 ```
 You can also copy the `config/jwt.php` file from the repo to your projects config directory to configure JWT without an `.env` file.
 
-**It is required to add a value for** `JWT_SECRET` **(you can use the** `jwt:generate:secret` **artisan command) and** `JWT_ISSUER`. 
+**It is required to add a value for** `JWT_SECRET` **and** `JWT_ISSUER`. 
 For every other config a default value exists.
 
 ### Auth
