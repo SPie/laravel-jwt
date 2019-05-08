@@ -121,8 +121,17 @@ final class JWTGuard implements JWTGuardContract
     /**
      * @return JWTHandler
      */
-    private function getJWTHandler(): JWTHandler {
+    private function getJWTHandler(): JWTHandler
+    {
         return $this->jwtHandler;
+    }
+
+    /**
+     * @return UserProvider
+     */
+    private function getProvider(): UserProvider
+    {
+        return $this->provider;
     }
 
     /**

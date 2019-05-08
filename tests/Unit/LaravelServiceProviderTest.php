@@ -72,14 +72,17 @@ final class LaravelServiceProviderTest extends TestCase
 
         $laravelServiceProvider->boot();
 
-        $this->assertArrayHasKey(LaravelServiceProvider::class, $laravelServiceProvider::$publishes);
-        $keys = \array_keys($laravelServiceProvider::$publishes[LaravelServiceProvider::class]);
-        $values = \array_values($laravelServiceProvider::$publishes[LaravelServiceProvider::class]);
+        $publishes = $this->getPrivateProperty($laravelServiceProvider, 'publishes');
+        $publishGroups = $this->getPrivateProperty($laravelServiceProvider, 'publishGroups');
+
+        $this->assertArrayHasKey(LaravelServiceProvider::class, $publishes);
+        $keys = \array_keys($publishes[LaravelServiceProvider::class]);
+        $values = \array_values($publishes[LaravelServiceProvider::class]);
         $this->assertEquals(1, \preg_match('/config\/jwt.php/', \array_shift($keys)));
         $this->assertEquals($configPath, \array_shift($values));
-        $this->assertArrayHasKey('config', $laravelServiceProvider::$publishGroups);
-        $keys = \array_keys($laravelServiceProvider::$publishGroups['config']);
-        $values = \array_values($laravelServiceProvider::$publishGroups['config']);
+        $this->assertArrayHasKey('config', $publishGroups);
+        $keys = \array_keys($publishGroups['config']);
+        $values = \array_values($publishGroups['config']);
         $this->assertEquals(1, \preg_match('/config\/jwt.php/', \array_shift($keys)));
         $this->assertEquals($configPath, \array_shift($values));
         $configRepository
