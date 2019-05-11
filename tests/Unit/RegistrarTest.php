@@ -3,6 +3,7 @@
 use Illuminate\Auth\AuthManager;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Container\Container;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Http\Request;
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
@@ -69,6 +70,7 @@ final class RegistrarTest extends TestCase
         $this
             ->addGet(
                 $app,
+                null,
                 null,
                 null,
                 null,
@@ -201,6 +203,7 @@ final class RegistrarTest extends TestCase
     {
         $userProvider = Mockery::mock(UserProvider::class);
         $request = new Request();
+        $eventDispatcher = Mockery::mock(Dispatcher::class);
         $jwtHandler = Mockery::mock(JWTHandlerContract::class);
         $tokenBlacklist = Mockery::mock(TokenBlacklist::class);
         $refreshTokenRepository = Mockery::mock(RefreshTokenRepository::class);
@@ -221,6 +224,7 @@ final class RegistrarTest extends TestCase
             $authManager,
             $tokenBlacklist,
             $request,
+            $eventDispatcher,
             $jwtHandler,
             $refreshTokenRepository,
             null,
@@ -246,7 +250,8 @@ final class RegistrarTest extends TestCase
             $tokenBlacklist,
             (new TestTokenProvider())->setKey($refreshTokenProviderKey),
             $refreshTokenTTL,
-            $refreshTokenRepository
+            $refreshTokenRepository,
+            $eventDispatcher
         );
 
         $registrar = $this->createRegistrar($app);
@@ -310,6 +315,7 @@ final class RegistrarTest extends TestCase
             $authManager,
             null,
             $request,
+            null,
             $jwtHandler,
             null,
             null,
@@ -536,6 +542,7 @@ final class RegistrarTest extends TestCase
      * @param AuthManager|null            $authManager
      * @param TokenBlacklist|null         $withTokenBlacklist
      * @param Request|null                $request
+     * @param Dispatcher|null             $eventDispatcher
      * @param JWTHandlerContract|null     $jwtHandler
      * @param RefreshTokenRepository|null $refreshTokenRepository
      * @param Builder|null                $builder
@@ -551,6 +558,7 @@ final class RegistrarTest extends TestCase
         AuthManager $authManager = null,
         TokenBlacklist $withTokenBlacklist = null,
         Request $request = null,
+        Dispatcher $eventDispatcher = null,
         JWTHandlerContract $jwtHandler = null,
         RefreshTokenRepository $refreshTokenRepository = null,
         Builder $builder = null,
@@ -567,6 +575,7 @@ final class RegistrarTest extends TestCase
                     $authManager,
                     $withTokenBlacklist,
                     $request,
+                    $eventDispatcher,
                     $jwtHandler,
                     $refreshTokenRepository,
                     $builder,
@@ -583,6 +592,9 @@ final class RegistrarTest extends TestCase
 
                         case 'request':
                             return $request ?: new Request();
+
+                        case Dispatcher::class:
+                            return $eventDispatcher;
 
                         case TokenBlacklist::class:
                             return $withTokenBlacklist;
