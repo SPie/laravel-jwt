@@ -13,9 +13,11 @@ use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use SPie\LaravelJWT\Events\FailedLoginAttempt;
+use SPie\LaravelJWT\Events\IssueRefreshToken;
 use SPie\LaravelJWT\Events\Login;
 use SPie\LaravelJWT\Events\LoginAttempt;
 use SPie\LaravelJWT\Events\Logout;
+use SPie\LaravelJWT\Events\RefreshAccessToken;
 use SPie\LaravelJWT\Exceptions\InvalidSecretException;
 use SPie\LaravelJWT\Exceptions\InvalidTokenException;
 use SPie\LaravelJWT\Exceptions\MissingRefreshTokenProviderException;
@@ -623,8 +625,6 @@ final class JWTGuardTest extends TestCase
             ->setPrivateProperty($jwtGuard, 'accessToken', $jwt)
             ->setPrivateProperty($jwtGuard, 'user', $this->createUser());
 
-        $jwtGuard->setUser($this->createUser());
-
         $jwtGuard->logout();
 
         $this->assertEmpty($this->getPrivateProperty($jwtGuard, 'user'));
@@ -1008,6 +1008,45 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
+     */
+    public function testIssueRefreshTokenWithIssueRefreshTokenEvent(): void
+    {
+        $user = $this->createUser();
+        $refreshToken = $this->createJWT();
+        $accessToken = $this->createJWT();
+        $jwtHandler = $this->createJWTHandler();
+        $jwtHandler
+            ->shouldReceive('createJWT')
+            ->andReturn($refreshToken, $accessToken);
+        $eventDispatcher = $this->createEventDispatcher();
+
+        $jwtGuard = $this->createJWTGuard(
+            $jwtHandler,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            $this->createRefreshTokenRepository(),
+            $eventDispatcher
+        );
+        $this
+            ->setPrivateProperty($jwtGuard, 'user', $user)
+            ->setPrivateProperty($jwtGuard, 'accessToken', $this->createJWT());
+
+        $jwtGuard->issueRefreshToken();
+
+        $eventDispatcher
+            ->shouldHaveReceived('dispatch')
+            ->with(Mockery::on(function ($argument) use ($user, $accessToken, $refreshToken) {
+                return $argument == new IssueRefreshToken($user, $accessToken, $refreshToken);
+            }))
+            ->once();
+    }
+
+    /**
+     * @return void
      *
      * @throws \Exception
      */
@@ -1247,6 +1286,56 @@ final class JWTGuardTest extends TestCase
         $this->expectException(NotAuthenticatedException::class);
 
         $jwtGuard->refreshAccessToken();
+    }
+
+    /**
+     * @return void
+     */
+    public function testRefreshAccessTokenWithRefreshAccessTokenEvent(): void
+    {
+        $accessTokenTTL = $this->getFaker()->numberBetween();
+        $refreshToken = $this->createJWT();
+        $refreshToken
+            ->shouldReceive('getRefreshTokenId')
+            ->andReturn($this->getFaker()->uuid);
+        $accessToken = $this->createJWT();
+        $user = $this->createUser(
+            null,
+            $this->getFaker()->uuid,
+            null,
+            [
+                $this->getFaker()->uuid => $this->getFaker()->uuid,
+            ]
+        );
+
+        $tokenBlacklist = $this->createTokenBlacklist();
+        $this->addIsRevoked($tokenBlacklist, false);
+        $jwtHandler = $this->createJWTHandler();
+        $this
+            ->addGetValidJWT($jwtHandler, $refreshToken)
+            ->addCreateJWT($jwtHandler, $accessToken);
+        $eventDispatcher = $this->createEventDispatcher();
+
+        $jwtGuard = $this->createJWTGuard(
+            $jwtHandler,
+            $this->createUserProvider($user),
+            null,
+            $accessTokenTTL,
+            $tokenBlacklist,
+            $this->createRefreshTokenProvider($this->getFaker()->uuid),
+            null,
+            null,
+            $eventDispatcher
+        );
+
+        $jwtGuard->refreshAccessToken();
+
+        $eventDispatcher
+            ->shouldHaveReceived('dispatch')
+            ->with(Mockery::on(function ($argument) use ($user, $accessToken, $refreshToken) {
+                return $argument == new RefreshAccessToken($user, $accessToken, $refreshToken);
+            }))
+            ->once();
     }
 
     /**

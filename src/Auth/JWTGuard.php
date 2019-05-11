@@ -15,9 +15,11 @@ use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use SPie\LaravelJWT\Events\Event;
 use SPie\LaravelJWT\Events\FailedLoginAttempt;
+use SPie\LaravelJWT\Events\IssueRefreshToken;
 use SPie\LaravelJWT\Events\Login;
 use SPie\LaravelJWT\Events\LoginAttempt;
 use SPie\LaravelJWT\Events\Logout;
+use SPie\LaravelJWT\Events\RefreshAccessToken;
 use SPie\LaravelJWT\Exceptions\JWTException;
 use SPie\LaravelJWT\Exceptions\MissingRefreshTokenProviderException;
 use SPie\LaravelJWT\Exceptions\MissingRefreshTokenRepositoryException;
@@ -90,8 +92,6 @@ final class JWTGuard implements JWTGuardContract
      * @var Dispatcher|null
      */
     private $eventDispatcher;
-
-    //TODO events dispatcher
 
     /**
      * JWTGuard constructor.
@@ -522,9 +522,8 @@ final class JWTGuard implements JWTGuardContract
             ->setAccessToken(
                 $this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $claims, $this->getAccessTokenTtl())
             )
-            ->setRefreshToken($refreshJwt);
-
-        //TODO issue refresh token event
+            ->setRefreshToken($refreshJwt)
+            ->dispatchEvent(new IssueRefreshToken($user, $this->getAccessToken(), $this->getRefreshToken()));
 
         return $refreshJwt;
     }
@@ -555,7 +554,7 @@ final class JWTGuard implements JWTGuardContract
             )
             ->setUser($user);
 
-        //TODO refresh access token event
+        $this->dispatchEvent(new RefreshAccessToken($this->user(), $this->getAccessToken(), $refreshJWT));
 
         return $this->getAccessToken();
     }
