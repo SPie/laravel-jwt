@@ -6,12 +6,18 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\GuardHelpers;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\UserProvider;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Http\Request;
 use SPie\LaravelJWT\Contracts\JWTAuthenticatable;
 use SPie\LaravelJWT\Contracts\JWTGuard as JWTGuardContract;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
+use SPie\LaravelJWT\Events\Event;
+use SPie\LaravelJWT\Events\FailedLoginAttempt;
+use SPie\LaravelJWT\Events\Login;
+use SPie\LaravelJWT\Events\LoginAttempt;
+use SPie\LaravelJWT\Events\Logout;
 use SPie\LaravelJWT\Exceptions\JWTException;
 use SPie\LaravelJWT\Exceptions\MissingRefreshTokenProviderException;
 use SPie\LaravelJWT\Exceptions\MissingRefreshTokenRepositoryException;
@@ -80,6 +86,11 @@ final class JWTGuard implements JWTGuardContract
      */
     private $refreshToken;
 
+    /**
+     * @var Dispatcher|null
+     */
+    private $eventDispatcher;
+
     //TODO events dispatcher
 
     /**
@@ -94,6 +105,7 @@ final class JWTGuard implements JWTGuardContract
      * @param TokenProvider|null          $refreshTokenProvider
      * @param int|null                    $refreshTokenTtl
      * @param RefreshTokenRepository|null $refreshTokenRepository
+     * @param Dispatcher|null             $eventDispatcher
      */
     public function __construct(
         JWTHandler $jwtHandler,
@@ -104,7 +116,8 @@ final class JWTGuard implements JWTGuardContract
         TokenBlacklist $tokenBlacklist = null,
         TokenProvider $refreshTokenProvider = null,
         int $refreshTokenTtl = null,
-        RefreshTokenRepository $refreshTokenRepository = null
+        RefreshTokenRepository $refreshTokenRepository = null,
+        Dispatcher $eventDispatcher = null
     )
     {
         $this->jwtHandler = $jwtHandler;
@@ -116,6 +129,7 @@ final class JWTGuard implements JWTGuardContract
         $this->refreshTokenProvider = $refreshTokenProvider;
         $this->refreshTokenTtl = $refreshTokenTtl;
         $this->refreshTokenRepository = $refreshTokenRepository;
+        $this->eventDispatcher = $eventDispatcher;
     }
 
     /**
@@ -188,6 +202,14 @@ final class JWTGuard implements JWTGuardContract
     private function getRefreshTokenRepository(): ?RefreshTokenRepository
     {
         return $this->refreshTokenRepository;
+    }
+
+    /**
+     * @return Dispatcher|null
+     */
+    private function getEventDispatcher(): ?Dispatcher
+    {
+        return $this->eventDispatcher;
     }
 
     /**
@@ -402,31 +424,41 @@ final class JWTGuard implements JWTGuardContract
      */
     public function login(array $credentials = []): JWTGuardContract
     {
-        //TODO attempt event
+        $this->dispatchEvent(new LoginAttempt($credentials));
 
         $user = $this->getProvider()->retrieveByCredentials($credentials);
 
-        if (
-            !$user
-            || !($user instanceof JWTAuthenticatable)
-            || !$this->getProvider()->validateCredentials($user, $credentials)
-        ) {
-            //TODO failed event
-
+        if ($this->isInvalidUser($user, $credentials)) {
             $this
+                ->dispatchEvent(new FailedLoginAttempt($credentials))
                 ->setAccessToken(null)
                 ->user = null;
 
             throw new AuthorizationException();
         }
 
-        //TODO login event
-
         $this
             ->setAccessToken($this->issueAccessToken($user))
             ->setUser($user);
 
+        $this->dispatchEvent(new Login($this->user(), $this->getAccessToken()));
+
         return $this;
+    }
+
+    /**
+     * @param Authenticatable|null $user
+     * @param array                $credentials
+     *
+     * @return bool
+     */
+    private function isInvalidUser(?Authenticatable $user, array $credentials): bool
+    {
+        return !(
+            $user
+            && $user instanceof JWTAuthenticatable
+            && $this->getProvider()->validateCredentials($user, $credentials)
+        );
     }
 
     /**
@@ -434,6 +466,10 @@ final class JWTGuard implements JWTGuardContract
      */
     public function logout(): JWTGuardContract
     {
+        if (!$this->user()) {
+            throw new NotAuthenticatedException();
+        }
+
         if ($this->getAccessToken()) {
             if ($this->getTokenBlacklist()) {
                 $this->getTokenBlacklist()->revoke($this->getAccessToken());
@@ -445,11 +481,10 @@ final class JWTGuard implements JWTGuardContract
         }
 
         $this
+            ->dispatchEvent(new Logout($this->user()))
             ->setAccessToken(null)
             ->setRefreshToken(null)
             ->user = null;
-
-        //TODO logout event
 
         return $this;
     }
@@ -619,5 +654,19 @@ final class JWTGuard implements JWTGuardContract
     private function createRefreshTokenIdentifier(string $subject): string
     {
         return \md5($subject . (new \DateTimeImmutable())->getTimestamp() . \mt_rand());
+    }
+
+    /**
+     * @param Event $event
+     *
+     * @return JWTGuard
+     */
+    private function dispatchEvent(Event $event): JWTGuard
+    {
+        if ($this->getEventDispatcher()) {
+            $this->getEventDispatcher()->dispatch($event);
+        }
+
+        return $this;
     }
 }

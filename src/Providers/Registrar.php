@@ -3,6 +3,7 @@
 namespace SPie\LaravelJWT\Providers;
 
 use Illuminate\Contracts\Container\Container;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
@@ -145,7 +146,8 @@ final class Registrar implements RegistrarContract
                 $this->getRefreshTokenTTLSetting(),
                 $this->getRefreshTokenRepositoryClass()
                     ? $this->getApp()->get($this->getRefreshTokenRepositoryClass())
-                    : null
+                    : null,
+                $this->getApp()->get(Dispatcher::class)
             );
 
             $this->getApp()->refresh('request', $jwtGuard, 'setRequest');
