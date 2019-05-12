@@ -141,7 +141,7 @@ $token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJUZXN0IiwiaWF0IjoxNTQyO
 /** @var SPie\LaravelJWT\JWT $jwt */
 $jwt = $jwtHandler->getValidJWT($token);
 ```
-Possible exceptions are possible:
+Possible exceptions are:
   * `SPie\LaravelJWT\Exceptions\InvalidTokenException`
   * `SPie\LaravelJWT\Exceptions\InvalidSignatureException`
   * `SPie\LaravelJWT\Exceptions\TokenExpiredException`
@@ -161,6 +161,20 @@ The `isRevoked` method will check for a revoked token.
 You have to implement the `SPie\LaravelJWT\RefreshTokenRepository` if you want to use refresh tokens. The `RefreshTokenRepository`
 will store and revoke the refresh tokens if needed and also checks if a refresh token is already revoked.
 
-## Upcoming
-Upcoming features:
-  * Use of event dispatchers
+### Events
+
+The `JWTGuard` fires events of type `SPie\LaravelJWT\Events\Event` for several actions if a `Illuminate\Contracts\Events\Dispatcher` is used.
+
+The `login` action fires three events: 
+  * The `SPie\LaravelJWT\Events\LoginAttempt` event gets fired at the start of the login process. It contains the provided
+  credentials.
+  * The `SPie\LaravelJWT\Events\FailedLoginAttempt` event gets fired if the login wasn't successful. It contains also
+  contains the credentials.
+  * The `SPie\LaravelJWT\Events\Login` event gets fired if the login was successful. It contains the authenticated user
+  and the created access token.
+
+The `issueRefreshToken` action fires the `SPie\LaravelJWT\Events\IssueRefreshToken` event if the refresh token is successfully created.
+This event contains the authenticated user, the newly created access token and the issued refresh token.
+
+The `refreshAccessToken` action fires the `SPie\LaravelJWT\Events\RefreshAccessToken` event, containing the authenticated 
+user, the used refresh token and the refreshed access token.
