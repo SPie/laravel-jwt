@@ -1,7 +1,10 @@
 <?php
 
+namespace SPie\LaravelJWT\Test\Unit;
+
 use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Events\LoginAttempt;
+use SPie\LaravelJWT\Test\TestHelper;
 
 /**
  * Class LoginAttemptTest

@@ -1,5 +1,7 @@
 <?php
 
+namespace SPie\LaravelJWT\Test;
+
 /**
  * Trait ReflectionMethod
  */

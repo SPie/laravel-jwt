@@ -1,11 +1,17 @@
 <?php
 
+namespace SPie\LaravelJWT\Test\Unit;
+
 use Lcobucci\JWT\Claim;
 use Lcobucci\JWT\Token;
+use Mockery;
 use Mockery\MockInterface;
+use OutOfBoundsException;
 use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Exceptions\MissingClaimException;
 use SPie\LaravelJWT\JWT;
+use SPie\LaravelJWT\Test\JWTHelper;
+use SPie\LaravelJWT\Test\TestHelper;
 
 /**
  * Class JWTTest
@@ -20,8 +26,6 @@ final class JWTTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testGetJWT(): void
     {
@@ -36,8 +40,6 @@ final class JWTTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testGetIssuer(): void
     {
@@ -65,8 +67,6 @@ final class JWTTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testGetSubject(): void
     {
@@ -94,8 +94,6 @@ final class JWTTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testGetIssuedAt(): void
     {
@@ -111,8 +109,6 @@ final class JWTTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testGetIssuedAtEmpty(): void
     {
@@ -123,8 +119,6 @@ final class JWTTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testGetExpiresAt(): void
     {
@@ -140,8 +134,6 @@ final class JWTTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testGetExpiresAtEmpty(): void
     {
@@ -150,8 +142,6 @@ final class JWTTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testGetClaims(): void
     {
@@ -172,8 +162,6 @@ final class JWTTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testGetRefreshTokenId(): void
     {
@@ -189,8 +177,6 @@ final class JWTTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testGetRefreshTokenIdEmpty(): void
     {

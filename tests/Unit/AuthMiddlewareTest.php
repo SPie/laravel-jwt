@@ -1,11 +1,16 @@
 <?php
 
+namespace SPie\LaravelJWT\Test\Unit;
+
 use Illuminate\Contracts\Auth\Factory;
+use Mockery;
 use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Contracts\JWTGuard;
 use SPie\LaravelJWT\Exceptions\NotAuthenticatedException;
 use SPie\LaravelJWT\Middleware\AuthMiddleware;
+use SPie\LaravelJWT\Test\JWTHelper;
+use SPie\LaravelJWT\Test\TestHelper;
 use Symfony\Component\HttpFoundation\Request;
 
 /**

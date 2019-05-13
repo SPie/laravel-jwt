@@ -1,7 +1,10 @@
 <?php
 
+namespace SPie\LaravelJWT\Test;
+
 use Faker\Factory;
 use Faker\Generator;
+use Mockery;
 
 /**
  * Trait TestCase

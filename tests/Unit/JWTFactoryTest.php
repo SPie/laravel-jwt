@@ -1,8 +1,12 @@
 <?php
 
+namespace SPie\LaravelJWT\Test\Unit;
+
 use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\JWT;
 use SPie\LaravelJWT\JWTFactory;
+use SPie\LaravelJWT\Test\JWTHelper;
+use SPie\LaravelJWT\Test\TestHelper;
 
 /**
  * Class JWTFactoryTest

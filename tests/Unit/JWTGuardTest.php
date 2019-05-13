@@ -1,10 +1,13 @@
 <?php
 
+namespace SPie\LaravelJWT\Test\Unit;
+
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Http\Request;
+use Mockery;
 use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Auth\JWTGuard;
@@ -25,6 +28,9 @@ use SPie\LaravelJWT\Exceptions\MissingRefreshTokenRepositoryException;
 use SPie\LaravelJWT\Exceptions\NotAuthenticatedException;
 use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\Contracts\JWTHandler;
+use SPie\LaravelJWT\Test\JWTHelper;
+use SPie\LaravelJWT\Test\ReflectionMethodHelper;
+use SPie\LaravelJWT\Test\TestHelper;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -67,8 +73,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testUserWithExistingUser(): void
     {
@@ -81,8 +85,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testUserEmptyToken(): void
     {
@@ -91,8 +93,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testUserInvalidToken(): void
     {
@@ -110,8 +110,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testUserWithEmptyBlacklist(): void
     {
@@ -135,8 +133,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testUserWithRevokedToken(): void
     {
@@ -159,8 +155,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testUserWithoutRevokedRefreshToken(): void
     {
@@ -199,8 +193,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testUserWithRevokedRefreshToken(): void
     {
@@ -231,8 +223,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testUserWithRefreshToken(): void
     {
@@ -283,8 +273,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testUserWithInvalidRefreshToken(): void
     {
@@ -375,8 +363,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testIssueAccessTokenWithTTL(): void
     {
@@ -410,7 +396,6 @@ final class JWTGuardTest extends TestCase
      * @return void
      *
      * @throws AuthorizationException
-     * @throws Exception
      */
     public function testLogin(): void
     {
@@ -433,8 +418,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testLoginWithoutUser(): void
     {
@@ -460,8 +443,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testLoginWithoutJWTAuthenticatable(): void
     {
@@ -499,8 +480,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testLoginWithInvalidCredentials(): void
     {
@@ -605,8 +584,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testLogout(): void
     {
@@ -638,8 +615,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testLogoutWithoutTokenBlacklist(): void
     {
@@ -661,8 +636,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testLogoutWithoutJWT(): void
     {
@@ -690,8 +663,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testLogoutWithRefreshToken(): void
     {
@@ -732,8 +703,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testLogoutWithoutRefreshToken(): void
     {
@@ -808,8 +777,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testIssueRefreshToken(): void
     {
@@ -874,8 +841,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testIssueRefreshTokenWithTTL(): void
     {
@@ -912,8 +877,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testIssueRefreshTokenWithTokenBlacklist(): void
     {
@@ -947,8 +910,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testIssueRefreshTokenWithoutRefreshTokenRepository(): void
     {
@@ -959,8 +920,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testIssueRefreshTokenWithoutLoggedInUser(): void
     {
@@ -983,8 +942,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testIssueRefreshTokenWithoutAccessToken(): void
     {
@@ -1047,8 +1004,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testRefreshAccessToken(): void
     {
@@ -1103,8 +1058,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testRefreshAccessTokenWithRefreshTokenFromGuard(): void
     {
@@ -1159,8 +1112,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testRefreshAccessTokenWithoutRefreshToken(): void
     {
@@ -1180,8 +1131,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testRefreshAccessTokenWithoutValidRefreshToken(): void
     {
@@ -1207,8 +1156,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testRefreshAccessTokenWithRevokedRefreshToken(): void
     {
@@ -1231,8 +1178,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testRefreshAccessTokenWithoutUser(): void
     {
@@ -1263,8 +1208,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testRefreshAccessTokenWithoutRefreshTokenId(): void
     {
@@ -1340,8 +1283,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testReturnAccessToken(): void
     {
@@ -1366,8 +1307,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testReturnAccessTokenWithoutAccessToken(): void
     {
@@ -1378,8 +1317,6 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testReturnRefreshToken(): void
     {
@@ -1487,7 +1424,7 @@ final class JWTGuardTest extends TestCase
 
     /**
      * @param JWTHandler|MockInterface $jwtHandler
-     * @param JWT|Exception            $jwt
+     * @param JWT|\Exception            $jwt
      *
      * @return JWTGuardTest
      */

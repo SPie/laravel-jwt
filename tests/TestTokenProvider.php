@@ -1,5 +1,7 @@
 <?php
 
+namespace SPie\LaravelJWT\Test;
+
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

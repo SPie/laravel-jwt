@@ -1,8 +1,12 @@
 <?php
 
+namespace SPie\LaravelJWT\Test\Unit;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\TestCase;
+use SPie\LaravelJWT\Test\HttpHelper;
+use SPie\LaravelJWT\Test\TestHelper;
 use SPie\LaravelJWT\TokenProvider\CookieTokenProvider;
 use Symfony\Component\HttpFoundation\Cookie;
 

@@ -1,8 +1,11 @@
 <?php
 
+namespace SPie\LaravelJWT\Test\Unit;
+
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer;
+use Mockery;
 use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Contracts\JWTFactory;
 use SPie\LaravelJWT\Exceptions\BeforeValidException;
@@ -10,8 +13,10 @@ use SPie\LaravelJWT\Exceptions\TokenExpiredException;
 use SPie\LaravelJWT\Exceptions\InvalidSecretException;
 use SPie\LaravelJWT\Exceptions\InvalidTokenException;
 use SPie\LaravelJWT\Exceptions\InvalidSignatureException;
-use SPie\LaravelJWT\JWT;
 use SPie\LaravelJWT\JWTHandler;
+use SPie\LaravelJWT\Test\JWTHelper;
+use SPie\LaravelJWT\Test\ReflectionMethodHelper;
+use SPie\LaravelJWT\Test\TestHelper;
 
 /**
  * Class JWTHandlerTest
@@ -65,8 +70,6 @@ final class JWTHandlerTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testCreateTimestamps(): void
     {
@@ -83,8 +86,6 @@ final class JWTHandlerTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \ReflectionException
      */
     public function testCreateTimestampsWithoutTTL(): void
     {
@@ -93,8 +94,6 @@ final class JWTHandlerTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testCreateJWT(): void
     {
@@ -123,8 +122,6 @@ final class JWTHandlerTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testCreateJWTWithEmptyPayload(): void
     {
@@ -147,8 +144,6 @@ final class JWTHandlerTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testCreateJWTWithoutTTL(): void
     {
@@ -168,8 +163,6 @@ final class JWTHandlerTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \Exception
      */
     public function testGetValidJWT(): void
     {
@@ -210,8 +203,6 @@ final class JWTHandlerTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testGetValidJWTExpired(): void
     {
@@ -231,8 +222,6 @@ final class JWTHandlerTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws Exception
      */
     public function testGetValidJWTBeforeValid(): void
     {
@@ -265,7 +254,6 @@ final class JWTHandlerTest extends TestCase
      * @throws InvalidSignatureException
      * @throws InvalidTokenException
      * @throws TokenExpiredException
-     * @throws \Exception
      */
     public function testGetValidJWTSignatureInvalid(): void
     {
@@ -287,7 +275,6 @@ final class JWTHandlerTest extends TestCase
      * @throws InvalidSignatureException
      * @throws InvalidTokenException
      * @throws TokenExpiredException
-     * @throws \Exception
      */
     public function testGetValidJWTInvalidTokenException(): void
     {
@@ -339,8 +326,6 @@ final class JWTHandlerTest extends TestCase
      * @param int|null   $minutes
      *
      * @return array
-     *
-     * @throws ReflectionException
      */
     private function runCreateTimestampsMethod(JWTHandler $jwtHandler, int $minutes = null): array
     {
@@ -351,8 +336,6 @@ final class JWTHandlerTest extends TestCase
      * @param JWTHandler $jwtHandler
      *
      * @return Builder
-     *
-     * @throws \ReflectionException
      */
     private function runGetNewBuilderMethod(JWTHandler $jwtHandler): Builder
     {

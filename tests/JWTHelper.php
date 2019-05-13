@@ -1,9 +1,12 @@
 <?php
 
+namespace SPie\LaravelJWT\Test;
+
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Token;
+use Mockery;
 use Mockery\MockInterface;
 use SPie\LaravelJWT\Contracts\JWTFactory;
 use SPie\LaravelJWT\Contracts\JWTGuard;

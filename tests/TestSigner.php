@@ -1,5 +1,7 @@
 <?php
 
+namespace SPie\LaravelJWT\Test;
+
 use Lcobucci\JWT\Signature;
 use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Signer\Key;

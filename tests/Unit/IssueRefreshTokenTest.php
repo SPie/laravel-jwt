@@ -1,14 +1,18 @@
 <?php
 
+namespace SPie\LaravelJWT\Test\Unit;
+
+use Mockery;
 use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\Contracts\JWTAuthenticatable;
 use SPie\LaravelJWT\Events\IssueRefreshToken;
+use SPie\LaravelJWT\Test\TestHelper;
 
 /**
  * Class IssueRefreshTokenTest
  */
-class IssueRefreshTokenTest extends TestCase
+final class IssueRefreshTokenTest extends TestCase
 {
 
     use TestHelper;

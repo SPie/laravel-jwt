@@ -1,10 +1,15 @@
 <?php
 
+namespace SPie\LaravelJWT\Test\Unit;
+
 use Illuminate\Cache\Repository;
+use Mockery;
 use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Blacklist\CacheTokenBlacklist;
 use SPie\LaravelJWT\Contracts\JWT;
+use SPie\LaravelJWT\Test\JWTHelper;
+use SPie\LaravelJWT\Test\TestHelper;
 
 /**
  * Class CacheTokenBlacklistTest
@@ -47,7 +52,7 @@ final class CacheTokenBlacklistTest extends TestCase
     /**
      * @return void
      *
-     * @throws Exception
+     * @throws \Exception
      */
     public function testRevokeForever(): void
     {

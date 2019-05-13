@@ -1,9 +1,13 @@
 <?php
 
+namespace SPie\LaravelJWT\Test\Unit;
+
+use Mockery;
 use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\Contracts\JWTAuthenticatable;
 use SPie\LaravelJWT\Events\Login;
+use SPie\LaravelJWT\Test\TestHelper;
 
 /**
  * Class LoginTest

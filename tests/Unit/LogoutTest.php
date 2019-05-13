@@ -1,13 +1,17 @@
 <?php
 
+namespace SPie\LaravelJWT\Test\Unit;
+
+use Mockery;
 use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Contracts\JWTAuthenticatable;
 use SPie\LaravelJWT\Events\Logout;
+use SPie\LaravelJWT\Test\TestHelper;
 
 /**
  * Class LogoutTest
  */
-class LogoutTest extends TestCase
+final class LogoutTest extends TestCase
 {
 
     use TestHelper;

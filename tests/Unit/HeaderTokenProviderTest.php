@@ -1,7 +1,11 @@
 <?php
 
+namespace SPie\LaravelJWT\Test\Unit;
+
 use Illuminate\Http\Request;
 use PHPUnit\Framework\TestCase;
+use SPie\LaravelJWT\Test\HttpHelper;
+use SPie\LaravelJWT\Test\TestHelper;
 use SPie\LaravelJWT\TokenProvider\HeaderTokenProvider;
 
 /**

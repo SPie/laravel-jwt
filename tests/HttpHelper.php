@@ -1,5 +1,7 @@
 <?php
 
+namespace SPie\LaravelJWT\Test;
+
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 

@@ -1,14 +1,18 @@
 <?php
 
+namespace SPie\LaravelJWT\Test\Unit;
+
 use Illuminate\Auth\AuthManager;
 use Illuminate\Config\Repository;
 use Illuminate\Contracts\Container\Container;
-use Illuminate\Contracts\Foundation\Application;
+use Mockery;
 use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Contracts\Registrar as RegistrarContract;
 use SPie\LaravelJWT\Providers\LaravelServiceProvider;
 use SPie\LaravelJWT\Providers\Registrar;
+use SPie\LaravelJWT\Test\ReflectionMethodHelper;
+use SPie\LaravelJWT\Test\TestHelper;
 
 /**
  * Class LaravelServiceProviderTest
@@ -128,7 +132,7 @@ final class LaravelServiceProviderTest extends TestCase
      */
     private function createApp(Repository $configRepository = null, AuthManager $authManager = null): Container
     {
-        $app = Mockery::spy(Container::class, ArrayAccess::class);
+        $app = Mockery::spy(Container::class, \ArrayAccess::class);
         $app
             ->shouldReceive('offsetGet')
             ->andReturnUsing(function ($argument) use ($configRepository) {

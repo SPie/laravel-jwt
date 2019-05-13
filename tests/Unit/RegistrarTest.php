@@ -1,5 +1,7 @@
 <?php
 
+namespace SPie\LaravelJWT\Test\Unit;
+
 use Illuminate\Auth\AuthManager;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Container\Container;
@@ -7,6 +9,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Http\Request;
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
+use Mockery;
 use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Contracts\JWTFactory as JWTFactoryContract;
@@ -18,6 +21,11 @@ use SPie\LaravelJWT\Exceptions\InvalidTokenProviderKeyException;
 use SPie\LaravelJWT\JWTFactory;
 use SPie\LaravelJWT\JWTHandler;
 use SPie\LaravelJWT\Providers\Registrar;
+use SPie\LaravelJWT\Test\JWTHelper;
+use SPie\LaravelJWT\Test\ReflectionMethodHelper;
+use SPie\LaravelJWT\Test\TestHelper;
+use SPie\LaravelJWT\Test\TestSigner;
+use SPie\LaravelJWT\Test\TestTokenProvider;
 
 /**
  * Class Registrar
@@ -56,8 +64,6 @@ final class RegistrarTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws ReflectionException
      */
     public function testRegisterJWTHandler(): void
     {
@@ -127,8 +133,6 @@ final class RegistrarTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \ReflectionException
      */
     public function testRegisterTokenBlacklist(): void
     {
@@ -167,8 +171,6 @@ final class RegistrarTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws \ReflectionException
      */
     public function testRegisterTokenBlacklistWithoutBlacklistSetting(): void
     {
@@ -196,8 +198,6 @@ final class RegistrarTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws ReflectionException
      */
     public function testExtendAuthGuard(): void
     {
@@ -292,8 +292,6 @@ final class RegistrarTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws ReflectionException
      */
     public function testExtendAuthGuardOnlyWithRequiredProperties(): void
     {
@@ -374,8 +372,6 @@ final class RegistrarTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws ReflectionException
      */
     public function testGetAccessTokenProvider(): void
     {
@@ -398,8 +394,6 @@ final class RegistrarTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws ReflectionException
      */
     public function testGetRefreshTokenProvider(): void
     {
@@ -422,8 +416,6 @@ final class RegistrarTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws ReflectionException
      */
     public function testGetRefreshTokenProviderWithoutTokenProvider(): void
     {
@@ -434,8 +426,6 @@ final class RegistrarTest extends TestCase
 
     /**
      * @return void
-     *
-     * @throws ReflectionException
      */
     public function testGetRefreshTokenProviderWithoutKey(): void
     {
