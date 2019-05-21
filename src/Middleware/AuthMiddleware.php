@@ -14,6 +14,8 @@ use Symfony\Component\HttpFoundation\Request;
 final class AuthMiddleware
 {
 
+    use Authenticated;
+
     /**
      * @var Factory
      */
@@ -48,9 +50,7 @@ final class AuthMiddleware
      */
     public function handle(Request $request, \Closure $next, string $guard = null)
     {
-        if ($this->getAuthFactory()->guard($guard)->guest()) {
-            throw new NotAuthenticatedException();
-        }
+        $this->checkAuthenticated($this->getAuthFactory()->guard($guard));
 
         return $next($request);
     }
