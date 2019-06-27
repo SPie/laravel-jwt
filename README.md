@@ -1,13 +1,15 @@
 # JWT Package for Laravel
-
+[![Build Status](https://travis-ci.org/spie/laravel-jwt.svg?branch=master)](https://travis-ci.org/spie/laravel-jwt)
+[![Coverage Status](https://coveralls.io/repos/github/SPie/laravel-jwt/badge.svg?branch=master)](https://coveralls.io/github/SPie/laravel-jwt?branch=master)
 This package provides a Laravel `Guard` for JWT authentication.
-It uses [`lcobucci/jwt:3.2`](https://github.com/lcobucci/jwt) to create and validate the tokens.
 
 This package provides a access and refresh token workflow. You need to create an access token first. With the access token
 you can issue a refresh token. Then this refresh token can be used to create access tokens if required.
 
 ## Requirements
   * PHP >= 7.1
+  * [Laravel Components](https://github.com/laravel/framework) >= 5.4
+  * [lcobucci/jwt](https://github.com/lcobucci/jwt) ^3.2
   
 ## Installation
 Just pull the package with composer
