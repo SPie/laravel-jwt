@@ -9,7 +9,8 @@ use Illuminate\Contracts\Auth\Authenticatable;
  *
  * @package SPie\LaravelJWT\Contracts
  */
-interface JWTAuthenticatable extends Authenticatable {
+interface JWTAuthenticatable extends Authenticatable
+{
 
     /**
      * @return array

@@ -71,8 +71,7 @@ final class JWTHandler implements JWTHandlerContract
         Builder $builder,
         Parser $parser,
         Signer $signer
-    )
-    {
+    ) {
         if (empty($secret)) {
             throw new InvalidSecretException();
         }

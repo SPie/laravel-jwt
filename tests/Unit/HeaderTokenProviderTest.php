@@ -13,7 +13,6 @@ use SPie\LaravelJWT\TokenProvider\HeaderTokenProvider;
  */
 final class HeaderTokenProviderTest extends TestCase
 {
-
     use TestHelper;
     use HttpHelper;
 

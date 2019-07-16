@@ -58,7 +58,9 @@ final class TestTokenProvider implements TokenProvider
      *
      * @return Response
      */
-    public function setResponseToken(Response $response, string $token): Response {}
+    public function setResponseToken(Response $response, string $token): Response
+    {
+    }
 
     /**
      * @param string $key

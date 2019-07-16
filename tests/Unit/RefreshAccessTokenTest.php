@@ -14,7 +14,6 @@ use SPie\LaravelJWT\Test\TestHelper;
  */
 final class RefreshAccessTokenTest extends TestCase
 {
-
     use TestHelper;
 
     /**

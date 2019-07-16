@@ -13,7 +13,6 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class HeaderTokenProvider implements TokenProvider
 {
-
     const BEARER_PREFIX = 'Bearer';
 
     /**

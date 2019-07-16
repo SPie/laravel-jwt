@@ -17,14 +17,18 @@ class TestSigner implements Signer
      *
      * @return string
      */
-    public function getAlgorithmId() {}
+    public function getAlgorithmId()
+    {
+    }
 
     /**
      * Apply changes on headers according with algorithm
      *
      * @param array $headers
      */
-    public function modifyHeader(array &$headers) {}
+    public function modifyHeader(array &$headers)
+    {
+    }
 
     /**
      * Returns a signature for given data
@@ -36,7 +40,9 @@ class TestSigner implements Signer
      *
      * @throws InvalidArgumentException When given key is invalid
      */
-    public function sign($payload, $key) {}
+    public function sign($payload, $key)
+    {
+    }
 
     /**
      * Returns if the expected hash matches with the data and key
@@ -49,5 +55,7 @@ class TestSigner implements Signer
      *
      * @throws InvalidArgumentException When given key is invalid
      */
-    public function verify($expected, $payload, $key) {}
+    public function verify($expected, $payload, $key)
+    {
+    }
 }

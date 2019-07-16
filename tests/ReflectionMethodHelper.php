@@ -21,8 +21,7 @@ trait ReflectionMethodHelper
         $object,
         string $methodName,
         array $arguments = []
-    )
-    {
+    ) {
         $reflectionMethod = $this->getReflectionObject($object)->getMethod($methodName);
         $reflectionMethod->setAccessible(true);
 

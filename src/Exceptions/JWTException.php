@@ -7,7 +7,6 @@ namespace SPie\LaravelJWT\Exceptions;
  *
  * @package SPie\LaravelJWT\Exceptions
  */
-interface  JWTException extends \Throwable
+interface JWTException extends \Throwable
 {
-
 }

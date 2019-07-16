@@ -35,7 +35,6 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class JWTGuard implements JWTGuardContract
 {
-
     use GuardHelpers;
 
     /**
@@ -118,8 +117,7 @@ final class JWTGuard implements JWTGuardContract
         int $refreshTokenTtl = null,
         RefreshTokenRepository $refreshTokenRepository = null,
         Dispatcher $eventDispatcher = null
-    )
-    {
+    ) {
         $this->jwtHandler = $jwtHandler;
         $this->provider = $provider;
         $this->request = $request;

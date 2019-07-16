@@ -15,7 +15,6 @@ use Symfony\Component\HttpFoundation\Cookie;
  */
 final class CookieTokenProviderTest extends TestCase
 {
-
     use TestHelper;
     use HttpHelper;
 

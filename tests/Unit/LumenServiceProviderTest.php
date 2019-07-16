@@ -20,7 +20,6 @@ use SPie\LaravelJWT\Test\TestHelper;
  */
 final class LumenServiceProviderTest extends TestCase
 {
-
     use ReflectionMethodHelper;
     use TestHelper;
 

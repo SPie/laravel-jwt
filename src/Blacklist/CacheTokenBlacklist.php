@@ -13,7 +13,6 @@ use SPie\LaravelJWT\Contracts\JWT;
  */
 final class CacheTokenBlacklist implements TokenBlacklist
 {
-
     const EXPIRATION_MINUTES_DEFAULT = 129600;
 
     /**

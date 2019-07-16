@@ -13,7 +13,6 @@ use Illuminate\Support\ServiceProvider;
  */
 final class LaravelServiceProvider extends ServiceProvider
 {
-
     use RegistrarHolder;
 
     /**

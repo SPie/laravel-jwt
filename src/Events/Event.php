@@ -9,5 +9,4 @@ namespace SPie\LaravelJWT\Events;
  */
 interface Event
 {
-
 }
