@@ -14,7 +14,6 @@ use SPie\LaravelJWT\Test\TestHelper;
  */
 final class LoginTest extends TestCase
 {
-
     use TestHelper;
 
     /**

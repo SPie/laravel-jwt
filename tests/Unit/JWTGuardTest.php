@@ -38,7 +38,6 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class JWTGuardTest extends TestCase
 {
-
     use TestHelper;
     use JWTHelper;
     use ReflectionMethodHelper;
@@ -424,7 +423,7 @@ final class JWTGuardTest extends TestCase
         $jwtHandler = $this->createJWTHandler();
         $this->addGetValidJWT($jwtHandler, $this->createJWT());
 
-        $jwtGuard = $this->createJWTGuard($jwtHandler, $this->createUserProvider()  );
+        $jwtGuard = $this->createJWTGuard($jwtHandler, $this->createUserProvider());
 
         try {
             $jwtGuard->login([
@@ -453,12 +452,24 @@ final class JWTGuardTest extends TestCase
             $jwtHandler,
             $this->createUserProvider(
                 new class implements Authenticatable {
-                    public function getAuthIdentifierName() {}
-                    public function getAuthIdentifier() {}
-                    public function getAuthPassword() {}
-                    public function getRememberToken() {}
-                    public function setRememberToken($value) {}
-                    public function getRememberTokenName() {}
+                    public function getAuthIdentifierName()
+                    {
+                    }
+                    public function getAuthIdentifier()
+                    {
+                    }
+                    public function getAuthPassword()
+                    {
+                    }
+                    public function getRememberToken()
+                    {
+                    }
+                    public function setRememberToken($value)
+                    {
+                    }
+                    public function getRememberTokenName()
+                    {
+                    }
                 }
             )
         );
@@ -960,7 +971,6 @@ final class JWTGuardTest extends TestCase
         $this->expectException(NotAuthenticatedException::class);
 
         $jwtGuard->issueRefreshToken();
-
     }
 
     /**
@@ -1406,8 +1416,7 @@ final class JWTGuardTest extends TestCase
         int $refreshTokenTTL = null,
         RefreshTokenRepository $refreshTokenRepository = null,
         Dispatcher $eventDispatcher = null
-    ): JWTGuard
-    {
+    ): JWTGuard {
         return new JWTGuard(
             $jwtHandler ?: $this->createJWTHandler(),
             $userProvider ?: $this->createUserProvider(),
@@ -1500,8 +1509,7 @@ final class JWTGuardTest extends TestCase
         string $authIdentifier = null,
         string $authPassword = null,
         array $customClaims = []
-    ): JWTAuthenticatable
-    {
+    ): JWTAuthenticatable {
         $user = Mockery::spy(JWTAuthenticatable::class);
 
         $user

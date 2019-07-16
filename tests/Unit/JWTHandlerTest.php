@@ -23,7 +23,6 @@ use SPie\LaravelJWT\Test\TestHelper;
  */
 final class JWTHandlerTest extends TestCase
 {
-
     use TestHelper;
     use JWTHelper;
     use ReflectionMethodHelper;
@@ -309,8 +308,7 @@ final class JWTHandlerTest extends TestCase
         Builder $builder = null,
         Parser $parser = null,
         Signer $signer = null
-    ): JWTHandler
-    {
+    ): JWTHandler {
         return new JWTHandler(
             $secret ?: $this->getFaker()->uuid,
             $issuer ?: $this->getFaker()->uuid,

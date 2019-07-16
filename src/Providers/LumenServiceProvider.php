@@ -13,7 +13,6 @@ use Illuminate\Support\ServiceProvider;
  */
 final class LumenServiceProvider extends ServiceProvider
 {
-
     use RegistrarHolder;
 
     /**

@@ -23,7 +23,6 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class AuthReturnMiddlewareTest extends TestCase
 {
-
     use JWTHelper;
     use TestHelper;
 
@@ -70,7 +69,8 @@ final class AuthReturnMiddlewareTest extends TestCase
         $this->expectException(NotAuthenticatedException::class);
 
         $this->createAuthReturnMiddleware($this->createAuthFactory($this->createGuard(true)))
-             ->handle(new Request(), function () {});
+             ->handle(new Request(), function () {
+             });
     }
 
     /**
@@ -81,7 +81,8 @@ final class AuthReturnMiddlewareTest extends TestCase
         $this->expectException(\TypeError::class);
 
         $this->createAuthReturnMiddleware($this->createAuthFactory(Mockery::spy(Guard::class)))
-            ->handle(new Request(), function () {}, $this->getFaker()->uuid);
+            ->handle(new Request(), function () {
+            }, $this->getFaker()->uuid);
     }
 
     /**
@@ -218,8 +219,7 @@ final class AuthReturnMiddlewareTest extends TestCase
         bool $isGuest = false,
         $accessToken = null,
         $refreshToken = null
-    ): JWTGuard
-    {
+    ): JWTGuard {
         $jwtGuard = $this->createJWTGuard();
         $this
             ->addGuest($jwtGuard, $isGuest)

@@ -24,7 +24,6 @@ use SPie\LaravelJWT\JWTHandler;
  */
 final class Registrar implements RegistrarContract
 {
-
     const SETTING_JWT                      = 'jwt';
     const SETTING_SECRET                   = 'secret';
     const SETTING_ISSUER                   = 'issuer';

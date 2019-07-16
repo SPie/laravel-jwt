@@ -21,7 +21,6 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class AuthMiddlewareTest extends TestCase
 {
-
     use JWTHelper;
     use TestHelper;
 
@@ -68,7 +67,8 @@ final class AuthMiddlewareTest extends TestCase
         $this->expectException(NotAuthenticatedException::class);
 
         $this->createAuthMiddleware($this->createAuthFactory($this->createGuard(true)))
-             ->handle(new Request(), function () {});
+             ->handle(new Request(), function () {
+             });
     }
 
     //endregion

@@ -13,7 +13,6 @@ use Symfony\Component\HttpFoundation\Request;
  */
 final class AuthMiddleware
 {
-
     use Authenticated;
 
     /**

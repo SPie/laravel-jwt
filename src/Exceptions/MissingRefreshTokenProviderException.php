@@ -9,5 +9,4 @@ namespace SPie\LaravelJWT\Exceptions;
  */
 final class MissingRefreshTokenProviderException extends \Exception implements JWTException
 {
-
 }

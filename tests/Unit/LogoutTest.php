@@ -13,7 +13,6 @@ use SPie\LaravelJWT\Test\TestHelper;
  */
 final class LogoutTest extends TestCase
 {
-
     use TestHelper;
 
     /**

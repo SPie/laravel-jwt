@@ -19,7 +19,6 @@ use SPie\LaravelJWT\Test\TestHelper;
  */
 final class LaravelServiceProviderTest extends TestCase
 {
-
     use ReflectionMethodHelper;
     use TestHelper;
 

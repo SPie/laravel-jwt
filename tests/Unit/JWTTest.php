@@ -18,7 +18,6 @@ use SPie\LaravelJWT\Test\TestHelper;
  */
 final class JWTTest extends TestCase
 {
-
     use TestHelper;
     use JWTHelper;
 

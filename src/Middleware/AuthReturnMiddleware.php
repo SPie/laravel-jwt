@@ -16,7 +16,6 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class AuthReturnMiddleware
 {
-
     use Authenticated;
 
     /**
@@ -69,7 +68,8 @@ final class AuthReturnMiddleware
         try {
             $response = $authGuard->returnRefreshToken($response);
         } catch (NotAuthenticatedException $e) {
-        } catch (MissingRefreshTokenProviderException $e) {}
+        } catch (MissingRefreshTokenProviderException $e) {
+        }
 
         return $authGuard->returnAccessToken($response);
     }

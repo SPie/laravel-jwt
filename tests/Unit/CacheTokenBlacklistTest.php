@@ -16,7 +16,6 @@ use SPie\LaravelJWT\Test\TestHelper;
  */
 final class CacheTokenBlacklistTest extends TestCase
 {
-
     use TestHelper;
     use JWTHelper;
 

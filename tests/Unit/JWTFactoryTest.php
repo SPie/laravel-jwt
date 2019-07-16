@@ -13,7 +13,6 @@ use SPie\LaravelJWT\Test\TestHelper;
  */
 class JWTFactoryTest extends TestCase
 {
-
     use TestHelper;
     use JWTHelper;
 

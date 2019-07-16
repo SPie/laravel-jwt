@@ -2,7 +2,6 @@
 
 namespace SPie\LaravelJWT\Middleware;
 
-
 use Illuminate\Contracts\Auth\Guard;
 use SPie\LaravelJWT\Exceptions\NotAuthenticatedException;
 

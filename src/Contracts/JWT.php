@@ -9,7 +9,6 @@ namespace SPie\LaravelJWT\Contracts;
  */
 interface JWT
 {
-
     const CLAIM_ISSUER     = 'iss';
     const CLAIM_SUBJECT    = 'sub';
     const CLAIM_AUDIENCE   = 'aud';

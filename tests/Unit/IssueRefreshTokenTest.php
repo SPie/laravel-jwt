@@ -14,7 +14,6 @@ use SPie\LaravelJWT\Test\TestHelper;
  */
 final class IssueRefreshTokenTest extends TestCase
 {
-
     use TestHelper;
 
     /**
@@ -33,4 +32,3 @@ final class IssueRefreshTokenTest extends TestCase
         $this->assertEquals($refreshToken, $issueRefreshTokenEvent->getRefreshToken());
     }
 }
-

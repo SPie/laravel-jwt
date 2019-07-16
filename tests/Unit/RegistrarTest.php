@@ -32,7 +32,6 @@ use SPie\LaravelJWT\Test\TestTokenProvider;
  */
 final class RegistrarTest extends TestCase
 {
-
     use TestHelper;
     use JWTHelper;
     use ReflectionMethodHelper;
@@ -555,13 +554,11 @@ final class RegistrarTest extends TestCase
         Parser $parser = null,
         JWTFactoryContract $jwtFactory = null,
         array $config = []
-    ): RegistrarTest
-    {
+    ): RegistrarTest {
         $app
             ->shouldReceive('get')
             ->andReturnUsing(
-                function (string $argument)
-                use (
+                function (string $argument) use (
                     $authManager,
                     $withTokenBlacklist,
                     $request,
