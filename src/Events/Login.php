@@ -10,8 +10,9 @@ use SPie\LaravelJWT\Contracts\JWTAuthenticatable;
  *
  * @package SPie\LaravelJWT\Events
  */
-final class Login implements Event
+final class Login implements Event, IpAddressable
 {
+    use IpAddress;
 
     /**
      * @var JWTAuthenticatable
@@ -24,22 +25,17 @@ final class Login implements Event
     private $accessToken;
 
     /**
-     * @var array
-     */
-    private $credentials;
-
-    /**
      * LoginEvent constructor.
      *
      * @param JWTAuthenticatable $user
      * @param JWT                $accessToken
-     * @param array              $credentials
+     * @param string|null        $ipAddress
      */
-    public function __construct(JWTAuthenticatable $user, JWT $accessToken, array $credentials = [])
+    public function __construct(JWTAuthenticatable $user, JWT $accessToken, string $ipAddress = null)
     {
         $this->user = $user;
         $this->accessToken = $accessToken;
-        $this->credentials = $credentials;
+        $this->ipAddress = $ipAddress;
     }
 
     /**
@@ -56,13 +52,5 @@ final class Login implements Event
     public function getAccessToken(): JWT
     {
         return $this->accessToken;
-    }
-
-    /**
-     * @return array
-     */
-    public function getCredentials(): array
-    {
-        return $this->credentials;
     }
 }

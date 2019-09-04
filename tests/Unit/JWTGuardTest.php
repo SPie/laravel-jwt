@@ -30,6 +30,7 @@ use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\Contracts\JWTHandler;
 use SPie\LaravelJWT\Test\JWTHelper;
 use SPie\LaravelJWT\Test\ReflectionMethodHelper;
+use SPie\LaravelJWT\Test\RequestHelper;
 use SPie\LaravelJWT\Test\TestHelper;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -41,13 +42,14 @@ final class JWTGuardTest extends TestCase
     use TestHelper;
     use JWTHelper;
     use ReflectionMethodHelper;
+    use RequestHelper;
 
     //region Tests
 
     /**
      * @return void
      *
-     * @throws Exception
+     * @throws \Exception
      */
     public function testUserWithValidToken(): void
     {
@@ -403,7 +405,7 @@ final class JWTGuardTest extends TestCase
         $jwtHandler = $this->createJWTHandler();
         $this->addCreateJWT($jwtHandler, $jwt);
 
-        $jwtGuard = $this->createJWTGuard(
+        $jwtGuard = $this->createJWTGuardForLogin(
             $jwtHandler,
             $this->createUserProvider($user, true)
         )->login([
@@ -423,7 +425,7 @@ final class JWTGuardTest extends TestCase
         $jwtHandler = $this->createJWTHandler();
         $this->addGetValidJWT($jwtHandler, $this->createJWT());
 
-        $jwtGuard = $this->createJWTGuard($jwtHandler, $this->createUserProvider());
+        $jwtGuard = $this->createJWTGuardForLogin($jwtHandler, $this->createUserProvider());
 
         try {
             $jwtGuard->login([
@@ -448,7 +450,7 @@ final class JWTGuardTest extends TestCase
         $jwtHandler = $this->createJWTHandler();
         $this->addGetValidJWT($jwtHandler, $this->createJWT());
 
-        $jwtGuard = $this->createJWTGuard(
+        $jwtGuard = $this->createJWTGuardForLogin(
             $jwtHandler,
             $this->createUserProvider(
                 new class implements Authenticatable {
@@ -497,7 +499,7 @@ final class JWTGuardTest extends TestCase
         $jwtHandler = $this->createJWTHandler();
         $this->addGetValidJWT($jwtHandler, $this->createJWT());
 
-        $jwtGuard = $this->createJWTGuard($jwtHandler, $this->createUserProvider());
+        $jwtGuard = $this->createJWTGuardForLogin($jwtHandler, $this->createUserProvider());
 
         try {
             $jwtGuard->login([
@@ -525,32 +527,29 @@ final class JWTGuardTest extends TestCase
             $this->getFaker()->uuid => $this->getFaker()->uuid,
             $this->getFaker()->uuid => $this->getFaker()->uuid,
         ];
+        $ipAddress = $this->getFaker()->ipv4;
+        $request = $this->createRequestForLogin($ipAddress);
         $jwt = $this->createJWT();
         $jwtHandler = $this->createJWTHandler();
         $this->addCreateJWT($jwtHandler, $jwt);
 
-        $this->createJWTGuard(
+        $this->createJWTGuardForLogin(
             $jwtHandler,
             $this->createUserProvider($user, true),
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            $eventDispatcher
+            $eventDispatcher,
+            $request
         )->login($credentials);
 
         $eventDispatcher
             ->shouldHaveReceived('dispatch')
-            ->with(Mockery::on(function ($argument) use ($credentials) {
-                return $argument == new LoginAttempt($credentials);
+            ->with(Mockery::on(function ($argument) use ($credentials, $ipAddress) {
+                return $argument == new LoginAttempt($credentials, $ipAddress);
             }))
             ->once();
         $eventDispatcher
             ->shouldHaveReceived('dispatch')
-            ->with(Mockery::on(function ($argument) use ($user, $jwt, $credentials) {
-                return $argument == new Login($user, $jwt, $credentials);
+            ->with(Mockery::on(function ($argument) use ($user, $jwt, $ipAddress) {
+                return $argument == new Login($user, $jwt, $ipAddress);
             }))
             ->once();
     }
@@ -565,18 +564,15 @@ final class JWTGuardTest extends TestCase
             $this->getFaker()->uuid => $this->getFaker()->uuid,
             $this->getFaker()->uuid => $this->getFaker()->uuid,
         ];
+        $ipAddress = $this->getFaker()->ipv4;
+        $request = $this->createRequestForLogin($ipAddress);
 
         try {
-            $this->createJWTGuard(
+            $this->createJWTGuardForLogin(
                 null,
                 $this->createUserProvider(),
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                $eventDispatcher
+                $eventDispatcher,
+                $request
             )->login($credentials);
 
             $this->assertTrue(false);
@@ -586,8 +582,8 @@ final class JWTGuardTest extends TestCase
 
         $eventDispatcher
             ->shouldHaveReceived('dispatch')
-            ->with(Mockery::on(function ($argument) use ($credentials) {
-                return $argument == new FailedLoginAttempt($credentials);
+            ->with(Mockery::on(function ($argument) use ($credentials, $ipAddress) {
+                return $argument == new FailedLoginAttempt($credentials, $ipAddress);
             }))
             ->once();
         $this->assertTrue(true);
@@ -1403,6 +1399,7 @@ final class JWTGuardTest extends TestCase
      * @param int|null                    $refreshTokenTTL
      * @param RefreshTokenRepository|null $refreshTokenRepository
      * @param Dispatcher|null             $eventDispatcher
+     * @param Request|null                $request
      *
      * @return JWTGuard|MockInterface
      */
@@ -1415,12 +1412,13 @@ final class JWTGuardTest extends TestCase
         TokenProvider $refreshTokenProvider = null,
         int $refreshTokenTTL = null,
         RefreshTokenRepository $refreshTokenRepository = null,
-        Dispatcher $eventDispatcher = null
+        Dispatcher $eventDispatcher = null,
+        Request $request = null
     ): JWTGuard {
         return new JWTGuard(
             $jwtHandler ?: $this->createJWTHandler(),
             $userProvider ?: $this->createUserProvider(),
-            new Request(),
+            $request ?: $this->createRequest(),
             $accessTokenProvider ?: $this->createAccessTokenProvider(),
             $accessTokenTTL ?: $this->getFaker()->numberBetween(),
             $tokenBlacklist,
@@ -1429,6 +1427,47 @@ final class JWTGuardTest extends TestCase
             $refreshTokenRepository,
             $eventDispatcher
         );
+    }
+
+    /**
+     * @param JWTHandler|null   $jwtHandler
+     * @param UserProvider|null $userProvider
+     * @param Dispatcher|null   $eventDispatcher
+     * @param Request|null      $request
+     *
+     * @return JWTGuard
+     */
+    private function createJWTGuardForLogin(
+        JWTHandler $jwtHandler = null,
+        UserProvider $userProvider = null,
+        Dispatcher $eventDispatcher = null,
+        Request $request = null
+    ): JWTGuard {
+        return $this->createJWTGuard(
+            $jwtHandler,
+            $userProvider,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            $eventDispatcher,
+            $request ?: $this->createRequestForLogin()
+        );
+    }
+
+    /**
+     * @param string|null $ipAddress
+     *
+     * @return Request
+     */
+    private function createRequestForLogin(string $ipAddress = null): Request
+    {
+        $request = $this->createRequest();
+        $this->mockRequestIp($request, $ipAddress ?: $this->getFaker()->ipv4);
+
+        return $request;
     }
 
     /**

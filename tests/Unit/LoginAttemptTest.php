@@ -18,9 +18,21 @@ final class LoginAttemptTest extends TestCase
      */
     public function testConstruct(): void
     {
-        $credentials = [
-            $this->getFaker()->uuid => $this->getFaker()->uuid,
-        ];
+        $credentials = [$this->getFaker()->uuid => $this->getFaker()->uuid];
+        $ipAddress = $this->getFaker()->ipv4;
+
+        $loginAttempt = new LoginAttempt($credentials, $ipAddress);
+
+        $this->assertEquals($credentials, $loginAttempt->getCredentials());
+        $this->assertEquals($ipAddress, $loginAttempt->getIpAddress());
+    }
+
+    /**
+     * @return void
+     */
+    public function testConstructWithoutOptionalParameters(): void
+    {
+        $credentials = [$this->getFaker()->uuid => $this->getFaker()->uuid];
 
         $this->assertEquals($credentials, (new LoginAttempt($credentials))->getCredentials());
     }

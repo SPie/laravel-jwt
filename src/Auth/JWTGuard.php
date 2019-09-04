@@ -422,13 +422,13 @@ final class JWTGuard implements JWTGuardContract
      */
     public function login(array $credentials = []): JWTGuardContract
     {
-        $this->dispatchEvent(new LoginAttempt($credentials));
+        $this->dispatchEvent(new LoginAttempt($credentials, $this->getRequest()->ip()));
 
         $user = $this->getProvider()->retrieveByCredentials($credentials);
 
         if ($this->isInvalidUser($user, $credentials)) {
             $this
-                ->dispatchEvent(new FailedLoginAttempt($credentials))
+                ->dispatchEvent(new FailedLoginAttempt($credentials, $this->getRequest()->ip()))
                 ->setAccessToken(null)
                 ->user = null;
 
@@ -439,7 +439,7 @@ final class JWTGuard implements JWTGuardContract
             ->setAccessToken($this->issueAccessToken($user))
             ->setUser($user);
 
-        $this->dispatchEvent(new Login($this->user(), $this->getAccessToken(), $credentials));
+        $this->dispatchEvent(new Login($this->user(), $this->getAccessToken(), $this->getRequest()->ip()));
 
         return $this;
     }

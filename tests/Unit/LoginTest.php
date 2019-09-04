@@ -23,13 +23,13 @@ final class LoginTest extends TestCase
     {
         $user = Mockery::mock(JWTAuthenticatable::class);
         $accessToken = Mockery::mock(JWT::class);
-        $credentials = [$this->getFaker()->uuid => $this->getFaker()->uuid];
+        $ipAddress = $this->getFaker()->ipv4;
 
-        $loginEvent = new Login($user, $accessToken, $credentials);
+        $loginEvent = new Login($user, $accessToken, $ipAddress);
 
         $this->assertEquals($user, $loginEvent->getUser());
         $this->assertEquals($accessToken, $loginEvent->getAccessToken());
-        $this->assertEquals($credentials, $loginEvent->getCredentials());
+        $this->assertEquals($ipAddress, $loginEvent->getIpAddress());
     }
 
     /**
@@ -44,6 +44,6 @@ final class LoginTest extends TestCase
 
         $this->assertEquals($user, $loginEvent->getUser());
         $this->assertEquals($accessToken, $loginEvent->getAccessToken());
-        $this->assertEquals([], $loginEvent->getCredentials());
+        $this->assertEquals(null, $loginEvent->getIpAddress());
     }
 }

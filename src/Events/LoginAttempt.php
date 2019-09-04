@@ -7,8 +7,9 @@ namespace SPie\LaravelJWT\Events;
  *
  * @package SPie\LaravelJWT\Events
  */
-final class LoginAttempt implements Event
+final class LoginAttempt implements Event, IpAddressable
 {
+    use IpAddress;
 
     /**
      * @var array
@@ -18,11 +19,13 @@ final class LoginAttempt implements Event
     /**
      * LoginAttempt constructor.
      *
-     * @param array $credentials
+     * @param array       $credentials
+     * @param string|null $ipAddress
      */
-    public function __construct(array $credentials)
+    public function __construct(array $credentials, string $ipAddress = null)
     {
         $this->credentials = $credentials;
+        $this->ipAddress = $ipAddress;
     }
 
     /**
