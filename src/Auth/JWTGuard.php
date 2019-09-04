@@ -439,7 +439,7 @@ final class JWTGuard implements JWTGuardContract
             ->setAccessToken($this->issueAccessToken($user))
             ->setUser($user);
 
-        $this->dispatchEvent(new Login($this->user(), $this->getAccessToken()));
+        $this->dispatchEvent(new Login($this->user(), $this->getAccessToken(), $credentials));
 
         return $this;
     }

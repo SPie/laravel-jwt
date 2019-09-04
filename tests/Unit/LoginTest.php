@@ -23,10 +23,27 @@ final class LoginTest extends TestCase
     {
         $user = Mockery::mock(JWTAuthenticatable::class);
         $accessToken = Mockery::mock(JWT::class);
+        $credentials = [$this->getFaker()->uuid => $this->getFaker()->uuid];
+
+        $loginEvent = new Login($user, $accessToken, $credentials);
+
+        $this->assertEquals($user, $loginEvent->getUser());
+        $this->assertEquals($accessToken, $loginEvent->getAccessToken());
+        $this->assertEquals($credentials, $loginEvent->getCredentials());
+    }
+
+    /**
+     * @return void
+     */
+    public function testConstructWithoutOptionalParameters(): void
+    {
+        $user = Mockery::mock(JWTAuthenticatable::class);
+        $accessToken = Mockery::mock(JWT::class);
 
         $loginEvent = new Login($user, $accessToken);
 
         $this->assertEquals($user, $loginEvent->getUser());
         $this->assertEquals($accessToken, $loginEvent->getAccessToken());
+        $this->assertEquals([], $loginEvent->getCredentials());
     }
 }

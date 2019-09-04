@@ -24,15 +24,22 @@ final class Login implements Event
     private $accessToken;
 
     /**
+     * @var array
+     */
+    private $credentials;
+
+    /**
      * LoginEvent constructor.
      *
      * @param JWTAuthenticatable $user
      * @param JWT                $accessToken
+     * @param array              $credentials
      */
-    public function __construct(JWTAuthenticatable $user, JWT $accessToken)
+    public function __construct(JWTAuthenticatable $user, JWT $accessToken, array $credentials = [])
     {
         $this->user = $user;
         $this->accessToken = $accessToken;
+        $this->credentials = $credentials;
     }
 
     /**
@@ -49,5 +56,13 @@ final class Login implements Event
     public function getAccessToken(): JWT
     {
         return $this->accessToken;
+    }
+
+    /**
+     * @return array
+     */
+    public function getCredentials(): array
+    {
+        return $this->credentials;
     }
 }

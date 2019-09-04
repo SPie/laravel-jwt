@@ -549,8 +549,8 @@ final class JWTGuardTest extends TestCase
             ->once();
         $eventDispatcher
             ->shouldHaveReceived('dispatch')
-            ->with(Mockery::on(function ($argument) use ($user, $jwt) {
-                return $argument == new Login($user, $jwt);
+            ->with(Mockery::on(function ($argument) use ($user, $jwt, $credentials) {
+                return $argument == new Login($user, $jwt, $credentials);
             }))
             ->once();
     }
