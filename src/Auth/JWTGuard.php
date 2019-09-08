@@ -93,6 +93,11 @@ final class JWTGuard implements JWTGuardContract
     private $eventDispatcher;
 
     /**
+     * @var bool
+     */
+    private $ipCheckEnabled;
+
+    /**
      * JWTGuard constructor.
      *
      * @param JWTHandler                  $jwtHandler
@@ -105,6 +110,7 @@ final class JWTGuard implements JWTGuardContract
      * @param int|null                    $refreshTokenTtl
      * @param RefreshTokenRepository|null $refreshTokenRepository
      * @param Dispatcher|null             $eventDispatcher
+     * @param bool                        $ipCheckEnabled
      */
     public function __construct(
         JWTHandler $jwtHandler,
@@ -116,7 +122,8 @@ final class JWTGuard implements JWTGuardContract
         TokenProvider $refreshTokenProvider = null,
         int $refreshTokenTtl = null,
         RefreshTokenRepository $refreshTokenRepository = null,
-        Dispatcher $eventDispatcher = null
+        Dispatcher $eventDispatcher = null,
+        bool $ipCheckEnabled = false
     ) {
         $this->jwtHandler = $jwtHandler;
         $this->provider = $provider;
@@ -128,6 +135,7 @@ final class JWTGuard implements JWTGuardContract
         $this->refreshTokenTtl = $refreshTokenTtl;
         $this->refreshTokenRepository = $refreshTokenRepository;
         $this->eventDispatcher = $eventDispatcher;
+        $this->ipCheckEnabled = $ipCheckEnabled;
     }
 
     /**
@@ -208,6 +216,14 @@ final class JWTGuard implements JWTGuardContract
     private function getEventDispatcher(): ?Dispatcher
     {
         return $this->eventDispatcher;
+    }
+
+    /**
+     * @return bool
+     */
+    private function isIpCheckEnabled(): bool
+    {
+        return $this->ipCheckEnabled;
     }
 
     /**
@@ -305,6 +321,10 @@ final class JWTGuard implements JWTGuardContract
             return null;
         }
 
+        if ($this->isJWTIpAddressInvalid($jwt)) {
+            return null;
+        }
+
         $user = $this->getUserByJWT($jwt);
         if ($user) {
             $this
@@ -329,6 +349,10 @@ final class JWTGuard implements JWTGuardContract
 
         $jwt = $this->getJWT($token);
         if (empty($jwt)) {
+            return null;
+        }
+
+        if ($this->isJWTIpAddressInvalid($jwt)) {
             return null;
         }
 
@@ -379,6 +403,21 @@ final class JWTGuard implements JWTGuardContract
     }
 
     /**
+     * @param JWT $jwt
+     *
+     * @return bool
+     */
+    private function isJWTIpAddressInvalid(JWT $jwt): bool
+    {
+        return (
+            $this->isIpCheckEnabled()
+            && !empty($jwt->getIpAddress())
+            && $jwt->getIpAddress() != $this->getRequest()->ip()
+        );
+
+    }
+
+    /**
      * Validate a user's credentials.
      *
      * @param  array $credentials
@@ -404,7 +443,7 @@ final class JWTGuard implements JWTGuardContract
         $this->setAccessToken(
             $this->getJWTHandler()->createJWT(
                 $user->getAuthIdentifier(),
-                $user->getCustomClaims(),
+                $this->setIpAddressToClaims($user->getCustomClaims()),
                 $this->getAccessTokenTtl()
             )
         );
@@ -507,6 +546,7 @@ final class JWTGuard implements JWTGuardContract
             $user->getCustomClaims(),
             $this->createRefreshTokenIdentifier($user->getAuthIdentifier())
         );
+        $claims = $this->setIpAddressToClaims($claims);
 
         $refreshJwt = $this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $claims, $this->getRefreshTokenTtl());
 
@@ -545,7 +585,7 @@ final class JWTGuard implements JWTGuardContract
                 $this->getJWTHandler()->createJWT(
                     $user->getAuthIdentifier(),
                     $this->createClaimsWithRefreshTokenIdentifier(
-                        $user->getCustomClaims(),
+                        $this->setIpAddressToClaims($user->getCustomClaims()),
                         $refreshJWT->getRefreshTokenId()
                     ),
                     $this->getAccessTokenTtl())
@@ -602,6 +642,21 @@ final class JWTGuard implements JWTGuardContract
                 JWT::CUSTOM_CLAIM_REFRESH_TOKEN => $refreshTokenId
             ]
         );
+    }
+
+    /**
+     * @param array $claims
+     *
+     * @return array
+     */
+    private function setIpAddressToClaims(array $claims): array
+    {
+        $ipAddress = $this->getRequest()->ip();
+        if (!empty($ipAddress)) {
+            $claims[JWT::CUSTOM_CLAIM_IP_ADDRESS] = $ipAddress;
+        }
+
+        return $claims;
     }
 
     /**
