@@ -20,9 +20,7 @@ trait RequestHelper
      */
     private function createRequest(): Request
     {
-        return m::mock(Request::class)
-            ->shouldAllowMockingProtectedMethods()
-            ->makePartial();
+        return m::spy(Request::class);
     }
 
     /**

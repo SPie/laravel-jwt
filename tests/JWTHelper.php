@@ -45,6 +45,21 @@ trait JWTHelper
     }
 
     /**
+     * @param MockInterface $jwt
+     * @param string|null   $ipAddress
+     *
+     * @return $this
+     */
+    private function mockJWTGetIpAddress(MockInterface $jwt, ?string $ipAddress)
+    {
+        $jwt
+            ->shouldReceive('getIpAddress')
+            ->andReturn($ipAddress);
+
+        return $this;
+    }
+
+    /**
      * @return Token|MockInterface
      */
     protected function createToken(): Token

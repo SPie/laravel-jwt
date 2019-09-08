@@ -126,11 +126,17 @@ final class JWT implements JWTContract
 
     /**
      * @return null|string
-     *
-     * @throws MissingClaimException
      */
     public function getRefreshTokenId(): ?string
     {
         return $this->getClaim(self::CUSTOM_CLAIM_REFRESH_TOKEN, false);
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getIpAddress(): ?string
+    {
+        return $this->getClaim(self::CUSTOM_CLAIM_IP_ADDRESS, false);
     }
 }

@@ -182,6 +182,29 @@ final class JWTTest extends TestCase
         $this->assertEmpty($this->createJWT($this->createJWTToken())->getRefreshTokenId());
     }
 
+    /**
+     * @return void
+     */
+    public function testGetIpAddress(): void
+    {
+        $ipAddress = $this->getFaker()->ipv4;
+        $token = $this->createJWTToken($ipAddress);
+
+        $this->assertEquals($ipAddress, $this->createJWT($token)->getIpAddress());
+        $token
+            ->shouldHaveReceived('getClaim')
+            ->with('ipa')
+            ->once();
+    }
+
+    /**
+     * @return void
+     */
+    public function testGetIpAddressWithoutIpAddress(): void
+    {
+        $this->assertEmpty($this->createJWT($this->createJWTToken())->getIpAddress());
+    }
+
     //endregion
 
     /**

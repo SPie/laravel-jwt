@@ -18,6 +18,7 @@ interface JWT
     const CLAIM_JWT_ID     = 'jti';
 
     const CUSTOM_CLAIM_REFRESH_TOKEN = 'rti';
+    const CUSTOM_CLAIM_IP_ADDRESS    = 'ipa';
 
     /**
      * @return string
@@ -61,4 +62,9 @@ interface JWT
      * @return string|null
      */
     public function getRefreshTokenId(): ?string;
+
+    /**
+     * @return string|null
+     */
+    public function getIpAddress(): ?string;
 }
