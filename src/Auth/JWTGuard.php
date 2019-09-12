@@ -414,7 +414,6 @@ final class JWTGuard implements JWTGuardContract
             && !empty($jwt->getIpAddress())
             && $jwt->getIpAddress() != $this->getRequest()->ip()
         );
-
     }
 
     /**

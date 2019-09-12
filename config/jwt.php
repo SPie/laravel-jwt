@@ -23,5 +23,6 @@ return [
         Registrar::SETTING_KEY   => env('JWT_REFRESH_TOKEN_KEY', null),
         Registrar::SETTING_TTL   => env('JWT_REFRESH_TOKEN_TTL', null)
     ],
-    Registrar::SETTING_REFRESH_TOKEN_REPOSITORY => env('JWT_REFRESH_TOKEN_REPOSITORY', null)
+    Registrar::SETTING_REFRESH_TOKEN_REPOSITORY => env('JWT_REFRESH_TOKEN_REPOSITORY', null),
+    Registrar::SETTING_IP_CHECK_ENABLED         => env('JWT_IP_CHECK_ENABLED', false),
 ];

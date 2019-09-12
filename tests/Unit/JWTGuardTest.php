@@ -339,7 +339,8 @@ final class JWTGuardTest extends TestCase
         $this->addGetValidJWT(
             $jwtHandler,
             $jwt
-        ); $jwtGuard = $this->createJWTGuard(
+        );
+        $jwtGuard = $this->createJWTGuard(
             $jwtHandler,
             $this->createUserProvider($user),
             $this->createAccessTokenProvider($this->getFaker()->uuid),
