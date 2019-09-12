@@ -216,6 +216,7 @@ final class RegistrarTest extends TestCase
         $refreshTokenProviderKey = $this->getFaker()->uuid;
         $accessTokenTTL = $this->getFaker()->numberBetween();
         $refreshTokenTTL = $this->getFaker()->numberBetween();
+        $ipCheckEnabled = $this->getFaker()->boolean;
 
         $app = $this->createApp();
         $this->addGet(
@@ -237,6 +238,7 @@ final class RegistrarTest extends TestCase
                 'jwt.refreshTokenProvider.key'   => $refreshTokenProviderKey,
                 'jwt.refreshTokenProvider.ttl'   => $refreshTokenTTL,
                 'jwt.refreshTokenRepository'     => RefreshTokenRepository::class,
+                'jwt.ipCheckEnabled'             => $ipCheckEnabled,
             ]
         );
 
@@ -250,7 +252,8 @@ final class RegistrarTest extends TestCase
             (new TestTokenProvider())->setKey($refreshTokenProviderKey),
             $refreshTokenTTL,
             $refreshTokenRepository,
-            $eventDispatcher
+            $eventDispatcher,
+            $ipCheckEnabled
         );
 
         $registrar = $this->createRegistrar($app);
