@@ -55,6 +55,7 @@ JWT_REFRESH_TOKEN_PROVIDER=SPie\LaravelJWT\TokenProvider\CookieTokenProvider
 JWT_REFRESH_TOKEN_TTL=
 JWT_REFRESH_TOKEN_KEY=refresh-token
 JWT_REFRESH_TOKEN_REPOSITORY=
+JWT_IP_CHECK_ENABLED=
 ```
 You can also copy the `config/jwt.php` file from the repo to your projects config directory to configure JWT without an `.env` file.
 
@@ -150,6 +151,9 @@ Possible exceptions are:
   * `SPie\LaravelJWT\Exceptions\InvalidSignatureException`
   * `SPie\LaravelJWT\Exceptions\TokenExpiredException`
   * `SPie\LaravelJWT\Exceptions\BeforeValidException`
+
+If the setting `JWT_IP_CHECK_ENABLED` is set, the IP address will be compared with the one. If they don't match, the user
+is not authenticated.
   
 ### JWT Object
 The `SPie\LaravelJWT\JWT` object is just a wrapper for `Lcobucci\JWT\Token`.
@@ -171,11 +175,11 @@ The `JWTGuard` fires events of type `SPie\LaravelJWT\Events\Event` for several a
 
 The `login` action fires three events: 
   * The `SPie\LaravelJWT\Events\LoginAttempt` event gets fired at the start of the login process. It contains the provided
-  credentials.
+  credentials and the IP address.
   * The `SPie\LaravelJWT\Events\FailedLoginAttempt` event gets fired if the login wasn't successful. It contains also
-  contains the credentials.
-  * The `SPie\LaravelJWT\Events\Login` event gets fired if the login was successful. It contains the authenticated user
-  and the created access token.
+  contains the credentials and the IP address.
+  * The `SPie\LaravelJWT\Events\Login` event gets fired if the login was successful. It contains the authenticated user, 
+  the created access token and the IP address.
 
 The `issueRefreshToken` action fires the `SPie\LaravelJWT\Events\IssueRefreshToken` event if the refresh token is successfully created.
 This event contains the authenticated user, the newly created access token and the issued refresh token.
