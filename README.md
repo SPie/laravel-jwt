@@ -10,7 +10,7 @@ you can issue a refresh token. Then this refresh token can be used to create acc
 
 ## Requirements
   * PHP >= 7.1
-  * [Laravel Components](https://github.com/laravel/framework) >= 5.4
+  * [Laravel Components](https://github.com/laravel/framework) ^5.4 and ^6.0
   * [lcobucci/jwt](https://github.com/lcobucci/jwt) ^3.2
   
 ## Installation
