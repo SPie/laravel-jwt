@@ -18,7 +18,7 @@ interface TokenProvider
      *
      * @return TokenProvider
      */
-    public function setKey(string $key): TokenProvider;
+    public function setKey(string $key): self;
 
     /**
      * @param Request $request

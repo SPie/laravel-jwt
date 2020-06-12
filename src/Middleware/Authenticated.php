@@ -20,7 +20,7 @@ trait Authenticated
      *
      * @throws NotAuthenticatedException
      */
-    protected function checkAuthenticated(Guard $guard)
+    protected function checkAuthenticated(Guard $guard): self
     {
         if ($guard->guest()) {
             throw new NotAuthenticatedException();

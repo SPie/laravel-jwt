@@ -40,62 +40,62 @@ final class JWTGuard implements JWTGuardContract
     /**
      * @var JWTHandler
      */
-    private $jwtHandler;
+    private JWTHandler $jwtHandler;
 
     /**
      * @var Request
      */
-    private $request;
+    private Request $request;
 
     /**
      * @var TokenProvider
      */
-    private $accessTokenProvider;
+    private TokenProvider $accessTokenProvider;
 
     /**
      * @var int
      */
-    private $accessTokenTtl;
+    private int $accessTokenTtl;
 
     /**
      * @var TokenBlacklist|null
      */
-    private $tokenBlacklist;
+    private ?TokenBlacklist $tokenBlacklist;
 
     /**
      * @var TokenProvider|null
      */
-    private $refreshTokenProvider;
+    private ?TokenProvider $refreshTokenProvider;
 
     /**
      * @var int|null
      */
-    private $refreshTokenTtl;
+    private ?int $refreshTokenTtl;
 
     /**
      * @var RefreshTokenRepository|null
      */
-    private $refreshTokenRepository;
+    private ?RefreshTokenRepository $refreshTokenRepository;
 
     /**
-     * @var JWT
+     * @var JWT|null
      */
-    private $accessToken;
+    private ?JWT $accessToken;
 
     /**
-     * @var JWT
+     * @var JWT|null
      */
-    private $refreshToken;
+    private ?JWT $refreshToken;
 
     /**
      * @var Dispatcher|null
      */
-    private $eventDispatcher;
+    private ?Dispatcher $eventDispatcher;
 
     /**
      * @var bool
      */
-    private $ipCheckEnabled;
+    private bool $ipCheckEnabled;
 
     /**
      * JWTGuard constructor.
@@ -136,6 +136,9 @@ final class JWTGuard implements JWTGuardContract
         $this->refreshTokenRepository = $refreshTokenRepository;
         $this->eventDispatcher = $eventDispatcher;
         $this->ipCheckEnabled = $ipCheckEnabled;
+
+        $this->accessToken = null;
+        $this->refreshToken = null;
     }
 
     /**

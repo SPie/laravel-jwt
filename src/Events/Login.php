@@ -17,12 +17,12 @@ final class Login implements Event, IpAddressable
     /**
      * @var JWTAuthenticatable
      */
-    private $user;
+    private JWTAuthenticatable $user;
 
     /**
      * @var JWT
      */
-    private $accessToken;
+    private JWT $accessToken;
 
     /**
      * LoginEvent constructor.

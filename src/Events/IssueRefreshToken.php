@@ -16,17 +16,17 @@ class IssueRefreshToken implements Event
     /**
      * @var JWTAuthenticatable
      */
-    private $user;
+    private JWTAuthenticatable $user;
 
     /**
      * @var JWT
      */
-    private $accessToken;
+    private JWT $accessToken;
 
     /**
      * @var JWT
      */
-    private $refreshToken;
+    private JWT $refreshToken;
 
     /**
      * IssueRefreshToken constructor.

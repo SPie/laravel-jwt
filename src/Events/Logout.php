@@ -15,7 +15,7 @@ final class Logout implements Event
     /**
      * @var JWTAuthenticatable
      */
-    private $user;
+    private JWTAuthenticatable $user;
 
     /**
      * Logout constructor.

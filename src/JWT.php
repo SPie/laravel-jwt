@@ -18,7 +18,7 @@ final class JWT implements JWTContract
     /**
      * @var Token
      */
-    private $token;
+    private Token $token;
 
     /**
      * Token constructor.

@@ -25,42 +25,42 @@ final class JWTHandler implements JWTHandlerContract
     /**
      * @var string
      */
-    private $secret;
+    private string $secret;
 
     /**
      * @var string
      */
-    private $issuer;
+    private string $issuer;
 
     /**
      * @var JWTFactory
      */
-    private $jwtFactory;
+    private JWTFactory $jwtFactory;
 
     /**
      * @var Builder
      */
-    private $builder;
+    private Builder $builder;
 
     /**
      * @var Parser
      */
-    private $parser;
+    private Parser $parser;
 
     /**
      * @var Signer
      */
-    private $signer;
+    private Signer $signer;
 
     /**
      * JWTHandler constructor.
      *
-     * @param string      $secret
-     * @param string      $issuer
-     * @param JWTFactory  $jwtFactory
-     * @param Builder     $builder
-     * @param Parser      $parser
-     * @param Signer|null $signer
+     * @param string     $secret
+     * @param string     $issuer
+     * @param JWTFactory $jwtFactory
+     * @param Builder    $builder
+     * @param Parser     $parser
+     * @param Signer     $signer
      *
      * @throws InvalidSecretException
      */
