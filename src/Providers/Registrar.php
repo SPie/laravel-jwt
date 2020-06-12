@@ -40,7 +40,7 @@ final class Registrar implements RegistrarContract
     /**
      * @var Container
      */
-    private $app;
+    private Container $app;
 
     /**
      * Registrar constructor.
@@ -61,9 +61,9 @@ final class Registrar implements RegistrarContract
     }
 
     /**
-     * @return RegistrarContract
+     * @return $this
      */
-    public function register(): RegistrarContract
+    public function register(): self
     {
         return $this
             ->registerJWTFactory()
@@ -72,17 +72,17 @@ final class Registrar implements RegistrarContract
     }
 
     /**
-     * @return RegistrarContract
+     * @return $this
      */
-    public function boot(): RegistrarContract
+    public function boot(): self
     {
         return $this->extendAuthGuard();
     }
 
     /**
-     * @return Registrar
+     * @return $this
      */
-    private function registerJWTFactory(): Registrar
+    private function registerJWTFactory(): self
     {
         $this->getApp()->singleton(JWTFactoryContract::class, JWTFactory::class);
 
@@ -90,9 +90,9 @@ final class Registrar implements RegistrarContract
     }
 
     /**
-     * @return Registrar
+     * @return $this
      */
-    private function registerJWTHandler(): Registrar
+    private function registerJWTHandler(): self
     {
         $this->getApp()->bind(Builder::class);
         $this->getApp()->bind(Parser::class);
@@ -114,9 +114,9 @@ final class Registrar implements RegistrarContract
     }
 
     /**
-     * @return Registrar
+     * @return $this
      */
-    private function registerTokenBlacklist(): Registrar
+    private function registerTokenBlacklist(): self
     {
         $this->getApp()->singleton(TokenBlacklist::class, function () {
             $tokenBlacklistClass = $this->getBlacklistSetting();
@@ -130,9 +130,9 @@ final class Registrar implements RegistrarContract
     }
 
     /**
-     * @return Registrar
+     * @return $this
      */
-    private function extendAuthGuard(): Registrar
+    private function extendAuthGuard(): self
     {
         $this->getApp()->get('auth')->extend('jwt', function ($app, $name, array $config) {
             $jwtGuard = new JWTGuard(

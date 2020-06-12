@@ -15,14 +15,14 @@ interface RefreshTokenRepository
      *
      * @return RefreshTokenRepository
      */
-    public function storeRefreshToken(JWT $refreshToken): RefreshTokenRepository;
+    public function storeRefreshToken(JWT $refreshToken): self;
 
     /**
      * @param string $refreshTokenId
      *
      * @return RefreshTokenRepository
      */
-    public function revokeRefreshToken(string $refreshTokenId): RefreshTokenRepository;
+    public function revokeRefreshToken(string $refreshTokenId): self;
 
     /**
      * @param string $refreshTokenId

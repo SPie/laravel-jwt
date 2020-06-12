@@ -12,7 +12,7 @@ trait IpAddress
     /**
      * @var string|null
      */
-    private $ipAddress;
+    private ?string $ipAddress;
 
     /**
      * @return string|null

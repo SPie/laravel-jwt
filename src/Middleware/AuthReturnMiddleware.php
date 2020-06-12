@@ -21,7 +21,7 @@ final class AuthReturnMiddleware
     /**
      * @var Factory
      */
-    private $authFactory;
+    private Factory $authFactory;
 
     /**
      * AuthReturnMiddleware constructor.

@@ -17,7 +17,7 @@ trait RegistrarHolder
     /**
      * @var RegistrarContract
      */
-    protected $registrar;
+    protected RegistrarContract $registrar;
 
     /**
      * @param Container|Application $app

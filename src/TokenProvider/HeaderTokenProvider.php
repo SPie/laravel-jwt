@@ -18,14 +18,14 @@ final class HeaderTokenProvider implements TokenProvider
     /**
      * @var string
      */
-    private $key;
+    private string $key;
 
     /**
      * @param string $key
      *
-     * @return HeaderTokenProvider|TokenProvider
+     * @return HeaderTokenProvider
      */
-    public function setKey(string $key): TokenProvider
+    public function setKey(string $key): self
     {
         $this->key = $key;
 

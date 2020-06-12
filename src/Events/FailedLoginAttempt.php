@@ -14,7 +14,7 @@ final class FailedLoginAttempt implements Event, IpAddressable
     /**
      * @var array
      */
-    private $credentials;
+    private array $credentials;
 
     /**
      * FailedLoginAttempt constructor.

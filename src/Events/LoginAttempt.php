@@ -14,7 +14,7 @@ final class LoginAttempt implements Event, IpAddressable
     /**
      * @var array
      */
-    private $credentials;
+    private array $credentials;
 
     /**
      * LoginAttempt constructor.

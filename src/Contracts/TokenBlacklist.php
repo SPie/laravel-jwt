@@ -15,7 +15,7 @@ interface TokenBlacklist
      *
      * @return TokenBlacklist
      */
-    public function revoke(JWT $jwt): TokenBlacklist;
+    public function revoke(JWT $jwt): self;
 
     /**
      * @param string $jwt
