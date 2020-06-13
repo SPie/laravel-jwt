@@ -8,6 +8,7 @@ use Illuminate\Contracts\Foundation\Application;
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
 use SPie\LaravelJWT\Auth\JWTGuard;
+use SPie\LaravelJWT\Contracts\EventFactory;
 use SPie\LaravelJWT\Contracts\JWTFactory as JWTFactoryContract;
 use SPie\LaravelJWT\Contracts\JWTHandler as JWTHandlerContract;
 use SPie\LaravelJWT\Contracts\Registrar as RegistrarContract;
@@ -136,17 +137,17 @@ final class Registrar implements RegistrarContract
     {
         $this->getApp()->get('auth')->extend('jwt', function ($app, $name, array $config) {
             $jwtGuard = new JWTGuard(
+                $name,
                 $this->getApp()->get(JWTHandlerContract::class),
                 $this->getApp()->get('auth')->createUserProvider($config['provider']),
                 $this->getApp()->get('request'),
                 $this->getAccessTokenProvider(),
                 $this->getAccessTokenTTLSetting(),
-                $this->getApp()->get(TokenBlacklist::class),
                 $this->getRefreshTokenProvider(),
+                $this->getApp()->get($this->getRefreshTokenRepositoryClass()),
+                $this->getApp()->get(EventFactory::class),
+                $this->getApp()->get(TokenBlacklist::class),
                 $this->getRefreshTokenTTLSetting(),
-                $this->getRefreshTokenRepositoryClass()
-                    ? $this->getApp()->get($this->getRefreshTokenRepositoryClass())
-                    : null,
                 $this->getApp()->get(Dispatcher::class),
                 $this->getIpCheckEnabledSetting()
             );

@@ -4,7 +4,6 @@ namespace SPie\LaravelJWT\Middleware;
 
 use Illuminate\Contracts\Auth\Factory;
 use SPie\LaravelJWT\Contracts\JWTGuard;
-use SPie\LaravelJWT\Exceptions\MissingRefreshTokenProviderException;
 use SPie\LaravelJWT\Exceptions\NotAuthenticatedException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -68,7 +67,6 @@ final class AuthReturnMiddleware
         try {
             $response = $authGuard->returnRefreshToken($response);
         } catch (NotAuthenticatedException $e) {
-        } catch (MissingRefreshTokenProviderException $e) {
         }
 
         return $authGuard->returnAccessToken($response);
