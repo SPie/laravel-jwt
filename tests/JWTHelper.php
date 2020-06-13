@@ -2,12 +2,16 @@
 
 namespace SPie\LaravelJWT\Test;
 
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Token;
 use Mockery;
 use Mockery\MockInterface;
+use SPie\LaravelJWT\Contracts\EventFactory;
 use SPie\LaravelJWT\Contracts\JWTFactory;
 use SPie\LaravelJWT\Contracts\JWTGuard;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
@@ -146,6 +150,24 @@ trait JWTHelper
     }
 
     /**
+     * @param RefreshTokenRepository|MockInterface $refreshTokenRepository
+     * @param JWT                                  $refreshToken
+     *
+     * @return $this
+     */
+    private function assertRefreshTokenRepositoryStoreRefreshToken(
+        MockInterface $refreshTokenRepository,
+        JWT $refreshToken
+    ): self {
+        $refreshTokenRepository
+            ->shouldHaveReceived('storeRefreshToken')
+            ->with($refreshToken)
+            ->once();
+
+        return $this;
+    }
+
+    /**
      * @param JWT|null $jwt
      *
      * @return JWTFactory|MockInterface
@@ -156,5 +178,59 @@ trait JWTHelper
             ->shouldReceive('createJWT')
             ->andReturn($jwt ?: $this->createJWT())
             ->getMock();
+    }
+
+    /**
+     * @return EventFactory
+     */
+    private function createEventFactory(): EventFactory
+    {
+        return Mockery::spy(EventFactory::class);
+    }
+
+    /**
+     * @param EventFactory|MockInterface $eventFactory
+     * @param Login                      $login
+     * @param string                     $guardName
+     * @param Authenticatable            $user
+     * @param bool                       $remember
+     *
+     * @return $this
+     */
+    private function mockEventFactoryCreateLoginEvent(
+        MockInterface $eventFactory,
+        Login $login,
+        string $guardName,
+        Authenticatable $user,
+        bool $remember
+    ): self {
+        $eventFactory
+            ->shouldReceive('createLoginEvent')
+            ->with($guardName, $user, $remember)
+            ->andReturn($login);
+
+        return $this;
+    }
+
+    /**
+     * @param EventFactory|MockInterface $eventFactory
+     * @param Logout                     $logout
+     * @param string                     $guardName
+     * @param Authenticatable            $user
+     *
+     * @return $this
+     */
+    private function mockEventFactoryCreateLogoutEvent(
+        MockInterface $eventFactory,
+        Logout $logout,
+        string $guardName,
+        Authenticatable $user
+    ): self {
+        $eventFactory
+            ->shouldReceive('createLogoutEvent')
+            ->with($guardName, $user)
+            ->andReturn($logout);
+
+        return $this;
     }
 }

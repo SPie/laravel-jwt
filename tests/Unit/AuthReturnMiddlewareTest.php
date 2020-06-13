@@ -8,7 +8,6 @@ use Mockery;
 use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Contracts\JWTGuard;
-use SPie\LaravelJWT\Exceptions\MissingRefreshTokenProviderException;
 use SPie\LaravelJWT\Exceptions\NotAuthenticatedException;
 use SPie\LaravelJWT\Middleware\AuthReturnMiddleware;
 use SPie\LaravelJWT\Test\JWTHelper;
@@ -141,30 +140,6 @@ final class AuthReturnMiddlewareTest extends TestCase
             false,
             $accessToken,
             new NotAuthenticatedException()
-        ));
-
-        $response = $this->createAuthReturnMiddleware($authFactory)->handle(
-            new Request(),
-            function (Request $handledRequest) {
-                return new Response();
-            },
-            $this->getFaker()->uuid
-        );
-
-        $this->assertEquals($accessToken, $response->headers->get('Authorization'));
-        $this->assertEmpty($response->headers->get('RefreshToken'));
-    }
-
-    /**
-     * @return void
-     */
-    public function testHandleWithoutRefreshTokenProvider()
-    {
-        $accessToken = $this->getFaker()->uuid;
-        $authFactory = $this->createAuthFactory($this->createGuard(
-            false,
-            $accessToken,
-            new MissingRefreshTokenProviderException()
         ));
 
         $response = $this->createAuthReturnMiddleware($authFactory)->handle(

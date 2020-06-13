@@ -15,7 +15,7 @@ trait ReflectionMethodHelper
      *
      * @return mixed
      *
-     * @throws ReflectionException
+     * @throws \ReflectionException
      */
     protected function runReflectionMethod(
         $object,

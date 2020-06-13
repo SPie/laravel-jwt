@@ -2,7 +2,7 @@
 
 namespace SPie\LaravelJWT\Contracts;
 
-use Illuminate\Contracts\Auth\Guard;
+use Illuminate\Contracts\Auth\StatefulGuard;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * @package SPie\LaravelJWT\Contracts
  */
-interface JWTGuard extends Guard
+interface JWTGuard extends StatefulGuard
 {
 
     /**
@@ -22,35 +22,6 @@ interface JWTGuard extends Guard
      * @return JWT|null
      */
     public function getRefreshToken(): ?JWT;
-
-    /**
-     * @param JWTAuthenticatable $user
-     *
-     * @return JWT
-     */
-    public function issueAccessToken(JWTAuthenticatable $user): JWT;
-
-    /**
-     * @param array $credentials
-     *
-     * @return JWTGuard
-     */
-    public function login(array $credentials = []): JWTGuard;
-
-    /**
-     * @return JWTGuard
-     */
-    public function logout(): JWTGuard;
-
-    /**
-     * @return JWT
-     */
-    public function issueRefreshToken(): JWT;
-
-    /**
-     * @return JWT
-     */
-    public function refreshAccessToken(): JWT;
 
     /**
      * @param Response $response

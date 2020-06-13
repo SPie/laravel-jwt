@@ -8,7 +8,6 @@ use Mockery;
 use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Contracts\JWTGuard;
-use SPie\LaravelJWT\Exceptions\MissingRefreshTokenProviderException;
 use SPie\LaravelJWT\Exceptions\NotAuthenticatedException;
 use SPie\LaravelJWT\Middleware\AuthMiddleware;
 use SPie\LaravelJWT\Test\JWTHelper;
