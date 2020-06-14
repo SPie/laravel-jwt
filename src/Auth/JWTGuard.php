@@ -513,6 +513,37 @@ final class JWTGuard implements JWTGuardContract
     }
 
     /**
+     * @param array  $claims
+     * @param string $refreshTokenId
+     *
+     * @return array
+     */
+    private function createClaimsWithRefreshTokenIdentifier(array $claims, string $refreshTokenId): array
+    {
+        return \array_merge(
+            $claims,
+            [
+                JWT::CUSTOM_CLAIM_REFRESH_TOKEN => $refreshTokenId
+            ]
+        );
+    }
+
+    /**
+     * @param array $claims
+     *
+     * @return array
+     */
+    private function setIpAddressToClaims(array $claims): array
+    {
+        $ipAddress = $this->getRequest()->ip();
+        if (!empty($ipAddress)) {
+            $claims[JWT::CUSTOM_CLAIM_IP_ADDRESS] = $ipAddress;
+        }
+
+        return $claims;
+    }
+
+    /**
      * @return JWTGuardContract
      */
     public function logout(): JWTGuardContract
@@ -550,129 +581,130 @@ final class JWTGuard implements JWTGuardContract
 
         $user = $this->getProvider()->retrieveByCredentials($credentials);
 
-        if ($user && $this->getProvider()->validateCredentials($user, $credentials)) {
-            $this->login($user, $remember);
+        if (!($user && $this->getProvider()->validateCredentials($user, $credentials))) {
+            $this->dispatchEvent($this->getEventFactory()->createFailedEvent($this->getName(), $user, $credentials));
 
-            return true;
+            return false;
         }
 
-        $this->dispatchEvent($this->getEventFactory()->createFailedEvent($this->getName(), $user, $credentials));
+        $this->login($user, $remember);
 
-        return false;
+        return true;
     }
 
+    /**
+     * @param array $credentials
+     *
+     * @return bool
+     */
     public function once(array $credentials = [])
     {
-        // TODO: Implement once() method.
+        $user = $this->getProvider()->retrieveByCredentials($credentials);
+        if (!($user && $this->getProvider()->validateCredentials($user, $credentials))) {
+            return false;
+        }
+
+        $this->user = $user;
+
+        return true;
     }
 
     public function loginUsingId($id, $remember = false)
     {
-        // TODO: Implement loginUsingId() method.
+        $user = $this->getProvider()->retrieveById($id);
+        if (!$user) {
+            return false;
+        }
+
+        $this->login($user, $remember);
+
+        return $user;
     }
 
+    /**
+     * @param mixed $id
+     *
+     * @return bool|Authenticatable|null
+     */
     public function onceUsingId($id)
     {
-        // TODO: Implement onceUsingId() method.
+        $this->user = $this->getProvider()->retrieveById($id);
+        if (!$this->user) {
+            return false;
+        }
+
+        return $this->user;
     }
 
+    /**
+     * @return bool
+     */
     public function viaRemember()
     {
-        // TODO: Implement viaRemember() method.
+        return !empty($this->getRefreshToken());
     }
-
-    /**
-     * @return JWT
-     *
-     * @throws \Exception
-     */
-    public function refreshAccessToken(): JWT
-    {
-        $refreshJWT = $this->getValidRefreshToken();
-
-        $user = $this->getUserByJWT($refreshJWT);
-        if (!$user) {
-            throw new NotAuthenticatedException();
-        }
-
-        $this
-            ->setAccessToken(
-                $this->getJWTHandler()->createJWT(
-                    $user->getAuthIdentifier(),
-                    $this->createClaimsWithRefreshTokenIdentifier(
-                        $this->setIpAddressToClaims($user->getCustomClaims()),
-                        $refreshJWT->getRefreshTokenId()
-                    ),
-                    $this->getAccessTokenTtl())
-            )
-            ->setUser($user);
-
-        $this->dispatchEvent(new RefreshAccessToken($this->user(), $this->getAccessToken(), $refreshJWT));
-
-        return $this->getAccessToken();
-    }
-
-    /**
-     * @return JWT
-     */
-    private function getValidRefreshToken(): JWT
-    {
-        if (empty($this->getRefreshToken())) {
-            $token = $this->getRefreshTokenProvider()->getRequestToken($this->getRequest());
-            if (empty($token)) {
-                throw new NotAuthenticatedException();
-            }
-
-            if ($this->getTokenBlacklist()->isRevoked($token)) {
-                throw new NotAuthenticatedException();
-            }
-
-            try {
-                $refreshJWT = $this->getJWTHandler()->getValidJWT($token);
-            } catch (JWTException $e) {
-                throw new NotAuthenticatedException();
-            }
-        } else {
-            $refreshJWT = $this->getRefreshToken();
-        }
-
-        if (empty($refreshJWT->getRefreshTokenId())) {
-            throw new NotAuthenticatedException();
-        }
-
-        return $refreshJWT;
-    }
-
-    /**
-     * @param array  $claims
-     * @param string $refreshTokenId
-     *
-     * @return array
-     */
-    private function createClaimsWithRefreshTokenIdentifier(array $claims, string $refreshTokenId): array
-    {
-        return \array_merge(
-            $claims,
-            [
-                JWT::CUSTOM_CLAIM_REFRESH_TOKEN => $refreshTokenId
-            ]
-        );
-    }
-
-    /**
-     * @param array $claims
-     *
-     * @return array
-     */
-    private function setIpAddressToClaims(array $claims): array
-    {
-        $ipAddress = $this->getRequest()->ip();
-        if (!empty($ipAddress)) {
-            $claims[JWT::CUSTOM_CLAIM_IP_ADDRESS] = $ipAddress;
-        }
-
-        return $claims;
-    }
+//
+//    /**
+//     * @return JWT
+//     *
+//     * @throws \Exception
+//     */
+//    public function refreshAccessToken(): JWT
+//    {
+//        $refreshJWT = $this->getValidRefreshToken();
+//
+//        $user = $this->getUserByJWT($refreshJWT);
+//        if (!$user) {
+//            throw new NotAuthenticatedException();
+//        }
+//
+//        $this
+//            ->setAccessToken(
+//                $this->getJWTHandler()->createJWT(
+//                    $user->getAuthIdentifier(),
+//                    $this->createClaimsWithRefreshTokenIdentifier(
+//                        $this->setIpAddressToClaims($user->getCustomClaims()),
+//                        $refreshJWT->getRefreshTokenId()
+//                    ),
+//                    $this->getAccessTokenTtl())
+//            )
+//            ->setUser($user);
+//
+//        $this->dispatchEvent(new RefreshAccessToken($this->user(), $this->getAccessToken(), $refreshJWT));
+//
+//        return $this->getAccessToken();
+//    }
+//
+//    /**
+//     * @return JWT
+//     */
+//    private function getValidRefreshToken(): JWT
+//    {
+//        if (empty($this->getRefreshToken())) {
+//            $token = $this->getRefreshTokenProvider()->getRequestToken($this->getRequest());
+//            if (empty($token)) {
+//                throw new NotAuthenticatedException();
+//            }
+//
+//            if ($this->getTokenBlacklist()->isRevoked($token)) {
+//                throw new NotAuthenticatedException();
+//            }
+//
+//            try {
+//                $refreshJWT = $this->getJWTHandler()->getValidJWT($token);
+//            } catch (JWTException $e) {
+//                throw new NotAuthenticatedException();
+//            }
+//        } else {
+//            $refreshJWT = $this->getRefreshToken();
+//        }
+//
+//        if (empty($refreshJWT->getRefreshTokenId())) {
+//            throw new NotAuthenticatedException();
+//        }
+//
+//        return $refreshJWT;
+//    }
 
     /**
      * @param Response $response
