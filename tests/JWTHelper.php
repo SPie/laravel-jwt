@@ -2,6 +2,8 @@
 
 namespace SPie\LaravelJWT\Test;
 
+use Illuminate\Auth\Events\Attempting;
+use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -230,6 +232,54 @@ trait JWTHelper
             ->shouldReceive('createLogoutEvent')
             ->with($guardName, $user)
             ->andReturn($logout);
+
+        return $this;
+    }
+
+    /**
+     * @param EventFactory|MockInterface $eventFactory
+     * @param Attempting                 $attempting
+     * @param string                     $guardName
+     * @param array                      $credentials
+     * @param bool                       $remember
+     *
+     * @return $this
+     */
+    private function mockEventFactoryCreateAttemptingEvent(
+        MockInterface $eventFactory,
+        Attempting $attempting,
+        string $guardName,
+        array $credentials,
+        bool $remember
+    ): self {
+        $eventFactory
+            ->shouldReceive('createAttemptingEvent')
+            ->with($guardName, $credentials, $remember)
+            ->andReturn($attempting);
+
+        return $this;
+    }
+
+    /**
+     * @param EventFactory|MockInterface $eventFactory
+     * @param Failed                     $failed
+     * @param string                     $guardName
+     * @param Authenticatable|null       $user
+     * @param array                      $credentials
+     *
+     * @return $this
+     */
+    private function mockEventFactoryCreateFailedEvent(
+        MockInterface $eventFactory,
+        Failed $failed,
+        string $guardName,
+        ?Authenticatable $user,
+        array $credentials
+    ): self {
+        $eventFactory
+            ->shouldReceive('createFailedEvent')
+            ->with($guardName, $user, $credentials)
+            ->andReturn($failed);
 
         return $this;
     }

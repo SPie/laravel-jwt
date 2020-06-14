@@ -2,6 +2,8 @@
 
 namespace SPie\LaravelJWT\Events;
 
+use Illuminate\Auth\Events\Attempting;
+use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -29,5 +31,15 @@ final class EventFactory implements EventFactoryContract
     public function createLogoutEvent(string $guardName, Authenticatable $user): Logout
     {
         // TODO: Implement createLogoutEvent() method.
+    }
+
+    public function createAttemptingEvent(string $guardName, array $credentials, bool $remember = false): Attempting
+    {
+        // TODO: Implement createAttemptingEvent() method.
+    }
+
+    public function createFailedEvent(string $guardName, ?Authenticatable $user, array $credentials): Failed
+    {
+        // TODO: Implement createFailedEvent() method.
     }
 }
