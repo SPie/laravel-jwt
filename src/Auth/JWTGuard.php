@@ -538,9 +538,27 @@ final class JWTGuard implements JWTGuardContract
         return $this;
     }
 
+    /**
+     * @param array $credentials
+     * @param bool  $remember
+     *
+     * @return bool
+     */
     public function attempt(array $credentials = [], $remember = false)
     {
-        // TODO: Implement attempt() method.
+        $this->dispatchEvent($this->getEventFactory()->createAttemptingEvent($this->getName(), $credentials, $remember));
+
+        $user = $this->getProvider()->retrieveByCredentials($credentials);
+
+        if ($user && $this->getProvider()->validateCredentials($user, $credentials)) {
+            $this->login($user, $remember);
+
+            return true;
+        }
+
+        $this->dispatchEvent($this->getEventFactory()->createFailedEvent($this->getName(), $user, $credentials));
+
+        return false;
     }
 
     public function once(array $credentials = [])
