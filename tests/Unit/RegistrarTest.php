@@ -12,6 +12,7 @@ use Lcobucci\JWT\Parser;
 use Mockery;
 use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
+use SPie\LaravelJWT\Auth\JWTGuardConfig;
 use SPie\LaravelJWT\Contracts\EventFactory;
 use SPie\LaravelJWT\Contracts\JWTFactory as JWTFactoryContract;
 use SPie\LaravelJWT\Auth\JWTGuard;
@@ -217,9 +218,7 @@ final class RegistrarTest extends TestCase
         $eventFactory = $this->createEventFactory();
         $accessTokenProviderKey = $this->getFaker()->uuid;
         $refreshTokenProviderKey = $this->getFaker()->uuid;
-        $accessTokenTTL = $this->getFaker()->numberBetween();
-        $refreshTokenTTL = $this->getFaker()->numberBetween();
-        $ipCheckEnabled = $this->getFaker()->boolean;
+        $jwtGuardConfig = $this->createJWTGuardConfig();
 
         $app = $this->createApp();
         $this->addGet(
@@ -236,14 +235,12 @@ final class RegistrarTest extends TestCase
             [
                 'jwt.accessTokenProvider.class'  => TestTokenProvider::class,
                 'jwt.accessTokenProvider.key'    => $accessTokenProviderKey,
-                'jwt.accessTokenProvider.ttl'    => $accessTokenTTL,
                 'jwt.refreshTokenProvider.class' => TestTokenProvider::class,
                 'jwt.refreshTokenProvider.key'   => $refreshTokenProviderKey,
-                'jwt.refreshTokenProvider.ttl'   => $refreshTokenTTL,
                 'jwt.refreshTokenRepository'     => RefreshTokenRepository::class,
-                'jwt.ipCheckEnabled'             => $ipCheckEnabled,
             ],
-            $eventFactory
+            $eventFactory,
+            $jwtGuardConfig
         );
 
         $jwtGuard = new JWTGuard(
@@ -251,15 +248,13 @@ final class RegistrarTest extends TestCase
             $jwtHandler,
             $userProvider,
             $request,
+            $jwtGuardConfig,
             (new TestTokenProvider())->setKey($accessTokenProviderKey),
-            $accessTokenTTL,
             (new TestTokenProvider())->setKey($refreshTokenProviderKey),
             $refreshTokenRepository,
             $eventFactory,
             $tokenBlacklist,
-            $refreshTokenTTL,
-            $eventDispatcher,
-            $ipCheckEnabled
+            $eventDispatcher
         );
 
         $registrar = $this->createRegistrar($app);
@@ -314,10 +309,10 @@ final class RegistrarTest extends TestCase
             ->andReturn($userProvider);
 
         $accessTokenProviderKey = $this->getFaker()->uuid;
-        $accessTokenTTL = $this->getFaker()->numberBetween();
         $eventFactory = $this->createEventFactory();
         $refreshTokenProviderKey = $this->getFaker()->word;
         $refreshTokenRepository = $this->createRefreshTokenRepository();
+        $jwtGuardConfig = $this->createJWTGuardConfig();
 
         $app = $this->createApp();
         $this->addGet(
@@ -334,12 +329,12 @@ final class RegistrarTest extends TestCase
             [
                 'jwt.accessTokenProvider.class'  => TestTokenProvider::class,
                 'jwt.accessTokenProvider.key'    => $accessTokenProviderKey,
-                'jwt.accessTokenProvider.ttl'    => $accessTokenTTL,
                 'jwt.refreshTokenProvider.class' => TestTokenProvider::class,
                 'jwt.refreshTokenProvider.key'   => $refreshTokenProviderKey,
                 'jwt.refreshTokenRepository'     => RefreshTokenRepository::class,
             ],
-            $eventFactory
+            $eventFactory,
+            $jwtGuardConfig
         );
 
         $jwtGuard = new JWTGuard(
@@ -347,8 +342,8 @@ final class RegistrarTest extends TestCase
             $jwtHandler,
             $userProvider,
             $request,
+            $jwtGuardConfig,
             (new TestTokenProvider())->setKey($accessTokenProviderKey),
-            $accessTokenTTL,
             (new TestTokenProvider())->setKey($refreshTokenProviderKey),
             $refreshTokenRepository,
             $eventFactory
@@ -388,6 +383,41 @@ final class RegistrarTest extends TestCase
             ->once();
 
         $this->assertTrue(true);
+    }
+
+    /**
+     * @return void
+     */
+    public function testRegisterJWTGuardConfig(): void
+    {
+        $accessTokenTtl = $this->getFaker()->numberBetween();
+        $refreshTokenTtl = $this->getFaker()->numberBetween();
+        $ipCheckEnabled = $this->getFaker()->boolean;
+        $app = $this->createApp();
+        $this->addGetConfig(
+            $app,
+            [
+                'jwt.accessTokenProvider.ttl'  => $accessTokenTtl,
+                'jwt.refreshTokenProvider.ttl' => $refreshTokenTtl,
+                'jwt.ipCheckEnabled'           => $ipCheckEnabled,
+            ]
+        );
+        $jwtGuardConfig = new JWTGuardConfig($accessTokenTtl, $refreshTokenTtl, $ipCheckEnabled);
+        $registrar = $this->createRegistrar($app);
+
+        $this->runReflectionMethod($registrar, 'registerJWTGuardConfig');
+
+        $app
+            ->shouldHaveReceived('singleton')
+            ->with(
+                JWTGuardConfig::class,
+                Mockery::on(function (\Closure $closure) use ($jwtGuardConfig) {
+                    $concreteJWTGuardConfig = $closure();
+
+                    return $jwtGuardConfig == $concreteJWTGuardConfig;
+                })
+            )
+            ->once();
     }
 
     /**
@@ -503,6 +533,13 @@ final class RegistrarTest extends TestCase
                 Mockery::any()
             )
             ->once();
+        $app
+            ->shouldHaveReceived('singleton')
+            ->with(
+                JWTGuardConfig::class,
+                Mockery::any()
+            )
+            ->once();
     }
 
     /**
@@ -560,6 +597,7 @@ final class RegistrarTest extends TestCase
      * @param JWTFactoryContract|null     $jwtFactory
      * @param array                       $config
      * @param EventFactory|null           $eventFactory
+     * @param JWTGuardConfig|null         $jwtGuardConfig
      *
      * @return RegistrarTest
      */
@@ -575,7 +613,8 @@ final class RegistrarTest extends TestCase
         Parser $parser = null,
         JWTFactoryContract $jwtFactory = null,
         array $config = [],
-        EventFactory $eventFactory = null
+        EventFactory $eventFactory = null,
+        JWTGuardConfig $jwtGuardConfig = null
     ): RegistrarTest {
         $app
             ->shouldReceive('get')
@@ -591,7 +630,8 @@ final class RegistrarTest extends TestCase
                     $parser,
                     $jwtFactory,
                     $config,
-                    $eventFactory
+                    $eventFactory,
+                    $jwtGuardConfig
                 ) {
                     switch ($argument) {
                         case 'auth':
@@ -626,6 +666,9 @@ final class RegistrarTest extends TestCase
 
                         case EventFactory::class:
                             return $eventFactory;
+
+                        case JWTGuardConfig::class:
+                            return $jwtGuardConfig;
 
                         default:
                             return $this->getFaker()->uuid;
