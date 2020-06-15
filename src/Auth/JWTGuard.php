@@ -45,14 +45,14 @@ final class JWTGuard implements JWTGuardContract
     private Request $request;
 
     /**
+     * @var JWTGuardConfig
+     */
+    private JWTGuardConfig $jwtGuardConfig;
+
+    /**
      * @var TokenProvider
      */
     private TokenProvider $accessTokenProvider;
-
-    /**
-     * @var int
-     */
-    private int $accessTokenTtl;
 
     /**
      * @var TokenProvider
@@ -68,11 +68,6 @@ final class JWTGuard implements JWTGuardContract
      * @var TokenBlacklist|null
      */
     private ?TokenBlacklist $tokenBlacklist;
-
-    /**
-     * @var int|null
-     */
-    private ?int $refreshTokenTtl;
 
     /**
      * @var JWT|null
@@ -95,55 +90,44 @@ final class JWTGuard implements JWTGuardContract
     private ?Dispatcher $eventDispatcher;
 
     /**
-     * @var bool
-     */
-    private bool $ipCheckEnabled;
-
-    /**
      * JWTGuard constructor.
      *
      * @param string                 $name
      * @param JWTHandler             $jwtHandler
      * @param UserProvider           $provider
      * @param Request                $request
+     * @param JWTGuardConfig         $jwtGuardConfig
      * @param TokenProvider          $accessTokenProvider
-     * @param int                    $accessTokenTtl
      * @param TokenProvider          $refreshTokenProvider
      * @param RefreshTokenRepository $refreshTokenRepository
      * @param EventFactory           $eventFactory
      * @param TokenBlacklist|null    $tokenBlacklist
-     * @param int|null               $refreshTokenTtl
      * @param Dispatcher|null        $eventDispatcher
-     * @param bool                   $ipCheckEnabled
      */
     public function __construct(
         string $name,
         JWTHandler $jwtHandler,
         UserProvider $provider,
         Request $request,
+        JWTGuardConfig $jwtGuardConfig,
         TokenProvider $accessTokenProvider,
-        int $accessTokenTtl,
         TokenProvider $refreshTokenProvider,
         RefreshTokenRepository $refreshTokenRepository,
         EventFactory $eventFactory,
         TokenBlacklist $tokenBlacklist = null,
-        int $refreshTokenTtl = null,
-        Dispatcher $eventDispatcher = null,
-        bool $ipCheckEnabled = false
+        Dispatcher $eventDispatcher = null
     ) {
         $this->name = $name;
         $this->jwtHandler = $jwtHandler;
         $this->provider = $provider;
         $this->request = $request;
+        $this->jwtGuardConfig = $jwtGuardConfig;
         $this->accessTokenProvider = $accessTokenProvider;
-        $this->accessTokenTtl = $accessTokenTtl;
         $this->refreshTokenProvider = $refreshTokenProvider;
         $this->refreshTokenRepository = $refreshTokenRepository;
         $this->eventFactory = $eventFactory;
         $this->tokenBlacklist = $tokenBlacklist;
-        $this->refreshTokenTtl = $refreshTokenTtl;
         $this->eventDispatcher = $eventDispatcher;
-        $this->ipCheckEnabled = $ipCheckEnabled;
 
         $this->accessToken = null;
         $this->refreshToken = null;
@@ -182,19 +166,19 @@ final class JWTGuard implements JWTGuardContract
     }
 
     /**
+     * @return JWTGuardConfig
+     */
+    private function getJwtGuardConfig(): JWTGuardConfig
+    {
+        return $this->jwtGuardConfig;
+    }
+
+    /**
      * @return TokenProvider
      */
     private function getAccessTokenProvider(): TokenProvider
     {
         return $this->accessTokenProvider;
-    }
-
-    /**
-     * @return int
-     */
-    private function getAccessTokenTtl(): int
-    {
-        return $this->accessTokenTtl;
     }
 
     /**
@@ -230,27 +214,11 @@ final class JWTGuard implements JWTGuardContract
     }
 
     /**
-     * @return int|null
-     */
-    private function getRefreshTokenTtl(): ?int
-    {
-        return $this->refreshTokenTtl;
-    }
-
-    /**
      * @return Dispatcher|null
      */
     private function getEventDispatcher(): ?Dispatcher
     {
         return $this->eventDispatcher;
-    }
-
-    /**
-     * @return bool
-     */
-    private function isIpCheckEnabled(): bool
-    {
-        return $this->ipCheckEnabled;
     }
 
     /**
@@ -437,7 +405,7 @@ final class JWTGuard implements JWTGuardContract
     private function isJWTIpAddressInvalid(JWT $jwt): bool
     {
         return (
-            $this->isIpCheckEnabled()
+            $this->getJWTGuardConfig()->isIpCheckEnabled()
             && !empty($jwt->getIpAddress())
             && $jwt->getIpAddress() != $this->getRequest()->ip()
         );
@@ -488,7 +456,7 @@ final class JWTGuard implements JWTGuardContract
         return $this->getJWTHandler()->createJWT(
             $user->getAuthIdentifier(),
             $this->setIpAddressToClaims($user->getCustomClaims()),
-            $this->getAccessTokenTtl()
+            $this->getJWTGuardConfig()->getAccessTokenTtl()
         );
     }
 
@@ -505,7 +473,11 @@ final class JWTGuard implements JWTGuardContract
         );
         $claims = $this->setIpAddressToClaims($claims);
 
-        $refreshJwt = $this->getJWTHandler()->createJWT($user->getAuthIdentifier(), $claims, $this->getRefreshTokenTtl());
+        $refreshJwt = $this->getJWTHandler()->createJWT(
+            $user->getAuthIdentifier(),
+            $claims,
+            $this->getJWTGuardConfig()->getRefreshTokenTtl()
+        );
 
         $this->getRefreshTokenRepository()->storeRefreshToken($refreshJwt);
 

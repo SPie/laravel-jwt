@@ -14,6 +14,7 @@ use Mockery;
 use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Auth\JWTGuard;
+use SPie\LaravelJWT\Auth\JWTGuardConfig;
 use SPie\LaravelJWT\Contracts\EventFactory;
 use SPie\LaravelJWT\Contracts\JWTAuthenticatable;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
@@ -61,6 +62,7 @@ final class JWTGuardTest extends TestCase
         $jwtGuard = $this->createJWTGuard(
             $jwtHandler,
             $this->createUserProvider($user),
+            null,
             $this->createAccessTokenProvider($this->getFaker()->uuid)
         );
 
@@ -101,6 +103,7 @@ final class JWTGuardTest extends TestCase
             $this->createJWTGuard(
                 $jwtHandler,
                 null,
+                null,
                 $this->createAccessTokenProvider($this->getFaker()->uuid)
             )->user()
         );
@@ -122,8 +125,8 @@ final class JWTGuardTest extends TestCase
             $this->createJWTGuard(
                 $jwtHandler,
                 $this->createUserProvider($user),
-                $this->createAccessTokenProvider($this->getFaker()->uuid),
                 null,
+                $this->createAccessTokenProvider($this->getFaker()->uuid),
                 $tokenBlacklist
             )->user()
         );
@@ -144,8 +147,8 @@ final class JWTGuardTest extends TestCase
             $this->createJWTGuard(
                 $jwtHandler,
                 $this->createUserProvider($user),
-                $this->createAccessTokenProvider($this->getFaker()->uuid),
                 null,
+                $this->createAccessTokenProvider($this->getFaker()->uuid),
                 $tokenBlacklist
             )->user()
         );
@@ -174,9 +177,8 @@ final class JWTGuardTest extends TestCase
             $this->createJWTGuard(
                 $jwtHandler,
                 $this->createUserProvider($user),
+                null,
                 $this->createAccessTokenProvider($this->getFaker()->uuid),
-                null,
-                null,
                 null,
                 null,
                 $refreshTokenRepository
@@ -209,9 +211,8 @@ final class JWTGuardTest extends TestCase
             $this->createJWTGuard(
                 $jwtHandler,
                 $this->createUserProvider($this->createUser()),
+                null,
                 $this->createAccessTokenProvider($this->getFaker()->uuid),
-                null,
-                null,
                 null,
                 null,
                 $refreshTokenRepository
@@ -244,7 +245,6 @@ final class JWTGuardTest extends TestCase
             null,
             null,
             $this->createRefreshTokenProvider($this->getFaker()->uuid),
-            null,
             $refreshTokenRepository
         );
 
@@ -314,7 +314,6 @@ final class JWTGuardTest extends TestCase
                 null,
                 null,
                 $this->createRefreshTokenProvider($this->getFaker()->uuid),
-                null,
                 $refreshTokenRepository
             )->user()
         );
@@ -340,15 +339,13 @@ final class JWTGuardTest extends TestCase
         $jwtGuard = $this->createJWTGuard(
             $jwtHandler,
             $this->createUserProvider($user),
+            $this->createJWTGuardConfig(true),
             $this->createAccessTokenProvider($this->getFaker()->uuid),
             null,
             null,
             null,
             null,
-            null,
-            null,
             $request,
-            true
         );
 
         $this->assertEquals($user, $jwtGuard->user());
@@ -376,15 +373,13 @@ final class JWTGuardTest extends TestCase
         $jwtGuard = $this->createJWTGuard(
             $jwtHandler,
             $this->createUserProvider($user),
+            $this->createJWTGuardConfig(true),
             $this->createAccessTokenProvider($this->getFaker()->uuid),
             null,
             null,
             null,
             null,
-            null,
-            null,
-            $request,
-            true
+            $request
         );
 
         $this->assertEquals($user, $jwtGuard->user());
@@ -410,15 +405,13 @@ final class JWTGuardTest extends TestCase
         $jwtGuard = $this->createJWTGuard(
             $jwtHandler,
             $this->createUserProvider($user),
+            $this->createJWTGuardConfig(true),
             $this->createAccessTokenProvider($this->getFaker()->uuid),
             null,
             null,
             null,
             null,
-            null,
-            null,
-            $request,
-            true
+            $request
         );
 
         $this->assertEmpty($jwtGuard->user());
@@ -450,15 +443,13 @@ final class JWTGuardTest extends TestCase
         $jwtGuard = $this->createJWTGuard(
             $jwtHandler,
             $this->createUserProvider($user),
-            null,
+            $this->createJWTGuardConfig(true),
             null,
             null,
             $this->createRefreshTokenProvider($this->getFaker()->uuid),
-            null,
             $refreshTokenRepository,
             null,
-            $request,
-            true
+            $request
         );
 
         $this->assertEquals($user, $jwtGuard->user());
@@ -488,15 +479,13 @@ final class JWTGuardTest extends TestCase
         $jwtGuard = $this->createJWTGuard(
             $jwtHandler,
             $this->createUserProvider($user),
-            null,
+            $this->createJWTGuardConfig(true),
             null,
             null,
             $this->createRefreshTokenProvider($this->getFaker()->uuid),
-            null,
             $refreshTokenRepository,
             null,
             $request,
-            true
         );
 
         $this->assertEmpty($jwtGuard->user());
@@ -589,15 +578,13 @@ final class JWTGuardTest extends TestCase
         $jwtGuard = $this->createJWTGuard(
             $jwtHandler,
             null,
+            $this->createJWTGuardConfig($withIpAddress, $ttl, $refreshTtl),
             null,
-            $ttl,
             null,
             null,
-            $refreshTtl,
             $refreshTokenRepository,
             $dispatcher,
             $withIpAddress ? $this->createRequestWithIp($ipAddress) : null,
-            false,
             $guardName,
             $eventFactory
         );
@@ -770,7 +757,6 @@ final class JWTGuardTest extends TestCase
             null,
             $this->createTokenBlacklist(),
             null,
-            null,
             $refreshTokenRepository
         );
         $this
@@ -801,10 +787,9 @@ final class JWTGuardTest extends TestCase
         $jwtGuard = $this->createJWTGuard(
             $jwtHandler,
             null,
+            null,
             $this->createAccessTokenProvider(),
-            null,
             $tokenBlacklist,
-            null,
             null,
             $refreshTokenRepository
         );
@@ -836,10 +821,8 @@ final class JWTGuardTest extends TestCase
             null,
             null,
             null,
-            null,
             $eventDispatcher,
             null,
-            false,
             $guardName,
             $eventFactory,
         );
@@ -873,7 +856,7 @@ final class JWTGuardTest extends TestCase
             ->andReturn($this->getFaker()->uuid);
         $accessTokenProvider = $this->createAccessTokenProvider(null, $responseWithToken);
 
-        $jwtGuard = $this->createJWTGuard(null, null, $accessTokenProvider);
+        $jwtGuard = $this->createJWTGuard(null, null, null, $accessTokenProvider);
         $this->setPrivateProperty($jwtGuard, 'accessToken', $accessToken);
 
         $this->assertEquals($responseWithToken, $jwtGuard->returnAccessToken($response));
@@ -980,15 +963,13 @@ final class JWTGuardTest extends TestCase
         $jwtGuard = $this->createJWTGuard(
             $jwtHandler,
             $userProvider,
+            $this->createJWTGuardConfig(null, $ttl, $refreshTtl),
             null,
-            $ttl,
             null,
             null,
-            $refreshTtl,
             $refreshTokenRepository,
             $eventDispatcher,
             null,
-            false,
             $guardName,
             $eventFactory,
         );
@@ -1128,7 +1109,6 @@ final class JWTGuardTest extends TestCase
         $this->assertFalse($jwtGuard->once($credentials));
 
         $this->assertEmpty($this->getPrivateProperty($jwtGuard, 'user'));
-
     }
 
     /**
@@ -1161,15 +1141,13 @@ final class JWTGuardTest extends TestCase
         $jwtGuard = $this->createJWTGuard(
             $jwtHandler,
             $userProvider,
+            $this->createJWTGuardConfig(null, $ttl, $refreshTtl),
             null,
-            $ttl,
             null,
             null,
-            $refreshTtl,
             $refreshTokenRepository,
             null,
             null,
-            false,
             null,
             null,
         );
@@ -1282,15 +1260,13 @@ final class JWTGuardTest extends TestCase
     /**
      * @param JWTHandler|null             $jwtHandler
      * @param UserProvider|null           $userProvider
+     * @param JWTGuardConfig|null         $jwtGuardConfig
      * @param TokenProvider|null          $accessTokenProvider
-     * @param int|null                    $accessTokenTTL
      * @param TokenBlacklist|null         $tokenBlacklist
      * @param TokenProvider|null          $refreshTokenProvider
-     * @param int|null                    $refreshTokenTTL
      * @param RefreshTokenRepository|null $refreshTokenRepository
      * @param Dispatcher|null             $eventDispatcher
      * @param Request|null                $request
-     * @param bool                        $checkIpAddress
      * @param string|null                 $name
      * @param EventFactory|null           $eventFactory
      *
@@ -1299,15 +1275,13 @@ final class JWTGuardTest extends TestCase
     private function createJWTGuard(
         JWTHandler $jwtHandler = null,
         UserProvider $userProvider = null,
+        JWTGuardConfig $jwtGuardConfig = null,
         TokenProvider $accessTokenProvider = null,
-        int $accessTokenTTL = null,
         TokenBlacklist $tokenBlacklist = null,
         TokenProvider $refreshTokenProvider = null,
-        int $refreshTokenTTL = null,
         RefreshTokenRepository $refreshTokenRepository = null,
         Dispatcher $eventDispatcher = null,
         Request $request = null,
-        bool $checkIpAddress = false,
         string $name = null,
         EventFactory $eventFactory = null
     ): JWTGuard {
@@ -1316,43 +1290,13 @@ final class JWTGuardTest extends TestCase
             $jwtHandler ?: $this->createJWTHandler(),
             $userProvider ?: $this->createUserProvider(),
             $request ?: $this->createRequest(),
+            $jwtGuardConfig ?: $this->createJWTGuardConfig(),
             $accessTokenProvider ?: $this->createAccessTokenProvider(),
-            $accessTokenTTL ?: $this->getFaker()->numberBetween(),
             $refreshTokenProvider ?: $this->createRefreshTokenProvider(),
             $refreshTokenRepository ?: $this->createRefreshTokenRepository(),
             $eventFactory ?: $this->createEventFactory(),
             $tokenBlacklist,
-            $refreshTokenTTL,
             $eventDispatcher,
-            $checkIpAddress
-        );
-    }
-
-    /**
-     * @param JWTHandler|null   $jwtHandler
-     * @param UserProvider|null $userProvider
-     * @param Dispatcher|null   $eventDispatcher
-     * @param Request|null      $request
-     *
-     * @return JWTGuard
-     */
-    private function createJWTGuardForLogin(
-        JWTHandler $jwtHandler = null,
-        UserProvider $userProvider = null,
-        Dispatcher $eventDispatcher = null,
-        Request $request = null
-    ): JWTGuard {
-        return $this->createJWTGuard(
-            $jwtHandler,
-            $userProvider,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            $eventDispatcher,
-            $request ?: $this->createRequestWithIp()
         );
     }
 
@@ -1386,21 +1330,6 @@ final class JWTGuardTest extends TestCase
         }
 
         $getValidJWTExpectation->andReturn($jwt);
-
-        return $this;
-    }
-
-    /**
-     * @param JWTHandler|MockInterface $jwtHandler
-     * @param JWT                      $jwt
-     *
-     * @return JWTGuardTest
-     */
-    private function addCreateJWT(JWTHandler $jwtHandler, JWT $jwt): JWTGuardTest
-    {
-        $jwtHandler
-            ->shouldReceive('createJWT')
-            ->andReturn($jwt);
 
         return $this;
     }

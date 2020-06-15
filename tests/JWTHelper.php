@@ -13,6 +13,7 @@ use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Token;
 use Mockery;
 use Mockery\MockInterface;
+use SPie\LaravelJWT\Auth\JWTGuardConfig;
 use SPie\LaravelJWT\Contracts\EventFactory;
 use SPie\LaravelJWT\Contracts\JWTFactory;
 use SPie\LaravelJWT\Contracts\JWTGuard;
@@ -282,5 +283,24 @@ trait JWTHelper
             ->andReturn($failed);
 
         return $this;
+    }
+
+    /**
+     * @param bool|null $withIpCheck
+     * @param int|null  $accessTokenTtl
+     * @param int|null  $refreshTokenTtl
+     *
+     * @return JWTGuardConfig
+     */
+    private function createJWTGuardConfig(
+        bool $withIpCheck = null,
+        int $accessTokenTtl = null,
+        int $refreshTokenTtl = null
+    ): JWTGuardConfig {
+        return new JWTGuardConfig(
+            $accessTokenTtl ?? $this->getFaker()->numberBetween(),
+            $refreshTokenTtl ?? $this->getFaker()->numberBetween(),
+            $withIpCheck ?? $this->getFaker()->boolean,
+        );
     }
 }
