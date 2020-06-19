@@ -286,79 +286,118 @@ final class JWTGuard implements JWTGuardContract
             return $this->user;
         }
 
-        $token = $this->getAccessTokenProvider()->getRequestToken($this->getRequest());
-        if (!empty($token)) {
-            return $this->authenticateWithAccessToken($token);
-        }
-
-        if ($this->getRefreshTokenProvider()) {
-            return $this->authenticateWithRefreshToken();
-        }
-
-        return null;
-    }
-
-    /**
-     * @param string $token
-     *
-     * @return Authenticatable|null
-     *
-     * @throws \Exception
-     */
-    private function authenticateWithAccessToken(string $token): ?Authenticatable
-    {
-        if ($this->getTokenBlacklist() && $this->getTokenBlacklist()->isRevoked($token)) {
-            return null;
-        }
-
-        $jwt = $this->getJWT($token);
-        if (empty($jwt)) {
-            return null;
-        }
-
-        if ($this->isJWTIpAddressInvalid($jwt)) {
-            return null;
-        }
-
-        $user = $this->getUserByJWT($jwt);
-        if ($user) {
-            $this
-                ->setAccessToken($jwt)
-                ->setUser($user);
+        $user = $this->authenticateWithAccessToken($this->getRequest());
+        if (!$user) {
+            return $this->authenticateWithRefreshToken($this->getRequest());
         }
 
         return $user;
     }
 
     /**
-     * @return Authenticatable|null
+     * @param Request $request
      *
-     * @throws \Exception
+     * @return JWTAuthenticatable|null
      */
-    private function authenticateWithRefreshToken(): ?Authenticatable
+    private function authenticateWithAccessToken(Request $request): ?JWTAuthenticatable
     {
-        $token = $this->getRefreshTokenProvider()->getRequestToken($this->getRequest());
-        if (empty($token)) {
+        $accessToken = $this->getAccessTokenFromRequest($request);
+        if (!$accessToken) {
             return null;
         }
 
-        $jwt = $this->getJWT($token);
-        if (empty($jwt)) {
+        $user = $this->getUserByJWT($accessToken);
+        if (!$user) {
             return null;
         }
 
-        if ($this->isJWTIpAddressInvalid($jwt)) {
-            return null;
-        }
-
-        $user = $this->getUserByJWT($jwt);
-        if ($user) {
-            $this
-                ->setRefreshToken($jwt)
-                ->setUser($user);
-        }
+        $this
+            ->setAccessToken($accessToken)
+            ->setRefreshToken($this->getRefreshTokenFromRequest($this->getRequest()))
+            ->setUser($user);
 
         return $user;
+    }
+
+    /**
+     * @param Request $request
+     *
+     * @return JWT|null
+     */
+    private function getAccessTokenFromRequest(Request $request): ?JWT
+    {
+        $accessToken = $this->getAccessTokenProvider()->getRequestToken($request);
+        if (empty($accessToken)) {
+            return null;
+        }
+
+        if ($this->getTokenBlacklist() && $this->getTokenBlacklist()->isRevoked($accessToken)) {
+            return null;
+        }
+
+        $accessJwt = $this->getJWT($accessToken);
+        if (!$accessJwt) {
+            return null;
+        }
+
+        if ($this->isJWTIpAddressInvalid($accessJwt)) {
+            return null;
+        }
+
+        return $accessJwt;
+    }
+
+    /**
+     * @param Request $request
+     *
+     * @return JWTAuthenticatable|null
+     */
+    private function authenticateWithRefreshToken(Request $request): ?JWTAuthenticatable
+    {
+        $refreshToken = $this->getRefreshTokenFromRequest($request);
+        if (!$refreshToken) {
+            return null;
+        }
+
+        if ($this->getRefreshTokenRepository()->isRefreshTokenRevoked($refreshToken->getRefreshTokenId())) {
+            return null;
+        }
+
+        $user = $this->getUserByJWT($refreshToken);
+        if (!$user) {
+            return null;
+        }
+
+        $this
+            ->setAccessToken($this->issueAccessToken($user))
+            ->setRefreshToken($refreshToken)
+            ->setUser($user);
+
+        return $user;
+    }
+
+    /**
+     * @param Request $request
+     *
+     * @return JWT|null
+     */
+    private function getRefreshTokenFromRequest(Request $request): ?JWT
+    {
+        $refreshToken = $this->getRefreshTokenProvider()->getRequestToken($request);
+        if (empty($refreshToken)) {
+            return null;
+        }
+
+        $refreshJwt = $this->getJWT($refreshToken);
+        if (!$refreshJwt) {
+            return null;
+        }
+
+        if ($this->isJWTIpAddressInvalid($refreshJwt)) {
+            return null;
+        }
+
+        return $refreshJwt;
     }
 
     /**
@@ -371,20 +410,10 @@ final class JWTGuard implements JWTGuardContract
     private function getJWT(string $token): ?JWT
     {
         try {
-            $jwt = $this->getJWTHandler()->getValidJWT($token);
+            return $this->getJWTHandler()->getValidJWT($token);
         } catch (JWTException $e) {
             return null;
         }
-
-        if (
-            $this->getRefreshTokenRepository()
-            && !empty($jwt->getRefreshTokenId())
-            && $this->getRefreshTokenRepository()->isRefreshTokenRevoked($jwt->getRefreshTokenId())
-        ) {
-            return null;
-        }
-
-        return $jwt;
     }
 
     /**
@@ -471,11 +500,12 @@ final class JWTGuard implements JWTGuardContract
             $user->getCustomClaims(),
             $this->createRefreshTokenIdentifier($user->getAuthIdentifier())
         );
-        $claims = $this->setIpAddressToClaims($claims);
 
         $refreshJwt = $this->getJWTHandler()->createJWT(
             $user->getAuthIdentifier(),
-            $claims,
+            $this->getJwtGuardConfig()->isIpCheckEnabled()
+                ? $this->setIpAddressToClaims($claims)
+                : $claims,
             $this->getJWTGuardConfig()->getRefreshTokenTtl()
         );
 
