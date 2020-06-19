@@ -20,6 +20,9 @@ use SPie\LaravelJWT\Contracts\JWTGuard;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\Contracts\JWTHandler;
+use SPie\LaravelJWT\Contracts\TokenProvider;
+use SPie\LaravelJWT\Exceptions\JWTException;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Trait JWTHelper
@@ -44,11 +47,43 @@ trait JWTHelper
     }
 
     /**
+     * @param JWTHandler|MockInterface $jwtHandler
+     * @param JWT|\Exception           $jwt
+     * @param string                   $token
+     *
+     * @return $this
+     */
+    private function mockJWTHandlerGetValidJWT(MockInterface $jwtHandler, $jwt, string $token): self
+    {
+        $jwtHandler
+            ->shouldReceive('getValidJWT')
+            ->with($token)
+            ->andThrow($jwt);
+
+        return $this;
+    }
+
+    /**
      * @return JWT|MockInterface
      */
     protected function createJWT(): JWT
     {
         return Mockery::spy(JWT::class);
+    }
+
+    /**
+     * @param JWT|MockInterface $jwt
+     * @param string            $subject
+     *
+     * @return $this
+     */
+    private function mockJWTGetSubject(MockInterface $jwt, string $subject): self
+    {
+        $jwt
+            ->shouldReceive('getSubject')
+            ->andReturn($subject);
+
+        return $this;
     }
 
     /**
@@ -62,6 +97,21 @@ trait JWTHelper
         $jwt
             ->shouldReceive('getIpAddress')
             ->andReturn($ipAddress);
+
+        return $this;
+    }
+
+    /**
+     * @param JWT|MockInterface $jwt
+     * @param string            $refreshTokenId
+     *
+     * @return $this
+     */
+    private function mockJWTGetRefreshTokenId(MockInterface $jwt, string $refreshTokenId): self
+    {
+        $jwt
+            ->shouldReceive('getRefreshTokenId')
+            ->andReturn($refreshTokenId);
 
         return $this;
     }
@@ -150,6 +200,26 @@ trait JWTHelper
     protected function createRefreshTokenRepository(): RefreshTokenRepository
     {
         return Mockery::spy(RefreshTokenRepository::class);
+    }
+
+    /**
+     * @param RefreshTokenRepository|MockInterface $refreshTokenRepository
+     * @param bool                                 $isRevoked
+     * @param string                               $refreshTokenId
+     *
+     * @return $this
+     */
+    private function mockRefreshTokenRepositoryIsRefreshTokenRevoked(
+        MockInterface $refreshTokenRepository,
+        bool $isRevoked,
+        string $refreshTokenId
+    ): self {
+        $refreshTokenRepository
+            ->shouldReceive('isRefreshTokenRevoked')
+            ->with($refreshTokenId)
+            ->andReturn($isRevoked);
+
+        return $this;
     }
 
     /**
@@ -302,5 +372,38 @@ trait JWTHelper
             $refreshTokenTtl ?? $this->getFaker()->numberBetween(),
             $withIpCheck ?? $this->getFaker()->boolean,
         );
+    }
+
+    /**
+     * @return Authenticatable|MockInterface
+     */
+    private function createAuthenticatable(): Authenticatable
+    {
+        return Mockery::spy(Authenticatable::class);
+    }
+
+    /**
+     * @return TokenProvider|MockInterface
+     */
+    private function createTokenProvider(): TokenProvider
+    {
+        return Mockery::spy(TokenProvider::class);
+    }
+
+    /**
+     * @param TokenProvider|MockInterface $tokenProvider
+     * @param string|null                 $token
+     * @param Request                     $request
+     *
+     * @return $this
+     */
+    private function mockTokenProviderGetRequestToken(MockInterface $tokenProvider, ?string $token, Request $request): self
+    {
+        $tokenProvider
+            ->shouldReceive('getRequestToken')
+            ->with($request)
+            ->andReturn($token);
+
+        return $this;
     }
 }

@@ -25,21 +25,41 @@ final class EventFactory implements EventFactoryContract
      */
     public function createLoginEvent(string $guardName, Authenticatable $user, bool $remember = false): Login
     {
-        // TODO: Implement createLoginEvent() method.
+        return new Login($guardName, $user, $remember);
     }
 
+    /**
+     * @param string          $guardName
+     * @param Authenticatable $user
+     *
+     * @return Logout
+     */
     public function createLogoutEvent(string $guardName, Authenticatable $user): Logout
     {
-        // TODO: Implement createLogoutEvent() method.
+        return new Logout($guardName, $user);
     }
 
+    /**
+     * @param string $guardName
+     * @param array  $credentials
+     * @param bool   $remember
+     *
+     * @return Attempting
+     */
     public function createAttemptingEvent(string $guardName, array $credentials, bool $remember = false): Attempting
     {
-        // TODO: Implement createAttemptingEvent() method.
+        return new Attempting($guardName, $credentials, $remember);
     }
 
+    /**
+     * @param string               $guardName
+     * @param Authenticatable|null $user
+     * @param array                $credentials
+     *
+     * @return Failed
+     */
     public function createFailedEvent(string $guardName, ?Authenticatable $user, array $credentials): Failed
     {
-        // TODO: Implement createFailedEvent() method.
+        return new Failed($guardName, $user, $credentials);
     }
 }
