@@ -2,6 +2,7 @@
 
 namespace SPie\LaravelJWT\Test\Unit;
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\Events\Attempting;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
@@ -20,12 +21,10 @@ use SPie\LaravelJWT\Contracts\JWTAuthenticatable;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
-use SPie\LaravelJWT\Events\RefreshAccessToken;
-use SPie\LaravelJWT\Exceptions\InvalidSecretException;
 use SPie\LaravelJWT\Exceptions\InvalidTokenException;
-use SPie\LaravelJWT\Exceptions\NotAuthenticatedException;
 use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\Contracts\JWTHandler;
+use SPie\LaravelJWT\Test\HttpHelper;
 use SPie\LaravelJWT\Test\JWTHelper;
 use SPie\LaravelJWT\Test\ReflectionMethodHelper;
 use SPie\LaravelJWT\Test\RequestHelper;
@@ -37,10 +36,11 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class JWTGuardTest extends TestCase
 {
-    use TestHelper;
+    use HttpHelper;
     use JWTHelper;
     use ReflectionMethodHelper;
     use RequestHelper;
+    use TestHelper;
 
     //region Tests
 
@@ -1207,97 +1207,140 @@ final class JWTGuardTest extends TestCase
      */
     public function testLogoutWithoutAuthenticatedUser(): void
     {
-        $this->expectException(NotAuthenticatedException::class);
+        $this->expectException(AuthenticationException::class);
 
         $this->createJWTGuard()->logout();
     }
 
     /**
-     * @return void
+     * @param bool $withAccessToken
+     * @param bool $withRefreshToken
+     *
+     * @return array
      */
-    public function testReturnAccessToken(): void
+    private function setUpReturnTokensTest(bool $withAccessToken = true, bool $withRefreshToken = true): array
     {
-        $response = new Response();
-        $responseWithToken = new Response();
+        $response = $this->createEmptyResponse();
         $accessToken = $this->createJWT();
-        $accessToken
-            ->shouldReceive('getJWT')
-            ->andReturn($this->getFaker()->uuid);
-        $accessTokenProvider = $this->createAccessTokenProvider(null, $responseWithToken);
-
-        $jwtGuard = $this->createJWTGuard(null, null, null, $accessTokenProvider);
-        $this->setPrivateProperty($jwtGuard, 'accessToken', $accessToken);
-
-        $this->assertEquals($responseWithToken, $jwtGuard->returnAccessToken($response));
-
-        $accessTokenProvider
-            ->shouldHaveReceived('setResponseToken')
-            ->with($response, $accessToken->getJWT())
-            ->once();
-    }
-
-    /**
-     * @return void
-     */
-    public function testReturnAccessTokenWithoutAccessToken(): void
-    {
-        $this->expectException(NotAuthenticatedException::class);
-
-        $this->createJWTGuard()->returnAccessToken(new Response());
-    }
-
-    /**
-     * @return void
-     */
-    public function testReturnRefreshToken(): void
-    {
-        $response = new Response();
-        $responseWithToken = new Response();
-        $responseWithToken->headers->set($this->getFaker()->uuid, $this->getFaker()->uuid);
+        $this->mockJWTGetJWT($accessToken, $this->getFaker()->sha256);
         $refreshToken = $this->createJWT();
-        $refreshToken
-            ->shouldReceive('getJWT')
-            ->andReturn($this->getFaker()->uuid);
-        $refreshTokenProvider = $this->createRefreshTokenProvider(null, $responseWithToken);
-
+        $this->mockJWTGetJWT($refreshToken, $this->getFaker()->sha256);
+        $accessTokenProvider = $this->createAccessTokenProvider(null, $response);
+        $refreshTokenProvider = $this->createRefreshTokenProvider(null, $response);
         $jwtGuard = $this->createJWTGuard(
             null,
             null,
             null,
+            $accessTokenProvider,
             null,
-            null,
-            $refreshTokenProvider
+            $refreshTokenProvider,
         );
-        $this->setPrivateProperty($jwtGuard, 'refreshToken', $refreshToken);
+        if ($withAccessToken) {
+            $this->setPrivateProperty($jwtGuard, 'accessToken', $accessToken);
+        }
+        if ($withRefreshToken) {
+            $this->setPrivateProperty($jwtGuard, 'refreshToken', $refreshToken);
+        }
 
-        $this->assertEquals($responseWithToken, $jwtGuard->returnRefreshToken($response));
-
-        $refreshTokenProvider
-            ->shouldHaveReceived('setResponseToken')
-            ->with(
-                $response,
-                $refreshToken->getJWT()
-            )
-            ->once();
+        return [$jwtGuard, $response, $accessTokenProvider, $refreshTokenProvider, $accessToken, $refreshToken];
     }
 
     /**
      * @return void
-     *
-     * @throws NotAuthenticatedException
      */
-    public function testReturnRefreshTokenWithoutRefreshToken(): void
+    public function testReturnTokensWithBothTokens(): void
     {
-        $this->expectException(NotAuthenticatedException::class);
+        /**
+         * @var JWTGuard                    $jwtGuard
+         * @var Response                    $response
+         * @var TokenProvider|MockInterface $accessTokenProvider
+         * @var TokenProvider|MockInterface $refreshTokenProvider
+         */
+        [
+            $jwtGuard,
+            $response,
+            $accessTokenProvider,
+            $refreshTokenProvider,
+            $accessToken,
+            $refreshToken
+        ] = $this->setUpReturnTokensTest();
 
-        $this->createJWTGuard(
-            null,
-            null,
-            null,
-            null,
-            null,
-            $this->createRefreshTokenProvider()
-        )->returnRefreshToken(new Response());
+        $this->assertEquals($response, $jwtGuard->returnTokens($response));
+        $this
+            ->assertTokenProviderSetResponseToken($accessTokenProvider, $response, $accessToken->getJWT())
+            ->assertTokenProviderSetResponseToken($refreshTokenProvider, $response, $refreshToken->getJWT());
+    }
+
+    /**
+     * @return void
+     */
+    public function testReturnTokensWithoutAccessToken(): void
+    {
+        /**
+         * @var JWTGuard                    $jwtGuard
+         * @var Response                    $response
+         * @var TokenProvider|MockInterface $accessTokenProvider
+         * @var TokenProvider|MockInterface $refreshTokenProvider
+         */
+        [
+            $jwtGuard,
+            $response,
+            $accessTokenProvider,
+            $refreshTokenProvider,
+            $accessToken,
+            $refreshToken,
+        ] = $this->setUpReturnTokensTest(false);
+
+        $this->assertEquals($response, $jwtGuard->returnTokens($response));
+        $this->assertTokenProviderSetResponseToken($refreshTokenProvider, $response, $refreshToken->getJWT());
+        $accessTokenProvider->shouldNotHaveReceived('setResponseToken');
+    }
+
+    /**
+     * @return void
+     */
+    public function testReturnTokensWithoutRefreshToken(): void
+    {
+        /**
+         * @var JWTGuard                    $jwtGuard
+         * @var Response                    $response
+         * @var TokenProvider|MockInterface $accessTokenProvider
+         * @var TokenProvider|MockInterface $refreshTokenProvider
+         */
+        [
+            $jwtGuard,
+            $response,
+            $accessTokenProvider,
+            $refreshTokenProvider,
+            $accessToken,
+        ] = $this->setUpReturnTokensTest(true, false);
+
+        $this->assertEquals($response, $jwtGuard->returnTokens($response));
+        $this->assertTokenProviderSetResponseToken($accessTokenProvider, $response, $accessToken->getJWT());
+        $refreshTokenProvider->shouldNotHaveReceived('setResponseToken');
+    }
+
+    /**
+     * @return void
+     */
+    public function testReturnTokensWithoutTokens(): void
+    {
+        /**
+         * @var JWTGuard                    $jwtGuard
+         * @var Response                    $response
+         * @var TokenProvider|MockInterface $accessTokenProvider
+         * @var TokenProvider|MockInterface $refreshTokenProvider
+         */
+        [
+            $jwtGuard,
+            $response,
+            $accessTokenProvider,
+            $refreshTokenProvider,
+        ] = $this->setUpReturnTokensTest(false, false);
+
+        $this->assertEquals($response, $jwtGuard->returnTokens($response));
+        $accessTokenProvider->shouldNotHaveReceived('setResponseToken');
+        $refreshTokenProvider->shouldNotHaveReceived('setResponseToken');
     }
 
     /**
@@ -1924,6 +1967,26 @@ final class JWTGuardTest extends TestCase
             ->andReturn($response);
 
         return $refreshTokenProvider;
+    }
+
+    /**
+     * @param TokenProvider|MockInterface $tokenProvider
+     * @param Response                    $response
+     * @param string                      $token
+     *
+     * @return $this
+     */
+    private function assertTokenProviderSetResponseToken(
+        MockInterface $tokenProvider,
+        Response $response,
+        string $token
+    ): self {
+        $tokenProvider
+            ->shouldHaveReceived('setResponseToken')
+            ->with($response, $token)
+            ->once();
+
+        return $this;
     }
 
     /**

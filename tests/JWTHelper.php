@@ -23,6 +23,7 @@ use SPie\LaravelJWT\Contracts\JWTHandler;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use SPie\LaravelJWT\Exceptions\JWTException;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Trait JWTHelper
@@ -36,6 +37,53 @@ trait JWTHelper
     protected function createJWTGuard(): JWTGuard
     {
         return Mockery::spy(JWTGuard::class);
+    }
+
+    /**
+     * @param JWTGuard|MockInterface $jwtGuard
+     * @param bool                   $isGuest
+     *
+     * @return $this
+     */
+    private function mockJWTGuardGuest(MockInterface $jwtGuard, bool $isGuest): self
+    {
+        $jwtGuard
+            ->shouldReceive('guest')
+            ->andReturn($isGuest);
+
+        return $this;
+    }
+
+    /**
+     * @param JWTGuard|MockInterface $jwtGuard
+     * @param Response               $response
+     *
+     * @return $this
+     */
+    private function mockJWTGuardReturnTokens(MockInterface $jwtGuard, Response $response): self
+    {
+        $jwtGuard
+            ->shouldReceive('returnTokens')
+            ->with($response)
+            ->andReturn($response);
+
+        return $this;
+    }
+
+    /**
+     * @param JWTGuard|MockInterface $jwtGuard
+     * @param Response               $response
+     *
+     * @return $this
+     */
+    private function assertJWTGuardReturnTokens(MockInterface $jwtGuard, Response $response): self
+    {
+        $jwtGuard
+            ->shouldHaveReceived('returnTokens')
+            ->with($response)
+            ->once();
+
+        return $this;
     }
 
     /**
@@ -69,6 +117,21 @@ trait JWTHelper
     protected function createJWT(): JWT
     {
         return Mockery::spy(JWT::class);
+    }
+
+    /**
+     * @param JWT|MockInterface $jwt
+     * @param string            $token
+     *
+     * @return $this
+     */
+    private function mockJWTGetJWT(MockInterface $jwt, string $token): self
+    {
+        $jwt
+            ->shouldReceive('getJWT')
+            ->andReturn($token);
+
+        return $this;
     }
 
     /**
