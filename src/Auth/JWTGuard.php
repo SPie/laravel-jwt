@@ -2,6 +2,7 @@
 
 namespace SPie\LaravelJWT\Auth;
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\GuardHelpers;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\UserProvider;
@@ -13,9 +14,7 @@ use SPie\LaravelJWT\Contracts\JWTGuard as JWTGuardContract;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\TokenBlacklist;
 use SPie\LaravelJWT\Contracts\TokenProvider;
-use SPie\LaravelJWT\Events\RefreshAccessToken;
 use SPie\LaravelJWT\Exceptions\JWTException;
-use SPie\LaravelJWT\Exceptions\NotAuthenticatedException;
 use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\Contracts\JWTHandler;
 use Symfony\Component\HttpFoundation\Response;
@@ -551,7 +550,7 @@ final class JWTGuard implements JWTGuardContract
     public function logout(): JWTGuardContract
     {
         if (!$this->user()) {
-            throw new NotAuthenticatedException();
+            throw new AuthenticationException();
         }
 
         if ($this->getAccessToken() && $this->getTokenBlacklist()) {
@@ -645,99 +644,23 @@ final class JWTGuard implements JWTGuardContract
     {
         return !empty($this->getRefreshToken());
     }
-//
-//    /**
-//     * @return JWT
-//     *
-//     * @throws \Exception
-//     */
-//    public function refreshAccessToken(): JWT
-//    {
-//        $refreshJWT = $this->getValidRefreshToken();
-//
-//        $user = $this->getUserByJWT($refreshJWT);
-//        if (!$user) {
-//            throw new NotAuthenticatedException();
-//        }
-//
-//        $this
-//            ->setAccessToken(
-//                $this->getJWTHandler()->createJWT(
-//                    $user->getAuthIdentifier(),
-//                    $this->createClaimsWithRefreshTokenIdentifier(
-//                        $this->setIpAddressToClaims($user->getCustomClaims()),
-//                        $refreshJWT->getRefreshTokenId()
-//                    ),
-//                    $this->getAccessTokenTtl())
-//            )
-//            ->setUser($user);
-//
-//        $this->dispatchEvent(new RefreshAccessToken($this->user(), $this->getAccessToken(), $refreshJWT));
-//
-//        return $this->getAccessToken();
-//    }
-//
-//    /**
-//     * @return JWT
-//     */
-//    private function getValidRefreshToken(): JWT
-//    {
-//        if (empty($this->getRefreshToken())) {
-//            $token = $this->getRefreshTokenProvider()->getRequestToken($this->getRequest());
-//            if (empty($token)) {
-//                throw new NotAuthenticatedException();
-//            }
-//
-//            if ($this->getTokenBlacklist()->isRevoked($token)) {
-//                throw new NotAuthenticatedException();
-//            }
-//
-//            try {
-//                $refreshJWT = $this->getJWTHandler()->getValidJWT($token);
-//            } catch (JWTException $e) {
-//                throw new NotAuthenticatedException();
-//            }
-//        } else {
-//            $refreshJWT = $this->getRefreshToken();
-//        }
-//
-//        if (empty($refreshJWT->getRefreshTokenId())) {
-//            throw new NotAuthenticatedException();
-//        }
-//
-//        return $refreshJWT;
-//    }
 
     /**
      * @param Response $response
      *
      * @return Response
-     *
-     * @throws NotAuthenticatedException
      */
-    public function returnAccessToken(Response $response): Response
+    public function returnTokens(Response $response): Response
     {
-        if (empty($this->getAccessToken())) {
-            throw new NotAuthenticatedException();
+        if ($this->getAccessToken()) {
+            $response = $this->getAccessTokenProvider()->setResponseToken($response, $this->getAccessToken()->getJWT());
         }
 
-        return $this->getAccessTokenProvider()->setResponseToken($response, $this->getAccessToken()->getJWT());
-    }
-
-    /**
-     * @param Response $response
-     *
-     * @return Response
-     *
-     * @throws NotAuthenticatedException
-     */
-    public function returnRefreshToken(Response $response): Response
-    {
-        if (empty($this->getRefreshToken())) {
-            throw new NotAuthenticatedException();
+        if ($this->getRefreshToken()) {
+            $response = $this->getRefreshTokenProvider()->setResponseToken($response, $this->getRefreshToken()->getJWT());
         }
 
-        return $this->getRefreshTokenProvider()->setResponseToken($response, $this->getRefreshToken()->getJWT());
+        return $response;
     }
 
     /**

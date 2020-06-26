@@ -28,12 +28,5 @@ interface JWTGuard extends StatefulGuard
      *
      * @return Response
      */
-    public function returnAccessToken(Response $response): Response;
-
-    /**
-     * @param Response $response
-     *
-     * @return Response
-     */
-    public function returnRefreshToken(Response $response): Response;
+    public function returnTokens(Response $response): Response;
 }
