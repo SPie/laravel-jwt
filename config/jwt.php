@@ -19,9 +19,9 @@ return [
         'JWT_BLACKLIST', SPie\LaravelJWT\Blacklist\CacheTokenBlacklist::class
     ),
     Registrar::SETTING_REFRESH_TOKEN_PROVIDER   => [
-        Registrar::SETTING_CLASS => env('JWT_REFRESH_TOKEN_PROVIDER', null),
-        Registrar::SETTING_KEY   => env('JWT_REFRESH_TOKEN_KEY', null),
-        Registrar::SETTING_TTL   => env('JWT_REFRESH_TOKEN_TTL', null)
+        Registrar::SETTING_CLASS => env('JWT_REFRESH_TOKEN_PROVIDER', SPie\LaravelJWT\TokenProvider\CookieTokenProvider::class),
+        Registrar::SETTING_KEY   => env('JWT_REFRESH_TOKEN_KEY', 'refresh-token'),
+        Registrar::SETTING_TTL   => env('JWT_REFRESH_TOKEN_TTL', 43200),
     ],
     Registrar::SETTING_REFRESH_TOKEN_REPOSITORY => env('JWT_REFRESH_TOKEN_REPOSITORY', null),
     Registrar::SETTING_IP_CHECK_ENABLED         => env('JWT_IP_CHECK_ENABLED', false),

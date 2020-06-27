@@ -15,9 +15,9 @@ final class JWTGuardConfig
     private int $accessTokenTtl;
 
     /**
-     * @var int
+     * @var int|null
      */
-    private int $refreshTokenTtl;
+    private ?int $refreshTokenTtl;
 
     /**
      * @var bool
@@ -31,7 +31,7 @@ final class JWTGuardConfig
      * @param int  $refreshTokenTtl
      * @param bool $ipCheckEnabled
      */
-    public function __construct(int $accessTokenTtl, int $refreshTokenTtl, bool $ipCheckEnabled)
+    public function __construct(int $accessTokenTtl, ?int $refreshTokenTtl, bool $ipCheckEnabled)
     {
         $this->accessTokenTtl = $accessTokenTtl;
         $this->refreshTokenTtl = $refreshTokenTtl;
@@ -47,9 +47,9 @@ final class JWTGuardConfig
     }
 
     /**
-     * @return int
+     * @return int|null
      */
-    public function getRefreshTokenTtl(): int
+    public function getRefreshTokenTtl(): ?int
     {
         return $this->refreshTokenTtl;
     }

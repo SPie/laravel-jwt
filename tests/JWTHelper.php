@@ -21,7 +21,6 @@ use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\Contracts\JWTHandler;
 use SPie\LaravelJWT\Contracts\TokenProvider;
-use SPie\LaravelJWT\Exceptions\JWTException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 

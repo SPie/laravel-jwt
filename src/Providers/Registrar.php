@@ -4,7 +4,6 @@ namespace SPie\LaravelJWT\Providers;
 
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Events\Dispatcher;
-use Illuminate\Contracts\Foundation\Application;
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
 use SPie\LaravelJWT\Auth\JWTGuard;
