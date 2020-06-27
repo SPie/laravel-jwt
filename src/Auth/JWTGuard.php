@@ -493,7 +493,7 @@ final class JWTGuard implements JWTGuardContract
      *
      * @return JWT
      */
-    public function issueRefreshToken(JWTAuthenticatable $user): JWT
+    private function issueRefreshToken(JWTAuthenticatable $user): JWT
     {
         $claims = $this->createClaimsWithRefreshTokenIdentifier(
             $user->getCustomClaims(),
