@@ -6,15 +6,15 @@ use Illuminate\Cache\Repository;
 use Mockery;
 use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
-use SPie\LaravelJWT\Blacklist\CacheTokenBlacklist;
+use SPie\LaravelJWT\BlockList\CacheTokenBlockList;
 use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\Test\JWTHelper;
 use SPie\LaravelJWT\Test\TestHelper;
 
 /**
- * Class CacheTokenBlacklistTest
+ * Class CacheTokenBlockListTest
  */
-final class CacheTokenBlacklistTest extends TestCase
+final class CacheTokenBlockListTest extends TestCase
 {
     use TestHelper;
     use JWTHelper;
@@ -24,7 +24,7 @@ final class CacheTokenBlacklistTest extends TestCase
     /**
      * @return void
      *
-     * @throws Exception
+     * @throws \Exception
      */
     public function testRevoke(): void
     {
@@ -32,8 +32,8 @@ final class CacheTokenBlacklistTest extends TestCase
         $jwt = $this->createJWTToRevoke(10);
 
         $this->assertInstanceOf(
-            CacheTokenBlacklist::class,
-            $this->createCacheTokenBlacklist($repository)->revoke($jwt)
+            CacheTokenBlockList::class,
+            $this->createCacheTokenBlockList($repository)->revoke($jwt)
         );
 
         $repository
@@ -60,8 +60,8 @@ final class CacheTokenBlacklistTest extends TestCase
 
 
         $this->assertInstanceOf(
-            CacheTokenBlacklist::class,
-            $this->createCacheTokenBlacklist($repository)->revoke($jwt)
+            CacheTokenBlockList::class,
+            $this->createCacheTokenBlockList($repository)->revoke($jwt)
         );
 
         $repository
@@ -86,7 +86,7 @@ final class CacheTokenBlacklistTest extends TestCase
             ->shouldReceive('has')
             ->andReturn(true);
 
-        $this->assertTrue($this->createCacheTokenBlacklist($repository)->isRevoked((string)$jwt->getJWT()));
+        $this->assertTrue($this->createCacheTokenBlockList($repository)->isRevoked((string)$jwt->getJWT()));
         $repository
             ->shouldHaveReceived('has')
             ->with($this->hashJWT($jwt->getJWT()))
@@ -103,7 +103,7 @@ final class CacheTokenBlacklistTest extends TestCase
             ->shouldReceive('has')
             ->andReturn(false);
 
-        $this->assertFalse($this->createCacheTokenBlacklist($repository)->isRevoked($this->getFaker()->uuid));
+        $this->assertFalse($this->createCacheTokenBlockList($repository)->isRevoked($this->getFaker()->uuid));
     }
 
     //endregion
@@ -111,11 +111,11 @@ final class CacheTokenBlacklistTest extends TestCase
     /**
      * @param Repository|null $repository
      *
-     * @return CacheTokenBlacklist
+     * @return CacheTokenBlockList
      */
-    private function createCacheTokenBlacklist(Repository $repository = null): CacheTokenBlacklist
+    private function createCacheTokenBlockList(Repository $repository = null): CacheTokenBlockList
     {
-        return new CacheTokenBlacklist($repository ?: $this->createRepository());
+        return new CacheTokenBlockList($repository ?: $this->createRepository());
     }
 
     /**

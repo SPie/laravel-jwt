@@ -3,17 +3,17 @@
 namespace SPie\LaravelJWT\Contracts;
 
 /**
- * Interface TokenBlacklist
+ * Interface TokenBlockList
  *
  * @package SPie\LaravelJWT\Contracts
  */
-interface TokenBlacklist
+interface TokenBlockList
 {
 
     /**
      * @param JWT $jwt
      *
-     * @return TokenBlacklist
+     * @return TokenBlockList
      */
     public function revoke(JWT $jwt): self;
 

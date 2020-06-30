@@ -15,8 +15,8 @@ return [
         Registrar::SETTING_KEY   => env('JWT_ACCESS_TOKEN_KEY', 'Authorization'),
         Registrar::SETTING_TTL   => env('JWT_ACCESS_TOKEN_TTL', 10)
     ],
-    Registrar::SETTING_TOKEN_BLACKLIST          => env(
-        'JWT_BLACKLIST', SPie\LaravelJWT\Blacklist\CacheTokenBlacklist::class
+    Registrar::SETTING_TOKEN_BLOCK_LIST => env(
+        'JWT_BLOCK_LIST', SPie\LaravelJWT\BlockList\CacheTokenBlockList::class
     ),
     Registrar::SETTING_REFRESH_TOKEN_PROVIDER   => [
         Registrar::SETTING_CLASS => env('JWT_REFRESH_TOKEN_PROVIDER', SPie\LaravelJWT\TokenProvider\CookieTokenProvider::class),

@@ -13,7 +13,7 @@ use SPie\LaravelJWT\Contracts\JWTFactory as JWTFactoryContract;
 use SPie\LaravelJWT\Contracts\JWTGuard as JWTGuardContract;
 use SPie\LaravelJWT\Contracts\JWTHandler as JWTHandlerContract;
 use SPie\LaravelJWT\Contracts\Registrar as RegistrarContract;
-use SPie\LaravelJWT\Contracts\TokenBlacklist;
+use SPie\LaravelJWT\Contracts\TokenBlockList;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use SPie\LaravelJWT\Exceptions\InvalidTokenProviderKeyException;
 use SPie\LaravelJWT\JWTFactory;
@@ -35,7 +35,7 @@ final class Registrar implements RegistrarContract
     const SETTING_REFRESH_TOKEN_PROVIDER   = 'refreshTokenProvider';
     const SETTING_CLASS                    = 'class';
     const SETTING_KEY                      = 'key';
-    const SETTING_TOKEN_BLACKLIST          = 'tokenBlacklist';
+    const SETTING_TOKEN_BLOCK_LIST         = 'tokenBlockList';
     const SETTING_REFRESH_TOKEN_REPOSITORY = 'refreshTokenRepository';
     const SETTING_IP_CHECK_ENABLED         = 'ipCheckEnabled';
 
@@ -71,7 +71,7 @@ final class Registrar implements RegistrarContract
             ->registerJWTGuard()
             ->registerJWTFactory()
             ->registerJWTHandler()
-            ->registerTokenBlacklist()
+            ->registerTokenBlockList()
             ->registerJWTGuardConfig();
     }
 
@@ -130,13 +130,13 @@ final class Registrar implements RegistrarContract
     /**
      * @return $this
      */
-    private function registerTokenBlacklist(): self
+    private function registerTokenBlockList(): self
     {
-        $this->getApp()->singleton(TokenBlacklist::class, function () {
-            $tokenBlacklistClass = $this->getBlacklistSetting();
+        $this->getApp()->singleton(TokenBlockList::class, function () {
+            $tokenBlockListClass = $this->getBlockListSetting();
 
-            return !empty($tokenBlacklistClass)
-                ? $this->getApp()->make($tokenBlacklistClass)
+            return !empty($tokenBlockListClass)
+                ? $this->getApp()->make($tokenBlockListClass)
                 : null;
         });
 
@@ -159,7 +159,7 @@ final class Registrar implements RegistrarContract
                 $this->getRefreshTokenProvider(),
                 $this->getApp()->get($this->getRefreshTokenRepositoryClass()),
                 $this->getApp()->get(EventFactory::class),
-                $this->getApp()->get(TokenBlacklist::class),
+                $this->getApp()->get(TokenBlockList::class),
                 $this->getApp()->get(Dispatcher::class)
             );
 
@@ -268,9 +268,9 @@ final class Registrar implements RegistrarContract
     /**
      * @return string|null
      */
-    private function getBlacklistSetting(): ?string
+    private function getBlockListSetting(): ?string
     {
-        return $this->getJWTConfig(self::SETTING_TOKEN_BLACKLIST);
+        return $this->getJWTConfig(self::SETTING_TOKEN_BLOCK_LIST);
     }
 
     /**

@@ -12,7 +12,7 @@ use SPie\LaravelJWT\Contracts\EventFactory;
 use SPie\LaravelJWT\Contracts\JWTAuthenticatable;
 use SPie\LaravelJWT\Contracts\JWTGuard as JWTGuardContract;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
-use SPie\LaravelJWT\Contracts\TokenBlacklist;
+use SPie\LaravelJWT\Contracts\TokenBlockList;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use SPie\LaravelJWT\Exceptions\JWTException;
 use SPie\LaravelJWT\Contracts\JWT;
@@ -64,9 +64,9 @@ final class JWTGuard implements JWTGuardContract
     private RefreshTokenRepository $refreshTokenRepository;
 
     /**
-     * @var TokenBlacklist|null
+     * @var TokenBlockList|null
      */
-    private ?TokenBlacklist $tokenBlacklist;
+    private ?TokenBlockList $tokenBlockList;
 
     /**
      * @var JWT|null
@@ -100,7 +100,7 @@ final class JWTGuard implements JWTGuardContract
      * @param TokenProvider          $refreshTokenProvider
      * @param RefreshTokenRepository $refreshTokenRepository
      * @param EventFactory           $eventFactory
-     * @param TokenBlacklist|null    $tokenBlacklist
+     * @param TokenBlockList|null    $tokenBlockList
      * @param Dispatcher|null        $eventDispatcher
      */
     public function __construct(
@@ -113,7 +113,7 @@ final class JWTGuard implements JWTGuardContract
         TokenProvider $refreshTokenProvider,
         RefreshTokenRepository $refreshTokenRepository,
         EventFactory $eventFactory,
-        TokenBlacklist $tokenBlacklist = null,
+        TokenBlockList $tokenBlockList = null,
         Dispatcher $eventDispatcher = null
     ) {
         $this->name = $name;
@@ -125,7 +125,7 @@ final class JWTGuard implements JWTGuardContract
         $this->refreshTokenProvider = $refreshTokenProvider;
         $this->refreshTokenRepository = $refreshTokenRepository;
         $this->eventFactory = $eventFactory;
-        $this->tokenBlacklist = $tokenBlacklist;
+        $this->tokenBlockList = $tokenBlockList;
         $this->eventDispatcher = $eventDispatcher;
 
         $this->accessToken = null;
@@ -205,11 +205,11 @@ final class JWTGuard implements JWTGuardContract
     }
 
     /**
-     * @return null|TokenBlacklist
+     * @return null|TokenBlockList
      */
-    private function getTokenBlacklist(): ?TokenBlacklist
+    private function getTokenBlockList(): ?TokenBlockList
     {
-        return $this->tokenBlacklist;
+        return $this->tokenBlockList;
     }
 
     /**
@@ -330,7 +330,7 @@ final class JWTGuard implements JWTGuardContract
             return null;
         }
 
-        if ($this->getTokenBlacklist() && $this->getTokenBlacklist()->isRevoked($accessToken)) {
+        if ($this->getTokenBlockList() && $this->getTokenBlockList()->isRevoked($accessToken)) {
             return null;
         }
 
@@ -553,8 +553,8 @@ final class JWTGuard implements JWTGuardContract
             throw new AuthenticationException();
         }
 
-        if ($this->getAccessToken() && $this->getTokenBlacklist()) {
-            $this->getTokenBlacklist()->revoke($this->getAccessToken());
+        if ($this->getAccessToken() && $this->getTokenBlockList()) {
+            $this->getTokenBlockList()->revoke($this->getAccessToken());
         }
 
         if ($this->getRefreshToken()) {
