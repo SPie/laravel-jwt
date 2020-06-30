@@ -1,17 +1,17 @@
 <?php
 
-namespace SPie\LaravelJWT\Blacklist;
+namespace SPie\LaravelJWT\BlockList;
 
 use Illuminate\Contracts\Cache\Repository;
-use SPie\LaravelJWT\Contracts\TokenBlacklist;
+use SPie\LaravelJWT\Contracts\TokenBlockList;
 use SPie\LaravelJWT\Contracts\JWT;
 
 /**
- * Class CacheTokenBlacklist
+ * Class CacheTokenBlockList
  *
- * @package SPie\LaravelJWT\Blacklist
+ * @package SPie\LaravelJWT\BlockList
  */
-final class CacheTokenBlacklist implements TokenBlacklist
+final class CacheTokenBlockList implements TokenBlockList
 {
     const EXPIRATION_MINUTES_DEFAULT = 129600;
 
@@ -21,7 +21,7 @@ final class CacheTokenBlacklist implements TokenBlacklist
     private $repository;
 
     /**
-     * CacheTokenBlacklist constructor.
+     * CacheTokenBlockList constructor.
      *
      * @param Repository $repository
      */
@@ -41,11 +41,11 @@ final class CacheTokenBlacklist implements TokenBlacklist
     /**
      * @param JWT $jwt
      *
-     * @return TokenBlacklist
+     * @return TokenBlockList
      *
      * @throws \Exception
      */
-    public function revoke(JWT $jwt): TokenBlacklist
+    public function revoke(JWT $jwt): TokenBlockList
     {
         $jwtToken = $jwt->getJWT();
 

@@ -19,7 +19,7 @@ use SPie\LaravelJWT\Contracts\JWTGuard as JWTGuardContract;
 use SPie\LaravelJWT\Auth\JWTGuard;
 use SPie\LaravelJWT\Contracts\JWTHandler as JWTHandlerContract;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
-use SPie\LaravelJWT\Contracts\TokenBlacklist;
+use SPie\LaravelJWT\Contracts\TokenBlockList;
 use SPie\LaravelJWT\Exceptions\InvalidTokenProviderKeyException;
 use SPie\LaravelJWT\JWTFactory;
 use SPie\LaravelJWT\JWTHandler;
@@ -136,34 +136,34 @@ final class RegistrarTest extends TestCase
     /**
      * @return void
      */
-    public function testRegisterTokenBlacklist(): void
+    public function testRegisterTokenBlockList(): void
     {
-        $tokenBlacklistClass = $this->getFaker()->uuid;
+        $tokenBlockListClass = $this->getFaker()->uuid;
 
         $app = $this->createApp();
         $this
             ->addGetConfig(
                 $app,
                 [
-                    'jwt.tokenBlacklist' => $tokenBlacklistClass
+                    'jwt.tokenBlockList' => $tokenBlockListClass
                 ]
             )
-            ->addMake($app, $tokenBlacklistClass);
+            ->addMake($app, $tokenBlockListClass);
 
         $registrar = $this->createRegistrar($app);
 
-        $this->runReflectionMethod($registrar, 'registerTokenBlacklist');
+        $this->runReflectionMethod($registrar, 'registerTokenBlockList');
 
         $app
             ->shouldHaveReceived('singleton')
             ->with(
                 Mockery::on(function (string $abstract) {
-                    return ($abstract == TokenBlacklist::class);
+                    return ($abstract == TokenBlockList::class);
                 }),
-                Mockery::on(function (\Closure $concrete) use ($tokenBlacklistClass) {
-                    $tokenBlacklist = $concrete();
+                Mockery::on(function (\Closure $concrete) use ($tokenBlockListClass) {
+                    $tokenBlockList = $concrete();
 
-                    return ($tokenBlacklist == $tokenBlacklistClass);
+                    return ($tokenBlockList == $tokenBlockListClass);
                 })
             )
             ->once();
@@ -174,21 +174,21 @@ final class RegistrarTest extends TestCase
     /**
      * @return void
      */
-    public function testRegisterTokenBlacklistWithoutBlacklistSetting(): void
+    public function testRegisterTokenBlockListWithoutBlockListSetting(): void
     {
         $app = $this->createApp();
         $registrar = $this->createRegistrar($app);
 
-        $this->runReflectionMethod($registrar, 'registerTokenBlacklist');
+        $this->runReflectionMethod($registrar, 'registerTokenBlockList');
 
         $app
             ->shouldHaveReceived('singleton')
             ->with(
-                TokenBlacklist::class,
+                TokenBlockList::class,
                 Mockery::on(function (\Closure $concrete) {
-                    $tokenBlacklist = $concrete();
+                    $tokenBlockList = $concrete();
 
-                    return \is_null($tokenBlacklist);
+                    return \is_null($tokenBlockList);
                 })
             )
             ->once();
@@ -208,7 +208,7 @@ final class RegistrarTest extends TestCase
         $request = new Request();
         $eventDispatcher = Mockery::mock(Dispatcher::class);
         $jwtHandler = Mockery::mock(JWTHandlerContract::class);
-        $tokenBlacklist = Mockery::mock(TokenBlacklist::class);
+        $tokenBlockList = Mockery::mock(TokenBlockList::class);
         $refreshTokenRepository = Mockery::mock(RefreshTokenRepository::class);
 
         $authManager = Mockery::spy(AuthManager::class);
@@ -225,7 +225,7 @@ final class RegistrarTest extends TestCase
         $this->addGet(
             $app,
             $authManager,
-            $tokenBlacklist,
+            $tokenBlockList,
             $request,
             $eventDispatcher,
             $jwtHandler,
@@ -254,7 +254,7 @@ final class RegistrarTest extends TestCase
             (new TestTokenProvider())->setKey($refreshTokenProviderKey),
             $refreshTokenRepository,
             $eventFactory,
-            $tokenBlacklist,
+            $tokenBlockList,
             $eventDispatcher
         );
 
@@ -530,7 +530,7 @@ final class RegistrarTest extends TestCase
         $app
             ->shouldHaveReceived('singleton')
             ->with(
-                TokenBlacklist::class,
+                TokenBlockList::class,
                 Mockery::any()
             )
             ->once();
@@ -595,7 +595,7 @@ final class RegistrarTest extends TestCase
     /**
      * @param Container|MockInterface     $app
      * @param AuthManager|null            $authManager
-     * @param TokenBlacklist|null         $withTokenBlacklist
+     * @param TokenBlockList|null         $withTokenBlockList
      * @param Request|null                $request
      * @param Dispatcher|null             $eventDispatcher
      * @param JWTHandlerContract|null     $jwtHandler
@@ -612,7 +612,7 @@ final class RegistrarTest extends TestCase
     private function addGet(
         Container $app,
         AuthManager $authManager = null,
-        TokenBlacklist $withTokenBlacklist = null,
+        TokenBlockList $withTokenBlockList = null,
         Request $request = null,
         Dispatcher $eventDispatcher = null,
         JWTHandlerContract $jwtHandler = null,
@@ -629,7 +629,7 @@ final class RegistrarTest extends TestCase
             ->andReturnUsing(
                 function (string $argument) use (
                     $authManager,
-                    $withTokenBlacklist,
+                    $withTokenBlockList,
                     $request,
                     $eventDispatcher,
                     $jwtHandler,
@@ -654,8 +654,8 @@ final class RegistrarTest extends TestCase
                         case Dispatcher::class:
                             return $eventDispatcher;
 
-                        case TokenBlacklist::class:
-                            return $withTokenBlacklist;
+                        case TokenBlockList::class:
+                            return $withTokenBlockList;
 
                         case RefreshTokenRepository::class:
                             return $refreshTokenRepository;
