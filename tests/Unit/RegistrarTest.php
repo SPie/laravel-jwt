@@ -15,6 +15,7 @@ use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Auth\JWTGuardConfig;
 use SPie\LaravelJWT\Contracts\EventFactory;
 use SPie\LaravelJWT\Contracts\JWTFactory as JWTFactoryContract;
+use SPie\LaravelJWT\Contracts\JWTGuard as JWTGuardContract;
 use SPie\LaravelJWT\Auth\JWTGuard;
 use SPie\LaravelJWT\Contracts\JWTHandler as JWTHandlerContract;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
@@ -538,6 +539,13 @@ final class RegistrarTest extends TestCase
             ->with(
                 JWTGuardConfig::class,
                 Mockery::any()
+            )
+            ->once();
+        $app
+            ->shouldHaveReceived('singleton')
+            ->with(
+                JWTGuardContract::class,
+                JWTGuard::class
             )
             ->once();
     }

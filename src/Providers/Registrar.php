@@ -10,6 +10,7 @@ use SPie\LaravelJWT\Auth\JWTGuard;
 use SPie\LaravelJWT\Auth\JWTGuardConfig;
 use SPie\LaravelJWT\Contracts\EventFactory;
 use SPie\LaravelJWT\Contracts\JWTFactory as JWTFactoryContract;
+use SPie\LaravelJWT\Contracts\JWTGuard as JWTGuardContract;
 use SPie\LaravelJWT\Contracts\JWTHandler as JWTHandlerContract;
 use SPie\LaravelJWT\Contracts\Registrar as RegistrarContract;
 use SPie\LaravelJWT\Contracts\TokenBlacklist;
@@ -67,6 +68,7 @@ final class Registrar implements RegistrarContract
     public function register(): self
     {
         return $this
+            ->registerJWTGuard()
             ->registerJWTFactory()
             ->registerJWTHandler()
             ->registerTokenBlacklist()
@@ -79,6 +81,16 @@ final class Registrar implements RegistrarContract
     public function boot(): self
     {
         return $this->extendAuthGuard();
+    }
+
+    /**
+     * @return $this
+     */
+    private function registerJWTGuard(): self
+    {
+        $this->getApp()->singleton(JWTGuardContract::class, JWTGuard::class);
+
+        return $this;
     }
 
     /**

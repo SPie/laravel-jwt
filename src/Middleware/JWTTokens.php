@@ -2,16 +2,15 @@
 
 namespace SPie\LaravelJWT\Middleware;
 
-use Illuminate\Auth\AuthenticationException;
 use SPie\LaravelJWT\Contracts\JWTGuard;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * Class JWTAuthentication
+ * Class JWTTokens
  *
  * @package SPie\LaravelJWT\Middleware
  */
-final class JWTAuthentication
+final class JWTTokens
 {
     /**
      * @var JWTGuard
@@ -44,10 +43,6 @@ final class JWTAuthentication
      */
     public function handle(Request $request, \Closure $next)
     {
-        if ($this->getJwtGuard()->guest()) {
-            throw new AuthenticationException();
-        }
-
         return $this->getJwtGuard()->returnTokens($next($request));
     }
 }
