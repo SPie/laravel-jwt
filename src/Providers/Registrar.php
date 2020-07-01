@@ -8,13 +8,14 @@ use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
 use SPie\LaravelJWT\Auth\JWTGuard;
 use SPie\LaravelJWT\Auth\JWTGuardConfig;
-use SPie\LaravelJWT\Contracts\EventFactory;
+use SPie\LaravelJWT\Contracts\EventFactory as EventFactoryContract;
 use SPie\LaravelJWT\Contracts\JWTFactory as JWTFactoryContract;
 use SPie\LaravelJWT\Contracts\JWTGuard as JWTGuardContract;
 use SPie\LaravelJWT\Contracts\JWTHandler as JWTHandlerContract;
 use SPie\LaravelJWT\Contracts\Registrar as RegistrarContract;
 use SPie\LaravelJWT\Contracts\TokenBlockList;
 use SPie\LaravelJWT\Contracts\TokenProvider;
+use SPie\LaravelJWT\Events\EventFactory;
 use SPie\LaravelJWT\Exceptions\InvalidTokenProviderKeyException;
 use SPie\LaravelJWT\JWTFactory;
 use SPie\LaravelJWT\JWTHandler;
@@ -72,7 +73,8 @@ final class Registrar implements RegistrarContract
             ->registerJWTFactory()
             ->registerJWTHandler()
             ->registerTokenBlockList()
-            ->registerJWTGuardConfig();
+            ->registerJWTGuardConfig()
+            ->registerEventFactory();
     }
 
     /**
@@ -139,6 +141,16 @@ final class Registrar implements RegistrarContract
                 ? $this->getApp()->make($tokenBlockListClass)
                 : null;
         });
+
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    private function registerEventFactory(): self
+    {
+        $this->getApp()->singleton(EventFactoryContract::class, EventFactory::class);
 
         return $this;
     }
