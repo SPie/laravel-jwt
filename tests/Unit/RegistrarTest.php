@@ -12,14 +12,15 @@ use Lcobucci\JWT\Parser;
 use Mockery;
 use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
+use SPie\LaravelJWT\Auth\JWTGuard;
 use SPie\LaravelJWT\Auth\JWTGuardConfig;
-use SPie\LaravelJWT\Contracts\EventFactory;
 use SPie\LaravelJWT\Contracts\JWTFactory as JWTFactoryContract;
 use SPie\LaravelJWT\Contracts\JWTGuard as JWTGuardContract;
-use SPie\LaravelJWT\Auth\JWTGuard;
+use SPie\LaravelJWT\Contracts\EventFactory as EventFactoryContract;
 use SPie\LaravelJWT\Contracts\JWTHandler as JWTHandlerContract;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\TokenBlockList;
+use SPie\LaravelJWT\Events\EventFactory;
 use SPie\LaravelJWT\Exceptions\InvalidTokenProviderKeyException;
 use SPie\LaravelJWT\JWTFactory;
 use SPie\LaravelJWT\JWTHandler;
@@ -548,6 +549,13 @@ final class RegistrarTest extends TestCase
                 JWTGuard::class
             )
             ->once();
+        $app
+            ->shouldHaveReceived('singleton')
+            ->with(
+                EventFactoryContract::class,
+                EventFactory::class
+            )
+            ->once();
     }
 
     /**
@@ -604,7 +612,7 @@ final class RegistrarTest extends TestCase
      * @param Parser|null                 $parser
      * @param JWTFactoryContract|null     $jwtFactory
      * @param array                       $config
-     * @param EventFactory|null           $eventFactory
+     * @param EventFactoryContract|null   $eventFactory
      * @param JWTGuardConfig|null         $jwtGuardConfig
      *
      * @return RegistrarTest
@@ -621,7 +629,7 @@ final class RegistrarTest extends TestCase
         Parser $parser = null,
         JWTFactoryContract $jwtFactory = null,
         array $config = [],
-        EventFactory $eventFactory = null,
+        EventFactoryContract $eventFactory = null,
         JWTGuardConfig $jwtGuardConfig = null
     ): RegistrarTest {
         $app
