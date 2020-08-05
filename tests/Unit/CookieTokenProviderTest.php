@@ -64,8 +64,8 @@ final class CookieTokenProviderTest extends TestCase
             (new Collection(
                 $this->createCookieTokenProvider($cookieName, $cookieFactory)
                     ->setResponseToken($this->createEmptyResponse(), $token)
-                    ->headers->getCookies())
-            )->first()
+                    ->headers->getCookies()
+            ))->first()
         );
     }
 

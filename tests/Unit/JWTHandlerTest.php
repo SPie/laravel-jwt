@@ -132,10 +132,10 @@ final class JWTHandlerTest extends TestCase
         $this->assertEquals(
             $jwt,
             $this->createJWTHandler(null, $this->getFaker()->uuid, $jwtFactory, $builder)->createJWT(
-                 $this->getFaker()->uuid,
-                 [],
-                 $this->getFaker()->numberBetween()
-             )
+                $this->getFaker()->uuid,
+                [],
+                $this->getFaker()->numberBetween()
+            )
         );
 
         $builder->shouldNotHaveReceived('set');
