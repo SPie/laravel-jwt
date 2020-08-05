@@ -2,6 +2,7 @@
 
 namespace SPie\LaravelJWT\TokenProvider;
 
+use Illuminate\Contracts\Cookie\Factory;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,11 +15,33 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class CookieTokenProvider implements TokenProvider
 {
+    /**
+     * @var Factory
+     */
+    private Factory $cookieFactory;
 
     /**
      * @var string
      */
     private string $key;
+
+    /**
+     * CookieTokenProvider constructor.
+     *
+     * @param Factory $cookieFactory
+     */
+    public function __construct(Factory $cookieFactory)
+    {
+        $this->cookieFactory = $cookieFactory;
+    }
+
+    /**
+     * @return Factory
+     */
+    private function getCookieFactory(): Factory
+    {
+        return $this->cookieFactory;
+    }
 
     /**
      * @param string $key
@@ -58,7 +81,7 @@ final class CookieTokenProvider implements TokenProvider
      */
     public function setResponseToken(Response $response, string $token): Response
     {
-        $response->headers->setCookie(new Cookie($this->getKey(), $token));
+        $response->headers->setCookie($this->getCookieFactory()->make($this->getKey(), $token));
 
         return $response;
     }
