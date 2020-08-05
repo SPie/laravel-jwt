@@ -204,7 +204,7 @@ final class Registrar implements RegistrarContract
     {
         $accessTokenProviderClass = $this->getAccessTokenProviderClassSetting();
 
-        return (new $accessTokenProviderClass())
+        return $this->getApp()->make($accessTokenProviderClass)
             ->setKey($this->getAccessTokenProviderKeySetting());
     }
 
@@ -225,7 +225,7 @@ final class Registrar implements RegistrarContract
             throw new InvalidTokenProviderKeyException();
         }
 
-        return (new $refreshTokenProviderClass())
+        return $this->getApp()->make($refreshTokenProviderClass)
             ->setKey($this->getRefreshTokenProviderKeySetting());
     }
 

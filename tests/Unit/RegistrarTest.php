@@ -211,6 +211,8 @@ final class RegistrarTest extends TestCase
         $jwtHandler = Mockery::mock(JWTHandlerContract::class);
         $tokenBlockList = Mockery::mock(TokenBlockList::class);
         $refreshTokenRepository = Mockery::mock(RefreshTokenRepository::class);
+        $accessTokenProvider = new TestTokenProvider();
+        $refreshTokenProvider = new TestTokenProvider();
 
         $authManager = Mockery::spy(AuthManager::class);
         $authManager
@@ -223,27 +225,30 @@ final class RegistrarTest extends TestCase
         $jwtGuardConfig = $this->createJWTGuardConfig();
 
         $app = $this->createApp();
-        $this->addGet(
-            $app,
-            $authManager,
-            $tokenBlockList,
-            $request,
-            $eventDispatcher,
-            $jwtHandler,
-            $refreshTokenRepository,
-            null,
-            null,
-            null,
-            [
-                'jwt.accessTokenProvider.class'  => TestTokenProvider::class,
-                'jwt.accessTokenProvider.key'    => $accessTokenProviderKey,
-                'jwt.refreshTokenProvider.class' => TestTokenProvider::class,
-                'jwt.refreshTokenProvider.key'   => $refreshTokenProviderKey,
-                'jwt.refreshTokenRepository'     => RefreshTokenRepository::class,
-            ],
-            $eventFactory,
-            $jwtGuardConfig
-        );
+        $this
+            ->addGet(
+                $app,
+                $authManager,
+                $tokenBlockList,
+                $request,
+                $eventDispatcher,
+                $jwtHandler,
+                $refreshTokenRepository,
+                null,
+                null,
+                null,
+                [
+                    'jwt.accessTokenProvider.class'  => TestTokenProvider::class,
+                    'jwt.accessTokenProvider.key'    => $accessTokenProviderKey,
+                    'jwt.refreshTokenProvider.class' => TestTokenProvider::class,
+                    'jwt.refreshTokenProvider.key'   => $refreshTokenProviderKey,
+                    'jwt.refreshTokenRepository'     => RefreshTokenRepository::class,
+                ],
+                $eventFactory,
+                $jwtGuardConfig
+            )
+            ->mockAppMake($app, $accessTokenProvider, TestTokenProvider::class)
+            ->mockAppMake($app, $refreshTokenProvider, TestTokenProvider::class);
 
         $jwtGuard = new JWTGuard(
             $guardName,
@@ -251,8 +256,8 @@ final class RegistrarTest extends TestCase
             $userProvider,
             $request,
             $jwtGuardConfig,
-            (new TestTokenProvider())->setKey($accessTokenProviderKey),
-            (new TestTokenProvider())->setKey($refreshTokenProviderKey),
+            $accessTokenProvider->setKey($accessTokenProviderKey),
+            $refreshTokenProvider->setKey($refreshTokenProviderKey),
             $refreshTokenRepository,
             $eventFactory,
             $tokenBlockList,
@@ -310,6 +315,8 @@ final class RegistrarTest extends TestCase
             ->shouldReceive('createUserProvider')
             ->andReturn($userProvider);
 
+        $accessTokenProvider = new TestTokenProvider();
+        $refreshTokenProvider = new TestTokenProvider();
         $accessTokenProviderKey = $this->getFaker()->uuid;
         $eventFactory = $this->createEventFactory();
         $refreshTokenProviderKey = $this->getFaker()->word;
@@ -317,27 +324,30 @@ final class RegistrarTest extends TestCase
         $jwtGuardConfig = $this->createJWTGuardConfig();
 
         $app = $this->createApp();
-        $this->addGet(
-            $app,
-            $authManager,
-            null,
-            $request,
-            null,
-            $jwtHandler,
-            $refreshTokenRepository,
-            null,
-            null,
-            null,
-            [
-                'jwt.accessTokenProvider.class'  => TestTokenProvider::class,
-                'jwt.accessTokenProvider.key'    => $accessTokenProviderKey,
-                'jwt.refreshTokenProvider.class' => TestTokenProvider::class,
-                'jwt.refreshTokenProvider.key'   => $refreshTokenProviderKey,
-                'jwt.refreshTokenRepository'     => RefreshTokenRepository::class,
-            ],
-            $eventFactory,
-            $jwtGuardConfig
-        );
+        $this
+            ->addGet(
+                $app,
+                $authManager,
+                null,
+                $request,
+                null,
+                $jwtHandler,
+                $refreshTokenRepository,
+                null,
+                null,
+                null,
+                [
+                    'jwt.accessTokenProvider.class'  => TestTokenProvider::class,
+                    'jwt.accessTokenProvider.key'    => $accessTokenProviderKey,
+                    'jwt.refreshTokenProvider.class' => TestTokenProvider::class,
+                    'jwt.refreshTokenProvider.key'   => $refreshTokenProviderKey,
+                    'jwt.refreshTokenRepository'     => RefreshTokenRepository::class,
+                ],
+                $eventFactory,
+                $jwtGuardConfig
+            )
+            ->mockAppMake($app, $accessTokenProvider, TestTokenProvider::class)
+            ->mockAppMake($app, $refreshTokenProvider, TestTokenProvider::class);
 
         $jwtGuard = new JWTGuard(
             $guardName,
@@ -345,8 +355,8 @@ final class RegistrarTest extends TestCase
             $userProvider,
             $request,
             $jwtGuardConfig,
-            (new TestTokenProvider())->setKey($accessTokenProviderKey),
-            (new TestTokenProvider())->setKey($refreshTokenProviderKey),
+            $accessTokenProvider->setKey($accessTokenProviderKey),
+            $refreshTokenProvider->setKey($refreshTokenProviderKey),
             $refreshTokenRepository,
             $eventFactory
         );
@@ -429,13 +439,15 @@ final class RegistrarTest extends TestCase
     {
         $key = $this->getFaker()->uuid;
         $app = $this->createApp();
-        $this->addGetConfig(
-            $app,
-            [
-                'jwt.accessTokenProvider.class' => TestTokenProvider::class,
-                'jwt.accessTokenProvider.key'   => $key,
-            ]
-        );
+        $this
+            ->addGetConfig(
+                $app,
+                [
+                    'jwt.accessTokenProvider.class' => TestTokenProvider::class,
+                    'jwt.accessTokenProvider.key'   => $key,
+                ]
+            )
+            ->mockAppMake($app, new TestTokenProvider(), TestTokenProvider::class);
 
         $registrar = $this->createRegistrar($app);
 
@@ -451,13 +463,15 @@ final class RegistrarTest extends TestCase
     {
         $key = $this->getFaker()->uuid;
         $app = $this->createApp();
-        $this->addGetConfig(
-            $app,
-            [
-                'jwt.refreshTokenProvider.class' => TestTokenProvider::class,
-                'jwt.refreshTokenProvider.key'   => $key,
-            ]
-        );
+        $this
+            ->addGetConfig(
+                $app,
+                [
+                    'jwt.refreshTokenProvider.class' => TestTokenProvider::class,
+                    'jwt.refreshTokenProvider.key'   => $key,
+                ]
+            )
+            ->mockAppMake($app, new TestTokenProvider(), TestTokenProvider::class);
 
         $registrar = $this->createRegistrar($app);
 
@@ -721,6 +735,23 @@ final class RegistrarTest extends TestCase
     {
         $app
             ->shouldReceive('make')
+            ->andReturn($concrete);
+
+        return $this;
+    }
+
+    /**
+     * @param Container|MockInterface $app
+     * @param mixed                   $concrete
+     * @param string                  $class
+     *
+     * @return $this
+     */
+    private function mockAppMake(MockInterface $app, $concrete, string $class): self
+    {
+        $app
+            ->shouldReceive('make')
+            ->with($class)
             ->andReturn($concrete);
 
         return $this;
