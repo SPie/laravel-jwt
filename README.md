@@ -9,7 +9,7 @@ This package provides a access and refresh token workflow. You need to create an
 you can issue a refresh token. Then this refresh token can be used to create access tokens if required.
 
 ## Requirements
-  * PHP >= 7.1
+  * PHP >= 7.4
   * [Laravel Components](https://github.com/laravel/framework) >= 5.4
   * [lcobucci/jwt](https://github.com/lcobucci/jwt) ^3.2
   
@@ -63,7 +63,7 @@ You can also copy the `config/jwt.php` file from the repo to your projects confi
 For every other config a default value exists.
 
 ### Auth
-You need to add an entry for the `JWTGuard` in you `config/auth.php` file. 
+You need to add an entry for the `JWTGuard` in your `config/auth.php` file. 
 ```php
 'guards' => [
 
@@ -76,65 +76,37 @@ You need to add an entry for the `JWTGuard` in you `config/auth.php` file.
 ```
 
 ## Usage
-You can use the `SPie\LaravelJWT\Auth\JWTGuard` by using dependency injection and depend on `Illuminate\Contracts\Auth\Guard`.
+You can use the `SPie\LaravelJWT\Auth\JWTGuard` by using dependency injection and depend on `Illuminate\Contracts\Auth\Guard`, but you have to bind the `JWTGuard` to
+`SPie\LaravelJWT\Auth\JWTGuard` to `Illuminate\Contracts\Auth\Guard` in your `ServiceProvider`.
 You can also get the `JWTGuard` by `Illuminate\Auth\AuthManager::guard($name)`, using the guard name configured in `config/auth.php`.
 
 ### User
 To use your user model for authentication, it has to implement the `SPie\LaravelJWT\Contracts\JWTAuthenticatable` interface.
 
 ### Login
-The `JWTGuard` provides a method to login your user by credentials. This will mark the user as logged-in in the guard and 
-will create a `SPie\LaravelJWT\JWT` object.
-```php
-$jwtGuard->login([
-    'username' => 'USERNAME',
-    'password' => 'PASSWORD',
-]);
- 
-/** @var SPie\LaravelJWT\JWT $jwt */
-$jwt = $jwtGuard->getJWT();
- 
-/** @var SPie\LaravelJWT\Contracts\JWTAuthenticatable $user */
-$user = $jwtGuard->getUser();
-
-```
-If the login fails, the `JWTGuard` will throw an `Illuminate\Auth\Access\AuthorizationException`.
-
-### Get user by token
-The `JWTGuard::user()` method gets and authenticates a user by token, provided by the request.
-```php
-/** @var SPie\LaravelJWT\Contracts\JWTAuthenticatable|null $user */
-$user = $jwtGuard->user();
-```
-If no token was send by request or the token was invalid, the method will return `NULL`. This will work with the access or the refresh token.
+To Login use the `login` method provided by `Illuminate\Contracts\Auth\StatefulGuard`. After that you can get the Access and Refresh token by the `getAccessToken` and
+`getRefreshToken` methods. 
 
 ### Logout
 The `JWTGuard::logout()` method will unset the `$jwt` and `$user` property.
-If a `TokenBlacklist` is configured, the token will be revoked. If a refresh token was used to issue the current access token,
-this refresh token will get revoked.
+If a `TokenBlacklist` is configured, the token will be revoked. If a refresh token was used, it will get revoked.
 
 ### TokenProvider
 You have to specify a `TokenProvider` to be able to extract a token from request.
 This package includes two `TokenProvider` already: the `SPie\LaravelJWT\TokenProvider\HeaderTokenProvider` and
 the `SPie\LaravelJWT\TokenProvider\CookieTokenProvider`.
-Of course you can create a custom `TokenProvider`, implementing the `SPie\LaravelJWT\Contracts\TokenProvider` interface 
+Of course, you can create a custom `TokenProvider`, implementing the `SPie\LaravelJWT\Contracts\TokenProvider` interface 
 and specify it in the JWT config.
-
-You have to specify a `TokenProvider` for refresh tokens too, if you want to use them. It is recommended to use different 
-`TokenProvider` types for each of the tokens.
+You have to specify a `TokenProvider` for refresh tokens too.
 
 ### JWTHandler
-To create or validate JWTs, you can use the `SPie\LaravelJWT\JWTHandler`. Just use dependency injection or use the `make` 
-container function.
-```php
-Container()::getInstance->make(SPie\LaravelJWT\JWTHandler::class)
-```
+To create or validate JWTs, you can use the `SPie\LaravelJWT\JWTHandler`.
 
 #### Create JWT
-To create a JWT, you have to provide a subject and an optional payload.
+To create a JWT, you have to provide a subject and an optional payload and TTl.
 ```php
 /** @var SPie\LaravelJWT\JWT $jwt */
-$jwt = $jwtHandler->createJWT('SUBJECT', ['claim1' => 'value1']);
+$jwt = $jwtHandler->createJWT('SUBJECT', ['claim1' => 'value1'], );
 ```
 
 #### Get valid JWT
@@ -168,21 +140,3 @@ The `isRevoked` method will check for a revoked token.
 ### RefreshTokenRepository
 You have to implement the `SPie\LaravelJWT\RefreshTokenRepository` if you want to use refresh tokens. The `RefreshTokenRepository`
 will store and revoke the refresh tokens if needed and also checks if a refresh token is already revoked.
-
-### Events
-
-The `JWTGuard` fires events of type `SPie\LaravelJWT\Events\Event` for several actions if a `Illuminate\Contracts\Events\Dispatcher` is used.
-
-The `login` action fires three events: 
-  * The `SPie\LaravelJWT\Events\LoginAttempt` event gets fired at the start of the login process. It contains the provided
-  credentials and the IP address.
-  * The `SPie\LaravelJWT\Events\FailedLoginAttempt` event gets fired if the login wasn't successful. It contains also
-  contains the credentials and the IP address.
-  * The `SPie\LaravelJWT\Events\Login` event gets fired if the login was successful. It contains the authenticated user, 
-  the created access token and the IP address.
-
-The `issueRefreshToken` action fires the `SPie\LaravelJWT\Events\IssueRefreshToken` event if the refresh token is successfully created.
-This event contains the authenticated user, the newly created access token and the issued refresh token.
-
-The `refreshAccessToken` action fires the `SPie\LaravelJWT\Events\RefreshAccessToken` event, containing the authenticated 
-user, the used refresh token and the refreshed access token.
