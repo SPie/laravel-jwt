@@ -5,6 +5,7 @@ namespace SPie\LaravelJWT;
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer;
+use Lcobucci\JWT\Signer\Key;
 use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\Contracts\JWTFactory;
 use SPie\LaravelJWT\Contracts\JWTHandler as JWTHandlerContract;
@@ -178,23 +179,23 @@ final class JWTHandler implements JWTHandlerContract
      */
     public function createJWT(string $subject, array $payload = [], int $ttl = null): JWT
     {
-        list($issuedAt, $expiresAt) = $this->createTimestamps($ttl);
+        [$issuedAt, $expiresAt] = $this->createTimestamps($ttl);
 
         $builder = $this->getNewBuilder()
-            ->setIssuer($this->getIssuer())
-            ->setSubject($subject)
-            ->setIssuedAt($issuedAt);
+            ->issuedBy($this->getIssuer())
+            ->relatedTo($subject)
+            ->issuedAt($issuedAt);
 
         if ($expiresAt) {
-            $builder->setExpiration($expiresAt);
+            $builder->expiresAt($expiresAt);
         }
 
         foreach ($payload as $name => $value) {
-            $builder->set($name, $value);
+            $builder->withClaim($name, $value);
         }
 
         return $this->getJWTFactory()->createJWT(
-            $builder->sign($this->getSigner(), $this->getSecret())->getToken()
+            $builder->getToken($this->getSigner(), new Key($this->getSecret()))
         );
     }
 
