@@ -287,16 +287,6 @@ final class RegistrarTest extends TestCase
             )
             ->once();
 
-        $app
-            ->shouldHaveReceived('refresh')
-            ->with(
-                'request',
-                Mockery::any(),
-                'setRequest'
-            )
-            ->atLeast()
-            ->once();
-
         $this->assertTrue(true);
     }
 
@@ -382,16 +372,6 @@ final class RegistrarTest extends TestCase
                     return ($jwtGuard == $concreteJwtGuard);
                 })
             )
-            ->once();
-
-        $app
-            ->shouldHaveReceived('refresh')
-            ->with(
-                'request',
-                Mockery::any(),
-                'setRequest'
-            )
-            ->atLeast()
             ->once();
 
         $this->assertTrue(true);
@@ -560,7 +540,7 @@ final class RegistrarTest extends TestCase
             ->shouldHaveReceived('singleton')
             ->with(
                 JWTGuardContract::class,
-                JWTGuard::class
+                Mockery::any()
             )
             ->once();
         $app
