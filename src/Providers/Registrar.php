@@ -90,7 +90,7 @@ final class Registrar implements RegistrarContract
      */
     private function registerJWTGuard(): self
     {
-        $this->getApp()->singleton(JWTGuardContract::class, JWTGuard::class);
+        $this->getApp()->singleton(JWTGuardContract::class, fn () => $this->getApp()->get('auth')->guard());
 
         return $this;
     }
@@ -161,7 +161,7 @@ final class Registrar implements RegistrarContract
     private function extendAuthGuard(): self
     {
         $this->getApp()->get('auth')->extend('jwt', function ($app, $name, array $config) {
-            $jwtGuard = new JWTGuard(
+            return new JWTGuard(
                 $name,
                 $this->getApp()->get(JWTHandlerContract::class),
                 $this->getApp()->get('auth')->createUserProvider($config['provider']),
@@ -174,10 +174,6 @@ final class Registrar implements RegistrarContract
                 $this->getApp()->get(TokenBlockList::class),
                 $this->getApp()->get(Dispatcher::class)
             );
-
-            $this->getApp()->refresh('request', $jwtGuard, 'setRequest');
-
-            return $jwtGuard;
         });
 
         return $this;
