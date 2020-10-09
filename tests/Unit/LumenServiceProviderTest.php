@@ -123,7 +123,7 @@ final class LumenServiceProviderTest extends TestCase
     {
         $app = Mockery::spy(Container::class, \ArrayAccess::class);
         $app
-            ->shouldReceive('offsetGet')
+            ->shouldReceive('make')
             ->andReturnUsing(function ($argument) use ($configRepository) {
                 switch ($argument) {
                     case 'config':
