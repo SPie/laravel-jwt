@@ -32,7 +32,7 @@ trait TestHelper
     /**
      * @return void
      */
-    protected function tearDown()
+    protected function tearDown(): void
     {
         Mockery::close();
 
