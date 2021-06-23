@@ -8,6 +8,7 @@ use Lcobucci\JWT\Signer;
 use Mockery;
 use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Contracts\JWTFactory;
+use SPie\LaravelJWT\Contracts\Validator;
 use SPie\LaravelJWT\Exceptions\BeforeValidException;
 use SPie\LaravelJWT\Exceptions\TokenExpiredException;
 use SPie\LaravelJWT\Exceptions\InvalidSecretException;
@@ -42,7 +43,8 @@ final class JWTHandlerTest extends TestCase
             $this->createJWTFactory(),
             $this->createBuilder(),
             $this->createParser(),
-            $this->createSigner()
+            $this->createSigner(),
+            $this->createValidator()
         );
     }
 
@@ -58,7 +60,8 @@ final class JWTHandlerTest extends TestCase
             $this->createJWTFactory(),
             $builder,
             $this->createParser(),
-            $this->createSigner()
+            $this->createSigner(),
+            $this->createValidator()
         );
 
         $newBuilder = $this->runGetNewBuilderMethod($jwtHandler);
@@ -172,32 +175,21 @@ final class JWTHandlerTest extends TestCase
         $jwtFactory = $this->createJWTFactory($jwt);
         $token = $this->createToken();
         $token
-            ->shouldReceive('verify')
-            ->andReturn(true)
-            ->getMock()
             ->shouldReceive('isExpired')
             ->andReturn(false)
             ->getMock()
             ->shouldReceive('getClaim')
             ->andReturn((new \DateTimeImmutable())->sub(new \DateInterval('P1D'))->getTimestamp());
         $signer = $this->createSigner();
+        $validator = $this->createValidator();
+        $this->mockValidatorValidate($validator, true, $token);
         $secret = $this->getFaker()->uuid;
 
         $this->assertEquals(
             $jwt,
-            $this->createJWTHandler($secret, null, $jwtFactory, null, $this->createParser($token), $signer)
+            $this->createJWTHandler($secret, null, $jwtFactory, null, $this->createParser($token), $signer, $validator)
                  ->getValidJWT($this->getFaker()->uuid)
         );
-
-        $token
-            ->shouldHaveReceived('verify')
-            ->with(
-                Mockery::on(function ($argument) use ($signer) {
-                    return $argument == $signer;
-                }),
-                $secret
-            )
-            ->once();
     }
 
     /**
@@ -207,15 +199,14 @@ final class JWTHandlerTest extends TestCase
     {
         $token = $this->createToken();
         $token
-            ->shouldReceive('verify')
-            ->andReturn(true)
-            ->getMock()
             ->shouldReceive('isExpired')
             ->andReturn(true);
+        $validator = $this->createValidator();
+        $this->mockValidatorValidate($validator, true, $token);
 
         $this->expectException(TokenExpiredException::class);
 
-        $this->createJWTHandler(null, null, null, null, $this->createParser($token))
+        $this->createJWTHandler(null, null, null, null, $this->createParser($token), $this->createSigner(), $validator)
                     ->getValidJWT($this->getFaker()->uuid);
     }
 
@@ -231,18 +222,17 @@ final class JWTHandlerTest extends TestCase
         $jwtFactory = $this->createJWTFactory($jwt);
         $token = $this->createToken();
         $token
-            ->shouldReceive('verify')
-            ->andReturn(true)
-            ->getMock()
             ->shouldReceive('isExpired')
             ->andReturn(false)
             ->getMock()
             ->shouldReceive('getClaim')
             ->andReturn((new \DateTimeImmutable())->add(new \DateInterval('P1D'))->getTimestamp());
+        $validator = $this->createValidator();
+        $this->mockValidatorValidate($validator, true, $token);
 
         $this->expectException(BeforeValidException::class);
 
-        $this->createJWTHandler(null, null, $jwtFactory, null, $this->createParser($token))
+        $this->createJWTHandler(null, null, $jwtFactory, null, $this->createParser($token), $this->createSigner(), $validator)
              ->getValidJWT($this->getFaker()->uuid);
     }
 
@@ -257,13 +247,12 @@ final class JWTHandlerTest extends TestCase
     public function testGetValidJWTSignatureInvalid(): void
     {
         $token = $this->createToken();
-        $token
-            ->shouldReceive('verify')
-            ->andReturn(false);
+        $validator = $this->createValidator();
+        $this->mockValidatorValidate($validator, false, $token);
 
         $this->expectException(InvalidSignatureException::class);
 
-        $this->createJWTHandler(null, null, null, null, $this->createParser($token))
+        $this->createJWTHandler(null, null, null, null, $this->createParser($token), $this->createSigner(), $validator)
              ->getValidJWT($this->getFaker()->uuid);
     }
 
@@ -297,6 +286,7 @@ final class JWTHandlerTest extends TestCase
      * @param Builder|null    $builder
      * @param Parser|null     $parser
      * @param Signer|null     $signer
+     * @param Validator|null  $validator
      *
      * @return JWTHandler
      * @throws InvalidSecretException
@@ -307,7 +297,8 @@ final class JWTHandlerTest extends TestCase
         JWTFactory $jwtFactory = null,
         Builder $builder = null,
         Parser $parser = null,
-        Signer $signer = null
+        Signer $signer = null,
+        Validator $validator = null
     ): JWTHandler {
         return new JWTHandler(
             $secret ?: $this->getFaker()->uuid,
@@ -315,7 +306,8 @@ final class JWTHandlerTest extends TestCase
             $jwtFactory ?: $this->createJWTFactory(),
             $builder ?: $this->createBuilder(),
             $parser ?: $this->createParser(),
-            $signer ?: $this->getSigner()
+            $signer ?: $this->getSigner(),
+            $validator ?: $this->createValidator()
         );
     }
 

@@ -4,6 +4,7 @@ namespace SPie\LaravelJWT\Test\Unit;
 
 use Lcobucci\JWT\Claim;
 use Lcobucci\JWT\Token;
+use Lcobucci\JWT\Token\DataSet;
 use Mockery;
 use Mockery\MockInterface;
 use OutOfBoundsException;
@@ -43,13 +44,8 @@ final class JWTTest extends TestCase
     public function testGetIssuer(): void
     {
         $issuer = $this->getFaker()->uuid;
-        $token = $this->createJWTToken($issuer);
 
-        $this->assertEquals($issuer, $this->createJWT($token)->getIssuer());
-        $token
-            ->shouldHaveReceived('getClaim')
-            ->with('iss')
-            ->once();
+        $this->assertEquals($issuer, $this->createJWT($this->createJWTToken(null, ['iss' => $issuer]))->getIssuer());
     }
 
     /**
@@ -59,9 +55,7 @@ final class JWTTest extends TestCase
      */
     public function testGetIssuerEmpty(): void
     {
-        $this->expectException(MissingClaimException::class);
-
-        $this->createJWT($this->createJWTToken(new OutOfBoundsException()))->getIssuer();
+        $this->assertNull($this->createJWT($this->createJWTToken())->getIssuer());
     }
 
     /**
@@ -70,25 +64,16 @@ final class JWTTest extends TestCase
     public function testGetSubject(): void
     {
         $subject = $this->getFaker()->uuid;
-        $token = $this->createJWTToken($subject);
 
-        $this->assertEquals($subject, $this->createJWT($token)->getSubject());
-        $token
-            ->shouldHaveReceived('getClaim')
-            ->with('sub')
-            ->once();
+        $this->assertEquals($subject, $this->createJWT($this->createJWTToken(null, ['sub' => $subject]))->getSubject());
     }
 
     /**
      * @return void
-     *
-     * @throws MissingClaimException
      */
     public function testGetSubjectEmpty(): void
     {
-        $this->expectException(MissingClaimException::class);
-
-        $this->createJWT($this->createJWTToken(new OutOfBoundsException()))->getSubject();
+        $this->assertNull($this->createJWT($this->createJWTToken())->getSubject());
     }
 
     /**
@@ -97,13 +82,8 @@ final class JWTTest extends TestCase
     public function testGetIssuedAt(): void
     {
         $issuedAt = new \DateTimeImmutable($this->getFaker()->dateTime()->format('Y-m-d H:i:s'));
-        $token = $this->createJWTToken($issuedAt->getTimestamp());
 
-        $this->assertEquals($issuedAt, $this->createJWT($token)->getIssuedAt());
-        $token
-            ->shouldHaveReceived('getClaim')
-            ->with('iat')
-            ->once();
+        $this->assertEquals($issuedAt, $this->createJWT($this->createJWTToken(null, ['iat' => $issuedAt->getTimestamp()]))->getIssuedAt());
     }
 
     /**
@@ -111,9 +91,7 @@ final class JWTTest extends TestCase
      */
     public function testGetIssuedAtEmpty(): void
     {
-        $this->expectException(MissingClaimException::class);
-
-        $this->createJWT($this->createJWTToken(new OutOfBoundsException()))->getIssuedAt();
+        $this->assertNull($this->createJWT($this->createJWTToken())->getIssuedAt());
     }
 
     /**
@@ -122,13 +100,8 @@ final class JWTTest extends TestCase
     public function testGetExpiresAt(): void
     {
         $expiresAt = new \DateTimeImmutable($this->getFaker()->dateTime()->format('Y-m-d H:i:s'));
-        $token = $this->createJWTToken($expiresAt->getTimestamp());
 
-        $this->assertEquals($expiresAt, $this->createJWT($token)->getExpiresAt());
-        $token
-            ->shouldHaveReceived('getClaim')
-            ->with('exp')
-            ->once();
+        $this->assertEquals($expiresAt, $this->createJWT($this->createJWTToken(null, ['exp' => $expiresAt->getTimestamp()]))->getExpiresAt());
     }
 
     /**
@@ -165,13 +138,8 @@ final class JWTTest extends TestCase
     public function testGetRefreshTokenId(): void
     {
         $refreshTokenId = $this->getFaker()->uuid;
-        $token = $this->createJWTToken($refreshTokenId);
 
-        $this->assertEquals($refreshTokenId, $this->createJWT($token)->getRefreshTokenId());
-        $token
-            ->shouldHaveReceived('getClaim')
-            ->with('rti')
-            ->once();
+        $this->assertEquals($refreshTokenId, $this->createJWT($this->createJWTToken(null, ['rti' => $refreshTokenId]))->getRefreshTokenId());
     }
 
     /**
@@ -188,13 +156,8 @@ final class JWTTest extends TestCase
     public function testGetIpAddress(): void
     {
         $ipAddress = $this->getFaker()->ipv4;
-        $token = $this->createJWTToken($ipAddress);
 
-        $this->assertEquals($ipAddress, $this->createJWT($token)->getIpAddress());
-        $token
-            ->shouldHaveReceived('getClaim')
-            ->with('ipa')
-            ->once();
+        $this->assertEquals($ipAddress, $this->createJWT($this->createJWTToken(null, ['ipa' => $ipAddress]))->getIpAddress());
     }
 
     /**
@@ -225,10 +188,11 @@ final class JWTTest extends TestCase
      */
     private function createJWTToken($claim = null, array $claims = []): Token
     {
+        $dataSet = new DataSet($claims, $this->getFaker()->sha256);
         $token = Mockery::spy(Token::class);
         $token
-            ->shouldReceive('getClaims')
-            ->andReturn($claims);
+            ->shouldReceive('claims')
+            ->andReturn($dataSet);
 
         $getClaimExpectation = $token->shouldReceive('getClaim');
         if ($claim instanceof \Exception) {

@@ -21,6 +21,7 @@ use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\Contracts\JWTHandler;
 use SPie\LaravelJWT\Contracts\TokenProvider;
+use SPie\LaravelJWT\Contracts\Validator;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -462,6 +463,31 @@ trait JWTHelper
             ->shouldReceive('getRequestToken')
             ->with($request)
             ->andReturn($token);
+
+        return $this;
+    }
+
+    /**
+     * @return Validator|MockInterface
+     */
+    private function createValidator(): Validator
+    {
+        return Mockery::spy(Validator::class);
+    }
+
+    /**
+     * @param Validator|MockInterface $validator
+     * @param bool                    $valid
+     * @param Token                   $token
+     *
+     * @return $this
+     */
+    private function mockValidatorValidate(MockInterface $validator, bool $valid, Token $token): self
+    {
+        $validator
+            ->shouldReceive('validate')
+            ->with($token)
+            ->andReturn($valid);
 
         return $this;
     }

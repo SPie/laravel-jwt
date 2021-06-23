@@ -9,6 +9,7 @@ use Lcobucci\JWT\Signer\Key;
 use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\Contracts\JWTFactory;
 use SPie\LaravelJWT\Contracts\JWTHandler as JWTHandlerContract;
+use SPie\LaravelJWT\Contracts\Validator;
 use SPie\LaravelJWT\Exceptions\BeforeValidException;
 use SPie\LaravelJWT\Exceptions\TokenExpiredException;
 use SPie\LaravelJWT\Exceptions\InvalidSecretException;
@@ -54,6 +55,11 @@ final class JWTHandler implements JWTHandlerContract
     private Signer $signer;
 
     /**
+     * @var Validator
+     */
+    private Validator $validator;
+
+    /**
      * JWTHandler constructor.
      *
      * @param string     $secret
@@ -62,6 +68,7 @@ final class JWTHandler implements JWTHandlerContract
      * @param Builder    $builder
      * @param Parser     $parser
      * @param Signer     $signer
+     * @param Validator  $validator
      *
      * @throws InvalidSecretException
      */
@@ -71,7 +78,8 @@ final class JWTHandler implements JWTHandlerContract
         JWTFactory $jwtFactory,
         Builder $builder,
         Parser $parser,
-        Signer $signer
+        Signer $signer,
+        Validator $validator
     ) {
         if (empty($secret)) {
             throw new InvalidSecretException();
@@ -83,6 +91,7 @@ final class JWTHandler implements JWTHandlerContract
         $this->builder = $builder;
         $this->parser = $parser;
         $this->signer = $signer;
+        $this->validator = $validator;
     }
 
     /**
@@ -152,7 +161,7 @@ final class JWTHandler implements JWTHandlerContract
             throw new InvalidTokenException();
         }
 
-        if (!$token->verify($this->getSigner(), $this->getSecret())) {
+        if (!$this->validator->validate($token)) {
             throw new InvalidSignatureException();
         }
 

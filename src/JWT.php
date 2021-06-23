@@ -55,7 +55,7 @@ final class JWT implements JWTContract
             function (Claim $claim) {
                 return $claim->getValue();
             },
-            $this->getToken()->getClaims()
+            $this->getToken()->claims()->all()
         );
     }
 
@@ -64,38 +64,24 @@ final class JWT implements JWTContract
      * @param bool   $required
      *
      * @return mixed|null
-     *
-     * @throws MissingClaimException
      */
     public function getClaim(string $claim, bool $required = true)
     {
-        try {
-            return $this->getToken()->getClaim($claim);
-        } catch (\OutOfBoundsException $e) {
-            if ($required) {
-                throw new MissingClaimException($claim);
-            }
-        }
-
-        return null;
+        return $this->getToken()->claims()->get($claim);
     }
 
     /**
-     * @return string
-     *
-     * @throws MissingClaimException
+     * @return string|null
      */
-    public function getIssuer(): string
+    public function getIssuer(): ?string
     {
         return $this->getClaim(self::CLAIM_ISSUER);
     }
 
     /**
-     * @return string
-     *
-     * @throws MissingClaimException
+     * @return string|null
      */
-    public function getSubject(): string
+    public function getSubject(): ?string
     {
         return $this->getClaim(self::CLAIM_SUBJECT);
     }
@@ -115,13 +101,16 @@ final class JWT implements JWTContract
     }
 
     /**
-     * @return \DateTimeImmutable
-     *
-     * @throws \Exception
+     * @return \DateTimeImmutable|null
      */
-    public function getIssuedAt(): \DateTimeImmutable
+    public function getIssuedAt(): ?\DateTimeImmutable
     {
-        return (new \DateTimeImmutable())->setTimestamp($this->getClaim(self::CLAIM_ISSUED_AT));
+        $issuedAt = $this->getClaim(self::CLAIM_ISSUED_AT);
+        if (empty($issuedAt)) {
+            return null;
+        }
+
+        return (new \DateTimeImmutable())->setTimestamp($issuedAt);
     }
 
     /**
