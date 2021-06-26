@@ -66,7 +66,6 @@ final class JWTHandlerTest extends TestCase
      */
     private function setUpCreateJWTTest(): array
     {
-
         $jwt = $this->createJWT();
         $token = $this->createPlainToken();
         $jwtFactory = $this->createJWTFactory();
