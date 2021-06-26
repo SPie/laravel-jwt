@@ -8,6 +8,7 @@ use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Http\Request;
 use Lcobucci\JWT\Builder;
+use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer;
 use Mockery;
@@ -72,36 +73,34 @@ final class RegistrarTest extends TestCase
      */
     public function testRegisterJWTHandler(): void
     {
-        $secret = $this->getFaker()->uuid;
         $issuer = $this->getFaker()->uuid;
-        $builder = $this->createBuilder();
         $parser = $this->createParser();
         $jwtFactory = $this->createJWTFactory();
-        $signer = $this->createSigner();
         $validator = $this->createValidator();
+        $configuration = $this->createConfiguration();
         $app = $this->createApp();
-        $this
-            ->addGet(
-                $app,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                $builder,
-                $parser,
-                $jwtFactory,
-                [
-                    'jwt.signer' => TestSigner::class,
-                    'jwt.secret' => $secret,
-                    'jwt.issuer' => $issuer,
-                ],
-                null,
-                null,
-                $signer,
-                $validator
-            );
+        $this->addGet(
+            $app,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            $parser,
+            $jwtFactory,
+            [
+                'jwt.signer' => TestSigner::class,
+                'jwt.secret' => $this->getFaker()->word,
+                'jwt.issuer' => $issuer,
+            ],
+            null,
+            null,
+            null,
+            $validator,
+            $configuration
+        );
 
         $registrar = $this->createRegistrar($app);
 
@@ -122,15 +121,13 @@ final class RegistrarTest extends TestCase
                 Mockery::on(function (string $abstract) {
                     return ($abstract == JWTHandlerContract::class);
                 }),
-                Mockery::on(function (\Closure $concrete) use ($secret, $issuer, $builder, $parser, $jwtFactory, $signer, $validator) {
+                Mockery::on(function (\Closure $concrete) use ($issuer, $parser, $jwtFactory, $validator, $configuration) {
                     $expectedJwtHandler = new JWTHandler(
-                        $secret,
                         $issuer,
                         $jwtFactory,
-                        $builder,
-                        $parser,
-                        $signer,
-                        $validator
+                        $validator,
+                        $configuration,
+                        $parser
                     );
 
                     $jwtHandler = $concrete();
@@ -138,7 +135,7 @@ final class RegistrarTest extends TestCase
                     $this->assertEquals($expectedJwtHandler, $jwtHandler);
 
                     return ($expectedJwtHandler == $jwtHandler);
-                })
+                }),
             )
             ->once();
     }
@@ -636,7 +633,8 @@ final class RegistrarTest extends TestCase
         EventFactoryContract $eventFactory = null,
         JWTGuardConfig $jwtGuardConfig = null,
         Signer $signer = null,
-        Validator $validator = null
+        Validator $validator = null,
+        Configuration $configuration = null
     ): RegistrarTest {
         $app
             ->shouldReceive('get')
@@ -655,7 +653,8 @@ final class RegistrarTest extends TestCase
                     $eventFactory,
                     $jwtGuardConfig,
                     $signer,
-                    $validator
+                    $validator,
+                    $configuration
                 ) {
                     switch ($argument) {
                         case 'auth':
@@ -699,6 +698,9 @@ final class RegistrarTest extends TestCase
 
                         case Validator::class:
                             return $validator;
+
+                        case Configuration::class:
+                            return $configuration;
 
                         default:
                             return $this->getFaker()->uuid;

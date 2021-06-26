@@ -8,9 +8,14 @@ use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Lcobucci\JWT\Builder;
+use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer;
+use Lcobucci\JWT\Signer\Key;
 use Lcobucci\JWT\Token;
+use Lcobucci\JWT\Token\DataSet;
+use Lcobucci\JWT\Token\Plain;
+use Lcobucci\JWT\Token\Signature;
 use Mockery;
 use Mockery\MockInterface;
 use SPie\LaravelJWT\Auth\JWTGuardConfig;
@@ -188,6 +193,22 @@ trait JWTHelper
     }
 
     /**
+     * @param DataSet|null   $headers
+     * @param DataSet|null   $claims
+     * @param Signature|null $signature
+     *
+     * @return Plain
+     */
+    private function createPlainToken(DataSet $headers = null, DataSet $claims = null, Signature $signature = null): Plain
+    {
+        return new Plain(
+            $headers ?: $this->createDataSet(),
+            $claims ?: $this->createDataSet(),
+            $signature ?: $this->createSignature()
+        );
+    }
+
+    /**
      * @return Signer
      */
     protected function getSigner(): Signer
@@ -200,7 +221,7 @@ trait JWTHelper
      *
      * @return Builder|MockInterface
      */
-    protected function createBuilder(Token $token = null): Builder
+    protected function createBuilder(): Builder
     {
         $builder = Mockery::spy(Builder::class);
 
@@ -219,31 +240,57 @@ trait JWTHelper
             ->getMock()
             ->shouldReceive('withClaim')
             ->andReturn($builder)
-            ->getMock()
-            ->shouldReceive('getToken')
-            ->andReturn($token ?: $this->createToken())
             ->getMock();
     }
 
     /**
-     * @param Token|\Exception|null $token
+     * @param Builder|MockInterface $builder
+     * @param Token                 $token
+     * @param Signer                $signer
+     * @param Key                   $key
      *
+     * @return $this
+     */
+    private function mockBuilderGetToken(MockInterface $builder, Token $token, Signer $signer, Key $key): self
+    {
+        $builder
+            ->shouldReceive('getToken')
+            ->with($signer, $key)
+            ->andReturn($token);
+
+        return $this;
+    }
+
+    /**
      * @return Parser|MockInterface
      */
-    protected function createParser($token = null): Parser
+    protected function createParser(): Parser
     {
-        $parser = Mockery::spy(Parser::class);
+        return Mockery::spy(Parser::class);
+    }
 
-        $parseExpectation = $parser->shouldReceive('parse');
+    /**
+     * @param MockInterface $parser
+     * @param Token         $token
+     * @param string        $jwt
+     *
+     * @return $this
+     */
+    private function mockParserParse(MockInterface $parser, $token, string $jwt): self
+    {
+        $expectation = $parser
+            ->shouldReceive('parse')
+            ->with($jwt);
+
         if ($token instanceof \Exception) {
-            $parseExpectation->andThrow($token);
+            $expectation->andThrow($token);
 
-            return $parser;
+            return $this;
         }
 
-        $parseExpectation->andReturn($token ?: $this->createToken());
+        $expectation->andReturn($token);
 
-        return $parser;
+        return $this;
     }
 
     /**
@@ -301,16 +348,28 @@ trait JWTHelper
     }
 
     /**
-     * @param JWT|null $jwt
-     *
      * @return JWTFactory|MockInterface
      */
-    protected function createJWTFactory(JWT $jwt = null): JWTFactory
+    protected function createJWTFactory(): JWTFactory
     {
-        return Mockery::spy(JWTFactory::class)
+        return Mockery::spy(JWTFactory::class);
+    }
+
+    /**
+     * @param JWTFactory|MockInterface $jwtFactory
+     * @param JWT                      $jwt
+     * @param Token                    $token
+     *
+     * @return $this
+     */
+    private function mockJWTFactoryCreateJWT(MockInterface $jwtFactory, JWT $jwt, Token $token): self
+    {
+        $jwtFactory
             ->shouldReceive('createJWT')
-            ->andReturn($jwt ?: $this->createJWT())
-            ->getMock();
+            ->with($token)
+            ->andReturn($jwt);
+
+        return $this;
     }
 
     /**
@@ -490,5 +549,49 @@ trait JWTHelper
             ->andReturn($valid);
 
         return $this;
+    }
+
+    /**
+     * @return Key|MockInterface
+     */
+    private function createKey(): Key
+    {
+        return Mockery::spy(Key::class);
+    }
+
+    /**
+     * @param array  $data
+     * @param string $encoded
+     *
+     * @return DataSet
+     */
+    private function createDataSet(array $data = [], string $encoded = ''): DataSet
+    {
+        return new DataSet($data, $encoded);
+    }
+
+    /**
+     * @param string|null $hash
+     * @param string|null $encoded
+     *
+     * @return Signature
+     */
+    private function createSignature(string $hash = null, string $encoded = null): Signature
+    {
+        return new Signature($hash ?: $this->getFaker()->sha256, $encoded ?: $this->getFaker()->sha256);
+    }
+
+    /**
+     * @param Signer|null $signer
+     * @param Key|null    $key
+     *
+     * @return Configuration|MockInterface
+     */
+    private function createConfiguration(Signer $signer = null, Key $key = null): Configuration
+    {
+        return Configuration::forSymmetricSigner(
+            $signer ?: $this->createSigner(),
+            $key ?: $this->createKey()
+        );
     }
 }

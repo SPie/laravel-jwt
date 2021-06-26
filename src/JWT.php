@@ -2,10 +2,8 @@
 
 namespace SPie\LaravelJWT;
 
-use Lcobucci\JWT\Claim;
 use Lcobucci\JWT\Token;
 use SPie\LaravelJWT\Contracts\JWT as JWTContract;
-use SPie\LaravelJWT\Exceptions\MissingClaimException;
 
 /**
  * Class Token
@@ -31,19 +29,11 @@ final class JWT implements JWTContract
     }
 
     /**
-     * @return Token
-     */
-    private function getToken(): Token
-    {
-        return $this->token;
-    }
-
-    /**
      * @return string
      */
     public function getJWT(): string
     {
-        return $this->getToken();
+        return $this->token->toString();
     }
 
     /**
@@ -51,12 +41,7 @@ final class JWT implements JWTContract
      */
     public function getClaims(): array
     {
-        return \array_map(
-            function (Claim $claim) {
-                return $claim->getValue();
-            },
-            $this->getToken()->claims()->all()
-        );
+        return $this->token->claims()->all();
     }
 
     /**
@@ -67,7 +52,7 @@ final class JWT implements JWTContract
      */
     public function getClaim(string $claim, bool $required = true)
     {
-        return $this->getToken()->claims()->get($claim);
+        return $this->token->claims()->get($claim);
     }
 
     /**

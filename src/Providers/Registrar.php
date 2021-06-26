@@ -5,9 +5,11 @@ namespace SPie\LaravelJWT\Providers;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Events\Dispatcher;
 use Lcobucci\JWT\Builder;
+use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer;
 use Lcobucci\JWT\Signer\Key;
+use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Validation\Constraint\SignedWith;
 use Lcobucci\JWT\Validator as LcobucciValidatorContract;
 use Lcobucci\JWT\Validation\Validator as LcobucciValidator;
@@ -86,6 +88,7 @@ final class Registrar implements RegistrarContract
             ->registerSigner()
             ->registerSecretKey()
             ->registerSignedWithConstraint()
+            ->registerConfiguration()
             ->registerValidator();
     }
 
@@ -164,7 +167,20 @@ final class Registrar implements RegistrarContract
      */
     private function registerSecretKey(): self
     {
-        $this->app->singleton(Key::class, fn () => new Key($this->getSecretSetting()));
+        $this->app->singleton(Key::class, fn () => InMemory::plainText($this->getSecretSetting()));
+
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    private function registerConfiguration(): self
+    {
+        $this->app->singleton(Configuration::class, fn () => Configuration::forSymmetricSigner(
+            $this->app->get(Signer::class),
+            $this->app->get(Key::class)
+        ));
 
         return $this;
     }
@@ -179,13 +195,11 @@ final class Registrar implements RegistrarContract
 
         $this->getApp()->singleton(JWTHandlerContract::class, function () {
             return new JWTHandler(
-                $this->getSecretSetting(),
                 $this->getIssuerSetting(),
                 $this->getApp()->get(JWTFactoryContract::class),
-                $this->getApp()->get(Builder::class),
+                $this->getApp()->get(ValidatorContract::class),
+                $this->app->get(Configuration::class),
                 $this->getApp()->get(Parser::class),
-                $this->app->get(Signer::class),
-                $this->getApp()->get(ValidatorContract::class)
             );
         });
 

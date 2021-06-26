@@ -2,7 +2,6 @@
 
 namespace SPie\LaravelJWT\Test\Unit;
 
-use Lcobucci\JWT\Claim;
 use Lcobucci\JWT\Token;
 use Lcobucci\JWT\Token\DataSet;
 use Mockery;
@@ -29,10 +28,10 @@ final class JWTTest extends TestCase
      */
     public function testGetJWT(): void
     {
-        $jwt = $this->getFaker()->uuid;
+        $jwt = $this->getFaker()->sha256;
         $token = $this->createJWTToken();
         $token
-            ->shouldReceive('__toString')
+            ->shouldReceive('toString')
             ->andReturn($jwt);
 
         $this->assertEquals($jwt, $this->createJWT($token)->getJWT());
@@ -117,19 +116,10 @@ final class JWTTest extends TestCase
      */
     public function testGetClaims(): void
     {
-        $claim = Mockery::mock(Claim::class);
-        $claim
-            ->shouldReceive('getValue')
-            ->andReturn($this->getFaker()->uuid);
+        $claims = [$this->getFaker()->word => $this->getFaker()->word];
+        $token = $this->createJWTToken(null, $claims);
 
-        $token = $this->createJWTToken(null, [$claim]);
-
-        $this->assertEquals(
-            [
-                $claim->getValue()
-            ],
-            $this->createJWT($token)->getClaims()
-        );
+        $this->assertEquals($claims, $this->createJWT($token)->getClaims());
     }
 
     /**
