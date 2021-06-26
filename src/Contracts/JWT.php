@@ -39,14 +39,14 @@ interface JWT
     public function getClaim(string $claim, bool $required = true);
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getIssuer(): string;
+    public function getIssuer(): ?string;
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getSubject(): string;
+    public function getSubject(): ?string;
 
     /**
      * @return \DateTimeImmutable|null
@@ -54,9 +54,9 @@ interface JWT
     public function getExpiresAt(): ?\DateTimeImmutable;
 
     /**
-     * @return \DateTimeImmutable
+     * @return \DateTimeImmutable|null
      */
-    public function getIssuedAt(): \DateTimeImmutable;
+    public function getIssuedAt(): ?\DateTimeImmutable;
 
     /**
      * @return string|null

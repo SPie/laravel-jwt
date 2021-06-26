@@ -4,3 +4,4 @@ report/
 .idea/
 composer.lock
 *.swp
+.phpunit.result.cache

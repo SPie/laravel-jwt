@@ -2,16 +2,16 @@
 
 namespace SPie\LaravelJWT;
 
-use Lcobucci\JWT\Builder;
+use Carbon\CarbonImmutable;
+use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Parser;
-use Lcobucci\JWT\Signer;
-use Lcobucci\JWT\Signer\Key;
+use Lcobucci\JWT\Token;
 use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\Contracts\JWTFactory;
 use SPie\LaravelJWT\Contracts\JWTHandler as JWTHandlerContract;
+use SPie\LaravelJWT\Contracts\Validator;
 use SPie\LaravelJWT\Exceptions\BeforeValidException;
 use SPie\LaravelJWT\Exceptions\TokenExpiredException;
-use SPie\LaravelJWT\Exceptions\InvalidSecretException;
 use SPie\LaravelJWT\Exceptions\InvalidTokenException;
 use SPie\LaravelJWT\Exceptions\InvalidSignatureException;
 
@@ -22,12 +22,6 @@ use SPie\LaravelJWT\Exceptions\InvalidSignatureException;
  */
 final class JWTHandler implements JWTHandlerContract
 {
-
-    /**
-     * @var string
-     */
-    private string $secret;
-
     /**
      * @var string
      */
@@ -39,9 +33,14 @@ final class JWTHandler implements JWTHandlerContract
     private JWTFactory $jwtFactory;
 
     /**
-     * @var Builder
+     * @var Validator
      */
-    private Builder $builder;
+    private Validator $validator;
+
+    /**
+     * @var Configuration
+     */
+    private Configuration $configuration;
 
     /**
      * @var Parser
@@ -49,48 +48,26 @@ final class JWTHandler implements JWTHandlerContract
     private Parser $parser;
 
     /**
-     * @var Signer
-     */
-    private Signer $signer;
-
-    /**
      * JWTHandler constructor.
      *
-     * @param string     $secret
-     * @param string     $issuer
-     * @param JWTFactory $jwtFactory
-     * @param Builder    $builder
-     * @param Parser     $parser
-     * @param Signer     $signer
-     *
-     * @throws InvalidSecretException
+     * @param string        $issuer
+     * @param JWTFactory    $jwtFactory
+     * @param Validator     $validator
+     * @param Configuration $configuration
+     * @param Parser        $parser
      */
     public function __construct(
-        string $secret,
         string $issuer,
         JWTFactory $jwtFactory,
-        Builder $builder,
-        Parser $parser,
-        Signer $signer
+        Validator $validator,
+        Configuration $configuration,
+        Parser $parser
     ) {
-        if (empty($secret)) {
-            throw new InvalidSecretException();
-        }
-
-        $this->secret = $secret;
         $this->issuer = $issuer;
         $this->jwtFactory = $jwtFactory;
-        $this->builder = $builder;
+        $this->validator = $validator;
+        $this->configuration = $configuration;
         $this->parser = $parser;
-        $this->signer = $signer;
-    }
-
-    /**
-     * @return string
-     */
-    private function getSecret(): string
-    {
-        return $this->secret;
     }
 
     /**
@@ -110,30 +87,6 @@ final class JWTHandler implements JWTHandlerContract
     }
 
     /**
-     * @return Parser
-     */
-    private function getParser(): Parser
-    {
-        return $this->parser;
-    }
-
-    /**
-     * @return Signer
-     */
-    private function getSigner(): Signer
-    {
-        return $this->signer;
-    }
-
-    /**
-     * @return Builder
-     */
-    private function getNewBuilder(): Builder
-    {
-        return clone $this->builder;
-    }
-
-    /**
      * @param string $token
      *
      * @return JWT
@@ -146,26 +99,41 @@ final class JWTHandler implements JWTHandlerContract
      */
     public function getValidJWT(string $token): JWT
     {
+        return $this->getJWTFactory()->createJWT($this->getValidToken($token));
+    }
+
+    /**
+     * @param string $token
+     *
+     * @return Token
+     *
+     * @throws BeforeValidException
+     * @throws InvalidSignatureException
+     * @throws InvalidTokenException
+     * @throws TokenExpiredException
+     */
+    private function getValidToken(string $token): Token
+    {
         try {
-            $token = $this->getParser()->parse($token);
+            $token = $this->parser->parse($token);
         } catch (\InvalidArgumentException $e) {
             throw new InvalidTokenException();
         }
 
-        if (!$token->verify($this->getSigner(), $this->getSecret())) {
+        if (!$this->validator->validate($token)) {
             throw new InvalidSignatureException();
         }
 
-        if ($token->isExpired()) {
+        $now = new CarbonImmutable();
+        if ($token->isExpired($now)) {
             throw new TokenExpiredException();
         }
 
-        $jwt = $this->getJWTFactory()->createJWT($token);
-        if ($jwt->getIssuedAt() > new \DateTimeImmutable()) {
+        if (!$token->hasBeenIssuedBefore($now)) {
             throw new BeforeValidException();
         }
 
-        return $jwt;
+        return $token;
     }
 
     /**
@@ -181,7 +149,7 @@ final class JWTHandler implements JWTHandlerContract
     {
         [$issuedAt, $expiresAt] = $this->createTimestamps($ttl);
 
-        $builder = $this->getNewBuilder()
+        $builder = $this->configuration->builder()
             ->issuedBy($this->getIssuer())
             ->relatedTo($subject)
             ->issuedAt($issuedAt);
@@ -195,7 +163,7 @@ final class JWTHandler implements JWTHandlerContract
         }
 
         return $this->getJWTFactory()->createJWT(
-            $builder->getToken($this->getSigner(), new Key($this->getSecret()))
+            $builder->getToken($this->configuration->signer(), $this->configuration->signingKey())
         );
     }
 
@@ -211,11 +179,9 @@ final class JWTHandler implements JWTHandlerContract
         $issuedAt = new \DateTimeImmutable();
 
         return [
-            $issuedAt->getTimestamp(),
+            $issuedAt,
             $ttl
-                ? $issuedAt
-                    ->add(new \DateInterval('PT' . $ttl . 'M'))
-                    ->getTimestamp()
+                ? $issuedAt->add(new \DateInterval('PT' . $ttl . 'M'))
                 : null
         ];
     }

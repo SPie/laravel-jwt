@@ -5,7 +5,14 @@ namespace SPie\LaravelJWT\Providers;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Events\Dispatcher;
 use Lcobucci\JWT\Builder;
+use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Parser;
+use Lcobucci\JWT\Signer;
+use Lcobucci\JWT\Signer\Key;
+use Lcobucci\JWT\Signer\Key\InMemory;
+use Lcobucci\JWT\Validation\Constraint\SignedWith;
+use Lcobucci\JWT\Validator as LcobucciValidatorContract;
+use Lcobucci\JWT\Validation\Validator as LcobucciValidator;
 use SPie\LaravelJWT\Auth\JWTGuard;
 use SPie\LaravelJWT\Auth\JWTGuardConfig;
 use SPie\LaravelJWT\Contracts\EventFactory as EventFactoryContract;
@@ -15,10 +22,12 @@ use SPie\LaravelJWT\Contracts\JWTHandler as JWTHandlerContract;
 use SPie\LaravelJWT\Contracts\Registrar as RegistrarContract;
 use SPie\LaravelJWT\Contracts\TokenBlockList;
 use SPie\LaravelJWT\Contracts\TokenProvider;
+use SPie\LaravelJWT\Contracts\Validator as ValidatorContract;
 use SPie\LaravelJWT\Events\EventFactory;
 use SPie\LaravelJWT\Exceptions\InvalidTokenProviderKeyException;
 use SPie\LaravelJWT\JWTFactory;
 use SPie\LaravelJWT\JWTHandler;
+use SPie\LaravelJWT\Validator;
 
 /**
  * Class Registrar
@@ -74,7 +83,13 @@ final class Registrar implements RegistrarContract
             ->registerJWTHandler()
             ->registerTokenBlockList()
             ->registerJWTGuardConfig()
-            ->registerEventFactory();
+            ->registerEventFactory()
+            ->registerValidator()
+            ->registerSigner()
+            ->registerSecretKey()
+            ->registerSignedWithConstraint()
+            ->registerConfiguration()
+            ->registerValidator();
     }
 
     /**
@@ -108,21 +123,83 @@ final class Registrar implements RegistrarContract
     /**
      * @return $this
      */
+    private function registerSignedWithConstraint(): self
+    {
+        $this->app->singleton(SignedWith::class, fn () => new SignedWith(
+            $this->app->get(Signer::class),
+            $this->app->get(Key::class)
+        ));
+
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    private function registerValidator(): self
+    {
+        $this->app->singleton(LcobucciValidatorContract::class, LcobucciValidator::class);
+
+        $this->getApp()->singleton(ValidatorContract::class, fn () => new Validator(
+            $this->app->get(LcobucciValidatorContract::class),
+            $this->app->get(SignedWith::class)
+        ));
+
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    private function registerSigner(): self
+    {
+        $this->app->singleton(Signer::class, function () {
+            $signerClass = $this->getSignerSetting();
+
+            return new $signerClass();
+        });
+
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    private function registerSecretKey(): self
+    {
+        $this->app->singleton(Key::class, fn () => InMemory::plainText($this->getSecretSetting()));
+
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    private function registerConfiguration(): self
+    {
+        $this->app->singleton(Configuration::class, fn () => Configuration::forSymmetricSigner(
+            $this->app->get(Signer::class),
+            $this->app->get(Key::class)
+        ));
+
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
     private function registerJWTHandler(): self
     {
         $this->getApp()->bind(Builder::class);
         $this->getApp()->bind(Parser::class);
 
         $this->getApp()->singleton(JWTHandlerContract::class, function () {
-            $signerClass = $this->getSignerSetting();
-
             return new JWTHandler(
-                $this->getSecretSetting(),
                 $this->getIssuerSetting(),
                 $this->getApp()->get(JWTFactoryContract::class),
-                $this->getApp()->get(Builder::class),
+                $this->getApp()->get(ValidatorContract::class),
+                $this->app->get(Configuration::class),
                 $this->getApp()->get(Parser::class),
-                new $signerClass()
             );
         });
 

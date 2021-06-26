@@ -2,10 +2,9 @@
 
 namespace SPie\LaravelJWT;
 
-use Lcobucci\JWT\Claim;
 use Lcobucci\JWT\Token;
+use Lcobucci\JWT\UnencryptedToken;
 use SPie\LaravelJWT\Contracts\JWT as JWTContract;
-use SPie\LaravelJWT\Exceptions\MissingClaimException;
 
 /**
  * Class Token
@@ -16,26 +15,18 @@ final class JWT implements JWTContract
 {
 
     /**
-     * @var Token
+     * @var UnencryptedToken
      */
-    private Token $token;
+    private UnencryptedToken $token;
 
     /**
      * Token constructor.
      *
-     * @param Token $token
+     * @param UnencryptedToken $token
      */
-    public function __construct(Token $token)
+    public function __construct(UnencryptedToken $token)
     {
         $this->token = $token;
-    }
-
-    /**
-     * @return Token
-     */
-    private function getToken(): Token
-    {
-        return $this->token;
     }
 
     /**
@@ -43,7 +34,7 @@ final class JWT implements JWTContract
      */
     public function getJWT(): string
     {
-        return $this->getToken();
+        return $this->token->toString();
     }
 
     /**
@@ -51,12 +42,7 @@ final class JWT implements JWTContract
      */
     public function getClaims(): array
     {
-        return \array_map(
-            function (Claim $claim) {
-                return $claim->getValue();
-            },
-            $this->getToken()->getClaims()
-        );
+        return $this->token->claims()->all();
     }
 
     /**
@@ -64,38 +50,24 @@ final class JWT implements JWTContract
      * @param bool   $required
      *
      * @return mixed|null
-     *
-     * @throws MissingClaimException
      */
     public function getClaim(string $claim, bool $required = true)
     {
-        try {
-            return $this->getToken()->getClaim($claim);
-        } catch (\OutOfBoundsException $e) {
-            if ($required) {
-                throw new MissingClaimException($claim);
-            }
-        }
-
-        return null;
+        return $this->token->claims()->get($claim);
     }
 
     /**
-     * @return string
-     *
-     * @throws MissingClaimException
+     * @return string|null
      */
-    public function getIssuer(): string
+    public function getIssuer(): ?string
     {
         return $this->getClaim(self::CLAIM_ISSUER);
     }
 
     /**
-     * @return string
-     *
-     * @throws MissingClaimException
+     * @return string|null
      */
-    public function getSubject(): string
+    public function getSubject(): ?string
     {
         return $this->getClaim(self::CLAIM_SUBJECT);
     }
@@ -115,13 +87,16 @@ final class JWT implements JWTContract
     }
 
     /**
-     * @return \DateTimeImmutable
-     *
-     * @throws \Exception
+     * @return \DateTimeImmutable|null
      */
-    public function getIssuedAt(): \DateTimeImmutable
+    public function getIssuedAt(): ?\DateTimeImmutable
     {
-        return (new \DateTimeImmutable())->setTimestamp($this->getClaim(self::CLAIM_ISSUED_AT));
+        $issuedAt = $this->getClaim(self::CLAIM_ISSUED_AT);
+        if (empty($issuedAt)) {
+            return null;
+        }
+
+        return (new \DateTimeImmutable())->setTimestamp($issuedAt);
     }
 
     /**

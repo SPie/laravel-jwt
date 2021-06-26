@@ -27,9 +27,9 @@ final class JWTGuardConfig
     /**
      * JWTGuardConfig constructor.
      *
-     * @param int  $accessTokenTtl
-     * @param int  $refreshTokenTtl
-     * @param bool $ipCheckEnabled
+     * @param int      $accessTokenTtl
+     * @param int|null $refreshTokenTtl
+     * @param bool     $ipCheckEnabled
      */
     public function __construct(int $accessTokenTtl, ?int $refreshTokenTtl, bool $ipCheckEnabled)
     {

@@ -8,7 +8,9 @@ use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Http\Request;
 use Lcobucci\JWT\Builder;
+use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Parser;
+use Lcobucci\JWT\Signer;
 use Mockery;
 use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
@@ -20,6 +22,7 @@ use SPie\LaravelJWT\Contracts\EventFactory as EventFactoryContract;
 use SPie\LaravelJWT\Contracts\JWTHandler as JWTHandlerContract;
 use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\TokenBlockList;
+use SPie\LaravelJWT\Contracts\Validator;
 use SPie\LaravelJWT\Events\EventFactory;
 use SPie\LaravelJWT\Exceptions\InvalidTokenProviderKeyException;
 use SPie\LaravelJWT\JWTFactory;
@@ -70,30 +73,34 @@ final class RegistrarTest extends TestCase
      */
     public function testRegisterJWTHandler(): void
     {
-        $secret = $this->getFaker()->uuid;
         $issuer = $this->getFaker()->uuid;
-        $builder = $this->createBuilder();
         $parser = $this->createParser();
         $jwtFactory = $this->createJWTFactory();
+        $validator = $this->createValidator();
+        $configuration = $this->createConfiguration();
         $app = $this->createApp();
-        $this
-            ->addGet(
-                $app,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                $builder,
-                $parser,
-                $jwtFactory,
-                [
-                    'jwt.signer' => TestSigner::class,
-                    'jwt.secret' => $secret,
-                    'jwt.issuer' => $issuer,
-                ]
-            );
+        $this->addGet(
+            $app,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            $parser,
+            $jwtFactory,
+            [
+                'jwt.signer' => TestSigner::class,
+                'jwt.secret' => $this->getFaker()->word,
+                'jwt.issuer' => $issuer,
+            ],
+            null,
+            null,
+            null,
+            $validator,
+            $configuration
+        );
 
         $registrar = $this->createRegistrar($app);
 
@@ -114,14 +121,13 @@ final class RegistrarTest extends TestCase
                 Mockery::on(function (string $abstract) {
                     return ($abstract == JWTHandlerContract::class);
                 }),
-                Mockery::on(function (\Closure $concrete) use ($secret, $issuer, $builder, $parser, $jwtFactory) {
+                Mockery::on(function (\Closure $concrete) use ($issuer, $parser, $jwtFactory, $validator, $configuration) {
                     $expectedJwtHandler = new JWTHandler(
-                        $secret,
                         $issuer,
                         $jwtFactory,
-                        $builder,
-                        $parser,
-                        new TestSigner()
+                        $validator,
+                        $configuration,
+                        $parser
                     );
 
                     $jwtHandler = $concrete();
@@ -129,7 +135,7 @@ final class RegistrarTest extends TestCase
                     $this->assertEquals($expectedJwtHandler, $jwtHandler);
 
                     return ($expectedJwtHandler == $jwtHandler);
-                })
+                }),
             )
             ->once();
     }
@@ -608,6 +614,7 @@ final class RegistrarTest extends TestCase
      * @param array                       $config
      * @param EventFactoryContract|null   $eventFactory
      * @param JWTGuardConfig|null         $jwtGuardConfig
+     * @param Signer|null                 $signer
      *
      * @return RegistrarTest
      */
@@ -624,7 +631,10 @@ final class RegistrarTest extends TestCase
         JWTFactoryContract $jwtFactory = null,
         array $config = [],
         EventFactoryContract $eventFactory = null,
-        JWTGuardConfig $jwtGuardConfig = null
+        JWTGuardConfig $jwtGuardConfig = null,
+        Signer $signer = null,
+        Validator $validator = null,
+        Configuration $configuration = null
     ): RegistrarTest {
         $app
             ->shouldReceive('get')
@@ -641,7 +651,10 @@ final class RegistrarTest extends TestCase
                     $jwtFactory,
                     $config,
                     $eventFactory,
-                    $jwtGuardConfig
+                    $jwtGuardConfig,
+                    $signer,
+                    $validator,
+                    $configuration
                 ) {
                     switch ($argument) {
                         case 'auth':
@@ -679,6 +692,15 @@ final class RegistrarTest extends TestCase
 
                         case JWTGuardConfig::class:
                             return $jwtGuardConfig;
+
+                        case Signer::class:
+                            return $signer;
+
+                        case Validator::class:
+                            return $validator;
+
+                        case Configuration::class:
+                            return $configuration;
 
                         default:
                             return $this->getFaker()->uuid;
