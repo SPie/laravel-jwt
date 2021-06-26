@@ -4,6 +4,7 @@ namespace SPie\LaravelJWT\Test\Unit;
 
 use Lcobucci\JWT\Token;
 use Lcobucci\JWT\Token\DataSet;
+use Lcobucci\JWT\UnencryptedToken;
 use Mockery;
 use Mockery\MockInterface;
 use OutOfBoundsException;
@@ -172,14 +173,14 @@ final class JWTTest extends TestCase
 
     /**
      * @param mixed|null $claim
-     * @param Claim[]    $claims
+     * @param array      $claims
      *
      * @return Token|MockInterface
      */
     private function createJWTToken($claim = null, array $claims = []): Token
     {
         $dataSet = new DataSet($claims, $this->getFaker()->sha256);
-        $token = Mockery::spy(Token::class);
+        $token = Mockery::spy(UnencryptedToken::class);
         $token
             ->shouldReceive('claims')
             ->andReturn($dataSet);

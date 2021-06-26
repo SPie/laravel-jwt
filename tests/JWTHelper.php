@@ -16,6 +16,7 @@ use Lcobucci\JWT\Token;
 use Lcobucci\JWT\Token\DataSet;
 use Lcobucci\JWT\Token\Plain;
 use Lcobucci\JWT\Token\Signature;
+use Lcobucci\JWT\UnencryptedToken;
 use Mockery;
 use Mockery\MockInterface;
 use SPie\LaravelJWT\Auth\JWTGuardConfig;
@@ -189,7 +190,7 @@ trait JWTHelper
      */
     protected function createToken(): Token
     {
-        return Mockery::spy(Token::class);
+        return Mockery::spy(UnencryptedToken::class);
     }
 
     /**

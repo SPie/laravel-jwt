@@ -3,6 +3,7 @@
 namespace SPie\LaravelJWT;
 
 use Lcobucci\JWT\Token;
+use Lcobucci\JWT\UnencryptedToken;
 use SPie\LaravelJWT\Contracts\JWT as JWTContract;
 
 /**
@@ -14,16 +15,16 @@ final class JWT implements JWTContract
 {
 
     /**
-     * @var Token
+     * @var UnencryptedToken
      */
-    private Token $token;
+    private UnencryptedToken $token;
 
     /**
      * Token constructor.
      *
-     * @param Token $token
+     * @param UnencryptedToken $token
      */
-    public function __construct(Token $token)
+    public function __construct(UnencryptedToken $token)
     {
         $this->token = $token;
     }
