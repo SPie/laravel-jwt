@@ -285,7 +285,7 @@ final class Registrar implements RegistrarContract
 
     private function getRefreshTokenTTLSetting(): ?int
     {
-        return $this->getJWTConfig(self::SETTING_REFRESH_TOKEN_PROVIDER . '.' . self::SETTING_TTL);
+        return $this->getJWTConfig(self::SETTING_REFRESH_TOKEN_PROVIDER . '.' . self::SETTING_TTL) ?: null;
     }
 
     private function getRefreshTokenRepositoryClass(): ?string
