@@ -3,8 +3,10 @@
 namespace SPie\LaravelJWT;
 
 use Carbon\CarbonImmutable;
-use Lcobucci\JWT\Configuration;
+use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
+use Lcobucci\JWT\Signer;
+use Lcobucci\JWT\Signer\Key;
 use Lcobucci\JWT\Token;
 use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\Contracts\JWTFactory;
@@ -15,82 +17,41 @@ use SPie\LaravelJWT\Exceptions\TokenExpiredException;
 use SPie\LaravelJWT\Exceptions\InvalidTokenException;
 use SPie\LaravelJWT\Exceptions\InvalidSignatureException;
 
-/**
- * Class JWTHandler
- *
- * @package SPie\LaravelJWT
- */
 final class JWTHandler implements JWTHandlerContract
 {
-    /**
-     * @var string
-     */
     private string $issuer;
 
-    /**
-     * @var JWTFactory
-     */
     private JWTFactory $jwtFactory;
 
-    /**
-     * @var Validator
-     */
     private Validator $validator;
 
-    /**
-     * @var Configuration
-     */
-    private Configuration $configuration;
+    private Signer $signer;
 
-    /**
-     * @var Parser
-     */
+    private Key $signingKey;
+
     private Parser $parser;
 
-    /**
-     * JWTHandler constructor.
-     *
-     * @param string        $issuer
-     * @param JWTFactory    $jwtFactory
-     * @param Validator     $validator
-     * @param Configuration $configuration
-     * @param Parser        $parser
-     */
+    private Builder $builder;
+
     public function __construct(
         string $issuer,
         JWTFactory $jwtFactory,
         Validator $validator,
-        Configuration $configuration,
-        Parser $parser
+        Signer $signer,
+        Key $signingKey,
+        Parser $parser,
+        Builder $builder
     ) {
         $this->issuer = $issuer;
         $this->jwtFactory = $jwtFactory;
         $this->validator = $validator;
-        $this->configuration = $configuration;
+        $this->signer = $signer;
+        $this->signingKey = $signingKey;
         $this->parser = $parser;
+        $this->builder = $builder;
     }
 
     /**
-     * @return string
-     */
-    private function getIssuer(): string
-    {
-        return $this->issuer;
-    }
-
-    /**
-     * @return JWTFactory
-     */
-    private function getJWTFactory(): JWTFactory
-    {
-        return $this->jwtFactory;
-    }
-
-    /**
-     * @param string $token
-     *
-     * @return JWT
-     *
      * @throws BeforeValidException
      * @throws TokenExpiredException
      * @throws InvalidTokenException
@@ -99,14 +60,10 @@ final class JWTHandler implements JWTHandlerContract
      */
     public function getValidJWT(string $token): JWT
     {
-        return $this->getJWTFactory()->createJWT($this->getValidToken($token));
+        return $this->jwtFactory->createJWT($this->getValidToken($token));
     }
 
     /**
-     * @param string $token
-     *
-     * @return Token
-     *
      * @throws BeforeValidException
      * @throws InvalidSignatureException
      * @throws InvalidTokenException
@@ -136,21 +93,12 @@ final class JWTHandler implements JWTHandlerContract
         return $token;
     }
 
-    /**
-     * @param string   $subject
-     * @param array    $payload
-     * @param int|null $ttl
-     *
-     * @return JWT
-     *
-     * @throws \Exception
-     */
     public function createJWT(string $subject, array $payload = [], int $ttl = null): JWT
     {
         [$issuedAt, $expiresAt] = $this->createTimestamps($ttl);
 
-        $builder = $this->configuration->builder()
-            ->issuedBy($this->getIssuer())
+        $builder = $this->builder
+            ->issuedBy($this->issuer)
             ->relatedTo($subject)
             ->issuedAt($issuedAt);
 
@@ -162,18 +110,9 @@ final class JWTHandler implements JWTHandlerContract
             $builder->withClaim($name, $value);
         }
 
-        return $this->getJWTFactory()->createJWT(
-            $builder->getToken($this->configuration->signer(), $this->configuration->signingKey())
-        );
+        return $this->jwtFactory->createJWT($builder->getToken($this->signer, $this->signingKey));
     }
 
-    /**
-     * @param int|null $ttl
-     *
-     * @return array
-     *
-     * @throws \Exception
-     */
     private function createTimestamps(int $ttl = null): array
     {
         $issuedAt = new \DateTimeImmutable();

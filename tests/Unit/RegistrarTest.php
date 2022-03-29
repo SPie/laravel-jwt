@@ -77,7 +77,10 @@ final class RegistrarTest extends TestCase
         $parser = $this->createParser();
         $jwtFactory = $this->createJWTFactory();
         $validator = $this->createValidator();
-        $configuration = $this->createConfiguration();
+        $signer = $this->createSigner();
+        $signingKey = $this->createKey();
+        $builder = $this->createBuilder();
+        $configuration = $this->createConfiguration($signer, $signingKey, $parser, $builder);
         $app = $this->createApp();
         $this->addGet(
             $app,
@@ -107,27 +110,20 @@ final class RegistrarTest extends TestCase
         $this->runReflectionMethod($registrar, 'registerJWTHandler');
 
         $app
-            ->shouldHaveReceived('bind')
-            ->with(Builder::class)
-            ->once();
-        $app
-            ->shouldHaveReceived('bind')
-            ->with(Parser::class)
-            ->once();
-
-        $app
             ->shouldHaveReceived('singleton')
             ->with(
                 Mockery::on(function (string $abstract) {
                     return ($abstract == JWTHandlerContract::class);
                 }),
-                Mockery::on(function (\Closure $concrete) use ($issuer, $parser, $jwtFactory, $validator, $configuration) {
+                Mockery::on(function (\Closure $concrete) use ($issuer, $parser, $jwtFactory, $validator, $signer, $signingKey, $builder) {
                     $expectedJwtHandler = new JWTHandler(
                         $issuer,
                         $jwtFactory,
                         $validator,
-                        $configuration,
-                        $parser
+                        $signer,
+                        $signingKey,
+                        $parser,
+                        $builder
                     );
 
                     $jwtHandler = $concrete();
@@ -512,14 +508,6 @@ final class RegistrarTest extends TestCase
                 JWTFactoryContract::class,
                 JWTFactory::class
             )
-            ->once();
-        $app
-            ->shouldHaveReceived('bind')
-            ->with(Builder::class)
-            ->once();
-        $app
-            ->shouldHaveReceived('bind')
-            ->with(Parser::class)
             ->once();
         $app
             ->shouldHaveReceived('singleton')
