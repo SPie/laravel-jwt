@@ -29,11 +29,6 @@ use SPie\LaravelJWT\JWTFactory;
 use SPie\LaravelJWT\JWTHandler;
 use SPie\LaravelJWT\Validator;
 
-/**
- * Class Registrar
- *
- * @package SPie\LaravelJWT\Providers
- */
 final class Registrar implements RegistrarContract
 {
     const SETTING_JWT                      = 'jwt';
@@ -49,32 +44,18 @@ final class Registrar implements RegistrarContract
     const SETTING_REFRESH_TOKEN_REPOSITORY = 'refreshTokenRepository';
     const SETTING_IP_CHECK_ENABLED         = 'ipCheckEnabled';
 
-    /**
-     * @var Container
-     */
     private Container $app;
 
-    /**
-     * Registrar constructor.
-     *
-     * @param Container $app
-     */
     public function __construct(Container $app)
     {
         $this->app = $app;
     }
 
-    /**
-     * @return Container
-     */
     private function getApp(): Container
     {
         return $this->app;
     }
 
-    /**
-     * @return $this
-     */
     public function register(): self
     {
         return $this
@@ -92,17 +73,11 @@ final class Registrar implements RegistrarContract
             ->registerValidator();
     }
 
-    /**
-     * @return $this
-     */
     public function boot(): self
     {
         return $this->extendAuthGuard();
     }
 
-    /**
-     * @return $this
-     */
     private function registerJWTGuard(): self
     {
         $this->getApp()->singleton(JWTGuardContract::class, fn () => $this->getApp()->get('auth')->guard());
@@ -110,9 +85,6 @@ final class Registrar implements RegistrarContract
         return $this;
     }
 
-    /**
-     * @return $this
-     */
     private function registerJWTFactory(): self
     {
         $this->getApp()->singleton(JWTFactoryContract::class, JWTFactory::class);
@@ -120,9 +92,6 @@ final class Registrar implements RegistrarContract
         return $this;
     }
 
-    /**
-     * @return $this
-     */
     private function registerSignedWithConstraint(): self
     {
         $this->app->singleton(SignedWith::class, fn () => new SignedWith(
@@ -133,9 +102,6 @@ final class Registrar implements RegistrarContract
         return $this;
     }
 
-    /**
-     * @return $this
-     */
     private function registerValidator(): self
     {
         $this->app->singleton(LcobucciValidatorContract::class, LcobucciValidator::class);
@@ -148,9 +114,6 @@ final class Registrar implements RegistrarContract
         return $this;
     }
 
-    /**
-     * @return $this
-     */
     private function registerSigner(): self
     {
         $this->app->singleton(Signer::class, function () {
@@ -162,9 +125,6 @@ final class Registrar implements RegistrarContract
         return $this;
     }
 
-    /**
-     * @return $this
-     */
     private function registerSecretKey(): self
     {
         $this->app->singleton(Key::class, fn () => InMemory::plainText($this->getSecretSetting()));
@@ -172,9 +132,6 @@ final class Registrar implements RegistrarContract
         return $this;
     }
 
-    /**
-     * @return $this
-     */
     private function registerConfiguration(): self
     {
         $this->app->singleton(Configuration::class, fn () => Configuration::forSymmetricSigner(
@@ -185,30 +142,26 @@ final class Registrar implements RegistrarContract
         return $this;
     }
 
-    /**
-     * @return $this
-     */
     private function registerJWTHandler(): self
     {
-        $this->getApp()->bind(Builder::class);
-        $this->getApp()->bind(Parser::class);
-
         $this->getApp()->singleton(JWTHandlerContract::class, function () {
+            /** @var Configuration $configuration */
+            $configuration = $this->app->get(Configuration::class);
+
             return new JWTHandler(
                 $this->getIssuerSetting(),
-                $this->getApp()->get(JWTFactoryContract::class),
-                $this->getApp()->get(ValidatorContract::class),
-                $this->app->get(Configuration::class),
-                $this->getApp()->get(Parser::class),
+                $this->app->get(JWTFactoryContract::class),
+                $this->app->get(ValidatorContract::class),
+                $configuration->signer(),
+                $configuration->signingKey(),
+                $configuration->parser(),
+                $configuration->builder()
             );
         });
 
         return $this;
     }
 
-    /**
-     * @return $this
-     */
     private function registerTokenBlockList(): self
     {
         $this->getApp()->singleton(TokenBlockList::class, function () {
@@ -222,9 +175,6 @@ final class Registrar implements RegistrarContract
         return $this;
     }
 
-    /**
-     * @return $this
-     */
     private function registerEventFactory(): self
     {
         $this->getApp()->singleton(EventFactoryContract::class, EventFactory::class);
@@ -232,9 +182,6 @@ final class Registrar implements RegistrarContract
         return $this;
     }
 
-    /**
-     * @return $this
-     */
     private function extendAuthGuard(): self
     {
         $this->getApp()->get('auth')->extend('jwt', function ($app, $name, array $config) {
@@ -256,9 +203,6 @@ final class Registrar implements RegistrarContract
         return $this;
     }
 
-    /**
-     * @return $this
-     */
     private function registerJWTGuardConfig(): self
     {
         $this->app->singleton(JWTGuardConfig::class, fn () => new JWTGuardConfig(
@@ -270,9 +214,6 @@ final class Registrar implements RegistrarContract
         return $this;
     }
 
-    /**
-     * @return TokenProvider
-     */
     private function getAccessTokenProvider(): TokenProvider
     {
         $accessTokenProviderClass = $this->getAccessTokenProviderClassSetting();
@@ -281,11 +222,6 @@ final class Registrar implements RegistrarContract
             ->setKey($this->getAccessTokenProviderKeySetting());
     }
 
-    /**
-     * @return TokenProvider|null
-     *
-     * @throws InvalidTokenProviderKeyException
-     */
     private function getRefreshTokenProvider(): ?TokenProvider
     {
         $refreshTokenProviderClass = $this->getRefreshTokenProviderClassSetting();
@@ -302,108 +238,66 @@ final class Registrar implements RegistrarContract
             ->setKey($this->getRefreshTokenProviderKeySetting());
     }
 
-    /**
-     * @return string
-     */
     private function getSecretSetting(): string
     {
         return $this->getJWTConfig(self::SETTING_SECRET);
     }
 
-    /**
-     * @return string
-     */
     private function getIssuerSetting(): string
     {
         return $this->getJWTConfig(self::SETTING_ISSUER);
     }
 
-    /**
-     * @return string
-     */
     private function getSignerSetting(): string
     {
         return $this->getJWTConfig(self::SETTING_SIGNER);
     }
 
-    /**
-     * @return string
-     */
     private function getAccessTokenProviderClassSetting(): string
     {
         return $this->getJWTConfig(self::SETTING_ACCESS_TOKEN_PROVIDER . '.' . self::SETTING_CLASS);
     }
 
-    /**
-     * @return string
-     */
     private function getAccessTokenProviderKeySetting(): string
     {
         return $this->getJWTConfig(self::SETTING_ACCESS_TOKEN_PROVIDER . '.' . self::SETTING_KEY);
     }
 
-    /**
-     * @return int
-     */
     private function getAccessTokenTTLSetting(): int
     {
         return $this->getJWTConfig(self::SETTING_ACCESS_TOKEN_PROVIDER . '.' . self::SETTING_TTL);
     }
 
-    /**
-     * @return string|null
-     */
     private function getBlockListSetting(): ?string
     {
         return $this->getJWTConfig(self::SETTING_TOKEN_BLOCK_LIST);
     }
 
-    /**
-     * @return string|null
-     */
     private function getRefreshTokenProviderClassSetting(): ?string
     {
         return $this->getJWTConfig(self::SETTING_REFRESH_TOKEN_PROVIDER . '.' . self::SETTING_CLASS);
     }
 
-    /**
-     * @return string|null
-     */
     private function getRefreshTokenProviderKeySetting(): ?string
     {
         return $this->getJWTConfig(self::SETTING_REFRESH_TOKEN_PROVIDER . '.' . self::SETTING_KEY);
     }
 
-    /**
-     * @return int|null
-     */
     private function getRefreshTokenTTLSetting(): ?int
     {
-        return $this->getJWTConfig(self::SETTING_REFRESH_TOKEN_PROVIDER . '.' . self::SETTING_TTL);
+        return $this->getJWTConfig(self::SETTING_REFRESH_TOKEN_PROVIDER . '.' . self::SETTING_TTL) ?: null;
     }
 
-    /**
-     * @return string|null
-     */
     private function getRefreshTokenRepositoryClass(): ?string
     {
         return $this->getJWTConfig(self::SETTING_REFRESH_TOKEN_REPOSITORY);
     }
 
-    /**
-     * @return bool
-     */
     private function getIpCheckEnabledSetting(): bool
     {
         return $this->getJWTConfig(self::SETTING_IP_CHECK_ENABLED, false);
     }
 
-    /**
-     * @param string     $key
-     * @param mixed|null $default
-     *
-     * @return string|null
-     */
     private function getJWTConfig(string $key, $default = null): ?string
     {
         return $this->getApp()->get('config')[self::SETTING_JWT . '.' . $key] ?? $default;

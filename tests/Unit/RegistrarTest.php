@@ -34,9 +34,6 @@ use SPie\LaravelJWT\Test\TestHelper;
 use SPie\LaravelJWT\Test\TestSigner;
 use SPie\LaravelJWT\Test\TestTokenProvider;
 
-/**
- * Class Registrar
- */
 final class RegistrarTest extends TestCase
 {
     use TestHelper;
@@ -45,9 +42,6 @@ final class RegistrarTest extends TestCase
 
     //region Tests
 
-    /**
-     * @return void
-     */
     public function testRegisterJWTFactory(): void
     {
         $app = $this->createApp();
@@ -68,16 +62,16 @@ final class RegistrarTest extends TestCase
             ->once();
     }
 
-    /**
-     * @return void
-     */
     public function testRegisterJWTHandler(): void
     {
         $issuer = $this->getFaker()->uuid;
         $parser = $this->createParser();
         $jwtFactory = $this->createJWTFactory();
         $validator = $this->createValidator();
-        $configuration = $this->createConfiguration();
+        $signer = $this->createSigner();
+        $signingKey = $this->createKey();
+        $builder = $this->createBuilder();
+        $configuration = $this->createConfiguration($signer, $signingKey, $parser, $builder);
         $app = $this->createApp();
         $this->addGet(
             $app,
@@ -107,27 +101,20 @@ final class RegistrarTest extends TestCase
         $this->runReflectionMethod($registrar, 'registerJWTHandler');
 
         $app
-            ->shouldHaveReceived('bind')
-            ->with(Builder::class)
-            ->once();
-        $app
-            ->shouldHaveReceived('bind')
-            ->with(Parser::class)
-            ->once();
-
-        $app
             ->shouldHaveReceived('singleton')
             ->with(
                 Mockery::on(function (string $abstract) {
                     return ($abstract == JWTHandlerContract::class);
                 }),
-                Mockery::on(function (\Closure $concrete) use ($issuer, $parser, $jwtFactory, $validator, $configuration) {
+                Mockery::on(function (\Closure $concrete) use ($issuer, $parser, $jwtFactory, $validator, $signer, $signingKey, $builder) {
                     $expectedJwtHandler = new JWTHandler(
                         $issuer,
                         $jwtFactory,
                         $validator,
-                        $configuration,
-                        $parser
+                        $signer,
+                        $signingKey,
+                        $parser,
+                        $builder
                     );
 
                     $jwtHandler = $concrete();
@@ -140,9 +127,6 @@ final class RegistrarTest extends TestCase
             ->once();
     }
 
-    /**
-     * @return void
-     */
     public function testRegisterTokenBlockList(): void
     {
         $tokenBlockListClass = $this->getFaker()->uuid;
@@ -178,9 +162,6 @@ final class RegistrarTest extends TestCase
         $this->assertTrue(true);
     }
 
-    /**
-     * @return void
-     */
     public function testRegisterTokenBlockListWithoutBlockListSetting(): void
     {
         $app = $this->createApp();
@@ -205,9 +186,6 @@ final class RegistrarTest extends TestCase
         $this->assertTrue(true);
     }
 
-    /**
-     * @return void
-     */
     public function testExtendAuthGuard(): void
     {
         $guardName = $this->getFaker()->word;
@@ -296,9 +274,6 @@ final class RegistrarTest extends TestCase
         $this->assertTrue(true);
     }
 
-    /**
-     * @return void
-     */
     public function testExtendAuthGuardOnlyWithRequiredProperties(): void
     {
         $guardName = $this->getFaker()->word;
@@ -383,9 +358,6 @@ final class RegistrarTest extends TestCase
         $this->assertTrue(true);
     }
 
-    /**
-     * @return void
-     */
     public function testRegisterJWTGuardConfig(): void
     {
         $accessTokenTtl = $this->getFaker()->numberBetween();
@@ -418,9 +390,38 @@ final class RegistrarTest extends TestCase
             ->once();
     }
 
-    /**
-     * @return void
-     */
+    public function testRegisterJWTGuardConfigWithEmptyTTL(): void
+    {
+        $accessTokenTtl = $this->getFaker()->numberBetween();
+        $refreshTokenTtl = $this->getFaker()->numberBetween();
+        $ipCheckEnabled = $this->getFaker()->boolean;
+        $app = $this->createApp();
+        $this->addGetConfig(
+            $app,
+            [
+                'jwt.accessTokenProvider.ttl'  => $accessTokenTtl,
+                'jwt.refreshTokenProvider.ttl' => '',
+                'jwt.ipCheckEnabled'           => $ipCheckEnabled,
+            ]
+        );
+        $jwtGuardConfig = new JWTGuardConfig($accessTokenTtl, null, $ipCheckEnabled);
+        $registrar = $this->createRegistrar($app);
+
+        $this->runReflectionMethod($registrar, 'registerJWTGuardConfig');
+
+        $app
+            ->shouldHaveReceived('singleton')
+            ->with(
+                JWTGuardConfig::class,
+                Mockery::on(function (\Closure $closure) use ($jwtGuardConfig) {
+                    $concreteJWTGuardConfig = $closure();
+
+                    return $jwtGuardConfig == $concreteJWTGuardConfig;
+                })
+            )
+            ->once();
+    }
+
     public function testGetAccessTokenProvider(): void
     {
         $key = $this->getFaker()->uuid;
@@ -442,9 +443,6 @@ final class RegistrarTest extends TestCase
         $this->assertEquals((new TestTokenProvider())->setKey($key), $tokenProvider);
     }
 
-    /**
-     * @return void
-     */
     public function testGetRefreshTokenProvider(): void
     {
         $key = $this->getFaker()->uuid;
@@ -466,9 +464,6 @@ final class RegistrarTest extends TestCase
         $this->assertEquals((new TestTokenProvider())->setKey($key), $tokenProvider);
     }
 
-    /**
-     * @return void
-     */
     public function testGetRefreshTokenProviderWithoutTokenProvider(): void
     {
         $registrar = $this->createRegistrar($this->createApp());
@@ -476,9 +471,6 @@ final class RegistrarTest extends TestCase
         $this->assertEmpty($this->runReflectionMethod($registrar, 'getRefreshTokenProvider'));
     }
 
-    /**
-     * @return void
-     */
     public function testGetRefreshTokenProviderWithoutKey(): void
     {
         $app = $this->createApp();
@@ -496,9 +488,6 @@ final class RegistrarTest extends TestCase
         $this->runReflectionMethod($registrar, 'getRefreshTokenProvider');
     }
 
-    /**
-     * @return void
-     */
     public function testRegister(): void
     {
         $app = $this->createApp();
@@ -512,14 +501,6 @@ final class RegistrarTest extends TestCase
                 JWTFactoryContract::class,
                 JWTFactory::class
             )
-            ->once();
-        $app
-            ->shouldHaveReceived('bind')
-            ->with(Builder::class)
-            ->once();
-        $app
-            ->shouldHaveReceived('bind')
-            ->with(Parser::class)
             ->once();
         $app
             ->shouldHaveReceived('singleton')
@@ -558,9 +539,6 @@ final class RegistrarTest extends TestCase
             ->once();
     }
 
-    /**
-     * @return void
-     */
     public function testBoot(): void
     {
         $authManager = Mockery::spy(AuthManager::class);
@@ -583,8 +561,6 @@ final class RegistrarTest extends TestCase
     //endregion
 
     /**
-     * @param Container|null $app
-     *
      * @return Registrar|MockInterface
      */
     private function createRegistrar(Container $app = null): Registrar
@@ -602,21 +578,6 @@ final class RegistrarTest extends TestCase
 
     /**
      * @param Container|MockInterface     $app
-     * @param AuthManager|null            $authManager
-     * @param TokenBlockList|null         $withTokenBlockList
-     * @param Request|null                $request
-     * @param Dispatcher|null             $eventDispatcher
-     * @param JWTHandlerContract|null     $jwtHandler
-     * @param RefreshTokenRepository|null $refreshTokenRepository
-     * @param Builder|null                $builder
-     * @param Parser|null                 $parser
-     * @param JWTFactoryContract|null     $jwtFactory
-     * @param array                       $config
-     * @param EventFactoryContract|null   $eventFactory
-     * @param JWTGuardConfig|null         $jwtGuardConfig
-     * @param Signer|null                 $signer
-     *
-     * @return RegistrarTest
      */
     private function addGet(
         Container $app,
@@ -713,9 +674,6 @@ final class RegistrarTest extends TestCase
 
     /**
      * @param Container|MockInterface $app
-     * @param array                     $config
-     *
-     * @return $this
      */
     private function addGetConfig(Container $app, array $config = [])
     {
@@ -729,9 +687,6 @@ final class RegistrarTest extends TestCase
 
     /**
      * @param Container|MockInterface $app
-     * @param mixed|null                $concrete
-     *
-     * @return RegistrarTest
      */
     private function addMake(Container $app, $concrete = null): RegistrarTest
     {
@@ -744,10 +699,6 @@ final class RegistrarTest extends TestCase
 
     /**
      * @param Container|MockInterface $app
-     * @param mixed                   $concrete
-     * @param string                  $class
-     *
-     * @return $this
      */
     private function mockAppMake(MockInterface $app, $concrete, string $class): self
     {
