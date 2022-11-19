@@ -2,35 +2,14 @@
 
 namespace SPie\LaravelJWT\Auth;
 
-/**
- * Class JWTGuardConfig
- *
- * @package SPie\LaravelJWT\Auth
- */
 final class JWTGuardConfig
 {
-    /**
-     * @var int
-     */
     private int $accessTokenTtl;
 
-    /**
-     * @var int|null
-     */
     private ?int $refreshTokenTtl;
 
-    /**
-     * @var bool
-     */
     private bool $ipCheckEnabled;
 
-    /**
-     * JWTGuardConfig constructor.
-     *
-     * @param int      $accessTokenTtl
-     * @param int|null $refreshTokenTtl
-     * @param bool     $ipCheckEnabled
-     */
     public function __construct(int $accessTokenTtl, ?int $refreshTokenTtl, bool $ipCheckEnabled)
     {
         $this->accessTokenTtl = $accessTokenTtl;
@@ -38,25 +17,16 @@ final class JWTGuardConfig
         $this->ipCheckEnabled = $ipCheckEnabled;
     }
 
-    /**
-     * @return int
-     */
     public function getAccessTokenTtl(): int
     {
         return $this->accessTokenTtl;
     }
 
-    /**
-     * @return int|null
-     */
     public function getRefreshTokenTtl(): ?int
     {
         return $this->refreshTokenTtl;
     }
 
-    /**
-     * @return bool
-     */
     public function isIpCheckEnabled(): bool
     {
         return $this->ipCheckEnabled;

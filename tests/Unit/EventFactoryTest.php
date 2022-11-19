@@ -11,21 +11,16 @@ use SPie\LaravelJWT\Events\EventFactory;
 use SPie\LaravelJWT\Test\JWTHelper;
 use SPie\LaravelJWT\Test\TestHelper;
 
-/**
- * Class EventFactoryTest
- *
- * @package SPie\LaravelJWT\Test\Unit
- */
 final class EventFactoryTest extends TestCase
 {
     use TestHelper;
     use JWTHelper;
 
-    //region Tests
+    private function getEventFactory(): EventFactory
+    {
+        return new EventFactory();
+    }
 
-    /**
-     * @return void
-     */
     public function testCreateLoginEvent(): void
     {
         $guardName = $this->getFaker()->word;
@@ -38,9 +33,6 @@ final class EventFactoryTest extends TestCase
         );
     }
 
-    /**
-     * @return void
-     */
     public function testCreateLogoutEvent(): void
     {
         $guardName = $this->getFaker()->word;
@@ -52,9 +44,6 @@ final class EventFactoryTest extends TestCase
         );
     }
 
-    /**
-     * @return void
-     */
     public function testCreateAttemptingEvent(): void
     {
         $guardName = $this->getFaker()->word;
@@ -67,9 +56,6 @@ final class EventFactoryTest extends TestCase
         );
     }
 
-    /**
-     * @return void
-     */
     public function testCreateFailedEvent(): void
     {
         $guardName = $this->getFaker()->word;
@@ -80,15 +66,5 @@ final class EventFactoryTest extends TestCase
             new Failed($guardName, $user, $credentials),
             $this->getEventFactory()->createFailedEvent($guardName, $user, $credentials)
         );
-    }
-
-    //endregion
-
-    /**
-     * @return EventFactory
-     */
-    private function getEventFactory(): EventFactory
-    {
-        return new EventFactory();
     }
 }

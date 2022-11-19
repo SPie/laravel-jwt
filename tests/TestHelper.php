@@ -6,20 +6,10 @@ use Faker\Factory;
 use Faker\Generator;
 use Mockery;
 
-/**
- * Trait TestCase
- */
 trait TestHelper
 {
+    private Generator $faker;
 
-    /**
-     * @var Generator
-     */
-    private $faker;
-
-    /**
-     * @return Generator
-     */
     protected function getFaker(): Generator
     {
         if (!isset($this->faker)) {
@@ -29,9 +19,6 @@ trait TestHelper
         return $this->faker;
     }
 
-    /**
-     * @return void
-     */
     protected function tearDown(): void
     {
         Mockery::close();

@@ -11,22 +11,17 @@ use SPie\LaravelJWT\Test\JWTHelper;
 use SPie\LaravelJWT\Test\RequestHelper;
 use Symfony\Component\HttpFoundation\Request;
 
-/**
- * Class JWTTokensTest
- *
- * @package SPie\LaravelJWT\Test\Unit
- */
 final class JWTTokensTest extends TestCase
 {
     use HttpHelper;
     use JWTHelper;
     use RequestHelper;
 
-    //region Tests
+    private function getJWTTokens(JWTGuard $jwtGuard = null): JWTTokens
+    {
+        return new JWTTokens($jwtGuard ?: $this->createJWTGuard());
+    }
 
-    /**
-     * @return array
-     */
     private function setUpHandleTest(): array
     {
         $request = $this->createRequest();
@@ -39,9 +34,6 @@ final class JWTTokensTest extends TestCase
         return [$jwtTokens, $request, $next, $response, $jwtGuard];
     }
 
-    /**
-     * @return void
-     */
     public function testHandle(): void
     {
         /**
@@ -52,17 +44,5 @@ final class JWTTokensTest extends TestCase
 
         $this->assertEquals($response, $jwtTokens->handle($request, $next));
         $this->assertJWTGuardReturnTokens($jwtGuard, $response);
-    }
-
-    //endregion
-
-    /**
-     * @param JWTGuard|null $jwtGuard
-     *
-     * @return JWTTokens
-     */
-    private function getJWTTokens(JWTGuard $jwtGuard = null): JWTTokens
-    {
-        return new JWTTokens($jwtGuard ?: $this->createJWTGuard());
     }
 }

@@ -20,14 +20,37 @@ use SPie\LaravelJWT\Test\JWTHelper;
 use SPie\LaravelJWT\Test\ReflectionMethodHelper;
 use SPie\LaravelJWT\Test\TestHelper;
 
-/**
- * Class JWTHandlerTest
- */
 final class JWTHandlerTest extends TestCase
 {
     use TestHelper;
     use JWTHelper;
     use ReflectionMethodHelper;
+
+    private function createJWTHandler(
+        string $issuer = null,
+        JWTFactory $jwtFactory = null,
+        Validator $validator = null,
+        Configuration $configuration = null,
+        Parser $parser = null
+    ): JWTHandler {
+        return new JWTHandler(
+            $issuer ?: $this->getFaker()->uuid,
+            $jwtFactory ?: $this->createJWTFactory(),
+            $validator ?: $this->createValidator(),
+            $configuration ?: $this->createConfiguration(),
+            $parser ?: $this->createParser()
+        );
+    }
+
+    private function runCreateTimestampsMethod(JWTHandler $jwtHandler, int $minutes = null): array
+    {
+        return $this->runReflectionMethod($jwtHandler, 'createTimestamps', [$minutes]);
+    }
+
+    private function createBuilderFactory(Builder $builder = null): \Closure
+    {
+        return fn (ClaimsFormatter $claimsFormatter) => $builder ?: $this->createBuilder();
+    }
 
     protected function tearDown(): void
     {
@@ -36,11 +59,6 @@ final class JWTHandlerTest extends TestCase
         CarbonImmutable::setTestNow();
     }
 
-    //region Tests
-
-    /**
-     * @return void
-     */
     public function testCreateTimestamps(): void
     {
         $minutes = $this->getFaker()->numberBetween();
@@ -53,17 +71,11 @@ final class JWTHandlerTest extends TestCase
         );
     }
 
-    /**
-     * @return void
-     */
     public function testCreateTimestampsWithoutTTL(): void
     {
         $this->assertEmpty($this->runCreateTimestampsMethod($this->createJWTHandler())[1]);
     }
 
-    /**
-     * @return array
-     */
     private function setUpCreateJWTTest(): array
     {
         $jwt = $this->createJWT();
@@ -87,9 +99,6 @@ final class JWTHandlerTest extends TestCase
         return [$jwtHandler, $jwt, $builder];
     }
 
-    /**
-     * @return void
-     */
     public function testCreateJWT(): void
     {
         [$jwtHandler, $jwt] = $this->setUpCreateJWTTest();
@@ -106,9 +115,6 @@ final class JWTHandlerTest extends TestCase
         );
     }
 
-    /**
-     * @return void
-     */
     public function testCreateJWTWithEmptyPayload(): void
     {
         [$jwtHandler, $jwt, $builder] = $this->setUpCreateJWTTest();
@@ -124,9 +130,6 @@ final class JWTHandlerTest extends TestCase
         $builder->shouldNotHaveReceived('withClaim');
     }
 
-    /**
-     * @return void
-     */
     public function testCreateJWTWithoutTTL(): void
     {
         [$jwtHandler, $jwt, $builder] = $this->setUpCreateJWTTest();
@@ -143,9 +146,6 @@ final class JWTHandlerTest extends TestCase
         $builder->shouldNotHaveReceived('expiresAt');
     }
 
-    /**
-     * @return array
-     */
     private function setUpGetValidJWTTest(
         bool $expired = false,
         bool $issuedBefore = true,
@@ -177,9 +177,6 @@ final class JWTHandlerTest extends TestCase
         return [$jwtHandler, $input, $jwt];
     }
 
-    /**
-     * @return void
-     */
     public function testGetValidJWT(): void
     {
         [$jwtHandler, $input, $jwt] = $this->setUpGetValidJWTTest();
@@ -187,9 +184,6 @@ final class JWTHandlerTest extends TestCase
         $this->assertEquals($jwt, $jwtHandler->getValidJWT($input));
     }
 
-    /**
-     * @return void
-     */
     public function testGetValidJWTExpired(): void
     {
         [$jwtHandler, $input] = $this->setUpGetValidJWTTest(true);
@@ -199,9 +193,6 @@ final class JWTHandlerTest extends TestCase
         $jwtHandler->getValidJWT($input);
     }
 
-    /**
-     * @return void
-     */
     public function testGetValidJWTBeforeValid(): void
     {
         [$jwtHandler, $input] = $this->setUpGetValidJWTTest(false, false);
@@ -211,9 +202,6 @@ final class JWTHandlerTest extends TestCase
         $jwtHandler->getValidJWT($input);
     }
 
-    /**
-     * @return void
-     */
     public function testGetValidJWTSignatureInvalid(): void
     {
         [$jwtHandler, $input] = $this->setUpGetValidJWTTest(false, true, false);
@@ -223,9 +211,6 @@ final class JWTHandlerTest extends TestCase
         $jwtHandler->getValidJWT($input);
     }
 
-    /**
-     * @return void
-     */
     public function testGetValidJWTInvalidTokenException(): void
     {
         [$jwtHandler, $input] = $this->setUpGetValidJWTTest(false, true, true, false);
@@ -233,53 +218,5 @@ final class JWTHandlerTest extends TestCase
         $this->expectException(InvalidTokenException::class);
 
         $jwtHandler->getValidJWT($input);
-    }
-
-    //endregion
-
-    /**
-     * @param string|null        $issuer
-     * @param JWTFactory|null    $jwtFactory
-     * @param Validator|null     $validator
-     * @param Configuration|null $configuration
-     * @param Parser|null        $parser
-     *
-     * @return JWTHandler
-     */
-    private function createJWTHandler(
-        string $issuer = null,
-        JWTFactory $jwtFactory = null,
-        Validator $validator = null,
-        Configuration $configuration = null,
-        Parser $parser = null
-    ): JWTHandler {
-        return new JWTHandler(
-            $issuer ?: $this->getFaker()->uuid,
-            $jwtFactory ?: $this->createJWTFactory(),
-            $validator ?: $this->createValidator(),
-            $configuration ?: $this->createConfiguration(),
-            $parser ?: $this->createParser()
-        );
-    }
-
-    /**
-     * @param JWTHandler $jwtHandler
-     * @param int|null   $minutes
-     *
-     * @return array
-     */
-    private function runCreateTimestampsMethod(JWTHandler $jwtHandler, int $minutes = null): array
-    {
-        return $this->runReflectionMethod($jwtHandler, 'createTimestamps', [$minutes]);
-    }
-
-    /**
-     * @param Builder|null $builder
-     *
-     * @return \Closure
-     */
-    private function createBuilderFactory(Builder $builder = null): \Closure
-    {
-        return fn (ClaimsFormatter $claimsFormatter) => $builder ?: $this->createBuilder();
     }
 }

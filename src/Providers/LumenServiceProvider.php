@@ -6,18 +6,11 @@ use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 
-/**
- * Class LumenServiceProvider
- *
- * @package SPie\LaravelJWT\Providers
- */
 final class LumenServiceProvider extends ServiceProvider
 {
     use RegistrarHolder;
 
     /**
-     * LumenServiceProvider constructor.
-     *
      * @param Container|Application $app
      */
     public function __construct(Container $app)
@@ -27,17 +20,11 @@ final class LumenServiceProvider extends ServiceProvider
         $this->registrar = $this->createRegistrar($app);
     }
 
-    /**
-     * @return void
-     */
     public function register(): void
     {
-        $this->getRegistrar()->register();
+        $this->registrar->register();
     }
 
-    /**
-     * @return void
-     */
     public function boot(): void
     {
         $this->app->configure('jwt');
@@ -45,6 +32,6 @@ final class LumenServiceProvider extends ServiceProvider
         $path = realpath(__DIR__.'/../../config/jwt.php');
         $this->mergeConfigFrom($path, 'jwt');
 
-        $this->getRegistrar()->boot();
+        $this->registrar->boot();
     }
 }

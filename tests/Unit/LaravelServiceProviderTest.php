@@ -14,19 +14,65 @@ use SPie\LaravelJWT\Providers\Registrar;
 use SPie\LaravelJWT\Test\ReflectionMethodHelper;
 use SPie\LaravelJWT\Test\TestHelper;
 
-/**
- * Class LaravelServiceProviderTest
- */
 final class LaravelServiceProviderTest extends TestCase
 {
     use ReflectionMethodHelper;
     use TestHelper;
 
-    //region Tests
+    /**
+     * @return LaravelServiceProvider|MockInterface
+     */
+    private function createLaravelServiceProvider(Container $app = null): LaravelServiceProvider
+    {
+        return new LaravelServiceProvider($app ?: $this->createApp());
+    }
 
     /**
-     * @return void
+     * @return Container|MockInterface
      */
+    private function createApp(Repository $configRepository = null, AuthManager $authManager = null): Container
+    {
+        $app = Mockery::spy(Container::class, \ArrayAccess::class);
+        $app
+            ->shouldReceive('make')
+            ->andReturnUsing(function ($argument) use ($configRepository) {
+                switch ($argument) {
+                    case 'config':
+                        return $configRepository ?: $this->createConfigRepository();
+                    default:
+                        return null;
+                }
+            });
+        $app
+            ->shouldReceive('get')
+            ->andReturnUsing(function ($argument) use ($authManager) {
+                switch ($argument) {
+                    case 'auth':
+                        return $authManager ?: $this->createAuthManager();
+                    default:
+                        return null;
+                }
+            });
+
+        return $app;
+    }
+
+    /**
+     * @return Repository|MockInterface
+     */
+    private function createConfigRepository(): Repository
+    {
+        return Mockery::spy(Repository::class);
+    }
+
+    /**
+     * @return AuthManager|MockInterface
+     */
+    private function createAuthManager(): AuthManager
+    {
+        return Mockery::spy(AuthManager::class);
+    }
+
     public function testConstruct(): void
     {
         $app = $this->createApp();
@@ -38,9 +84,6 @@ final class LaravelServiceProviderTest extends TestCase
         $this->assertEquals($app, $this->getPrivateProperty($registrar, 'app'));
     }
 
-    /**
-     * @return void
-     */
     public function testRegister(): void
     {
         $registrar = Mockery::spy(RegistrarContract::class);
@@ -48,16 +91,13 @@ final class LaravelServiceProviderTest extends TestCase
         $laravelServiceProvider = $this->createLaravelServiceProvider();
         $this->setPrivateProperty($laravelServiceProvider, 'registrar', $registrar);
 
-        $this->assertEmpty($laravelServiceProvider->register());
+        $laravelServiceProvider->register();
 
         $registrar
             ->shouldHaveReceived('register')
             ->once();
     }
 
-    /**
-     * @return void
-     */
     public function testBoot(): void
     {
         $registrar = Mockery::spy(RegistrarContract::class);
@@ -108,69 +148,4 @@ final class LaravelServiceProviderTest extends TestCase
             ->shouldHaveReceived('boot')
             ->once();
     }
-
-    //endregion
-
-    //region Mocks
-
-    /**
-     * @param Container|null $app
-     *
-     * @return LaravelServiceProvider|MockInterface
-     */
-    private function createLaravelServiceProvider(Container $app = null): LaravelServiceProvider
-    {
-        return new LaravelServiceProvider($app ?: $this->createApp());
-    }
-
-    /**
-     * @param Repository|null  $configRepository
-     * @param AuthManager|null $authManager
-     *
-     * @return Container|MockInterface
-     */
-    private function createApp(Repository $configRepository = null, AuthManager $authManager = null): Container
-    {
-        $app = Mockery::spy(Container::class, \ArrayAccess::class);
-        $app
-            ->shouldReceive('make')
-            ->andReturnUsing(function ($argument) use ($configRepository) {
-                switch ($argument) {
-                    case 'config':
-                        return $configRepository ?: $this->createConfigRepository();
-                    default:
-                        return null;
-                }
-            });
-        $app
-            ->shouldReceive('get')
-            ->andReturnUsing(function ($argument) use ($authManager) {
-                switch ($argument) {
-                    case 'auth':
-                        return $authManager ?: $this->createAuthManager();
-                    default:
-                        return null;
-                }
-            });
-
-        return $app;
-    }
-
-    /**
-     * @return Repository|MockInterface
-     */
-    private function createConfigRepository(): Repository
-    {
-        return Mockery::spy(Repository::class);
-    }
-
-    /**
-     * @return AuthManager|MockInterface
-     */
-    private function createAuthManager(): AuthManager
-    {
-        return Mockery::spy(AuthManager::class);
-    }
-
-    //endregion
 }

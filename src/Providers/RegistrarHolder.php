@@ -6,34 +6,12 @@ use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Foundation\Application;
 use SPie\LaravelJWT\Contracts\Registrar as RegistrarContract;
 
-/**
- * Trait RegistrarHolder
- *
- * @package SPie\LaravelJWT\Providers
- */
 trait RegistrarHolder
 {
+    private RegistrarContract $registrar;
 
-    /**
-     * @var RegistrarContract
-     */
-    protected RegistrarContract $registrar;
-
-    /**
-     * @param Container|Application $app
-     *
-     * @return RegistrarContract
-     */
-    protected function createRegistrar(Container $app): RegistrarContract
+    private function createRegistrar(Container $app): RegistrarContract
     {
         return new Registrar($app);
-    }
-
-    /**
-     * @return RegistrarContract
-     */
-    protected function getRegistrar(): RegistrarContract
-    {
-        return $this->registrar;
     }
 }

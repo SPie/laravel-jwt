@@ -34,557 +34,13 @@ use SPie\LaravelJWT\Test\TestHelper;
 use SPie\LaravelJWT\Test\TestSigner;
 use SPie\LaravelJWT\Test\TestTokenProvider;
 
-/**
- * Class Registrar
- */
 final class RegistrarTest extends TestCase
 {
     use TestHelper;
     use JWTHelper;
     use ReflectionMethodHelper;
 
-    //region Tests
-
     /**
-     * @return void
-     */
-    public function testRegisterJWTFactory(): void
-    {
-        $app = $this->createApp();
-
-        $registrar = $this->createRegistrar($app);
-
-        $this->assertEquals(
-            $registrar,
-            $this->runReflectionMethod($registrar, 'registerJWTFactory')
-        );
-
-        $app
-            ->shouldHaveReceived('singleton')
-            ->with(
-                JWTFactoryContract::class,
-                JWTFactory::class
-            )
-            ->once();
-    }
-
-    /**
-     * @return void
-     */
-    public function testRegisterJWTHandler(): void
-    {
-        $issuer = $this->getFaker()->uuid;
-        $parser = $this->createParser();
-        $jwtFactory = $this->createJWTFactory();
-        $validator = $this->createValidator();
-        $configuration = $this->createConfiguration();
-        $app = $this->createApp();
-        $this->addGet(
-            $app,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            $parser,
-            $jwtFactory,
-            [
-                'jwt.signer' => TestSigner::class,
-                'jwt.secret' => $this->getFaker()->word,
-                'jwt.issuer' => $issuer,
-            ],
-            null,
-            null,
-            null,
-            $validator,
-            $configuration
-        );
-
-        $registrar = $this->createRegistrar($app);
-
-        $this->runReflectionMethod($registrar, 'registerJWTHandler');
-
-        $app
-            ->shouldHaveReceived('bind')
-            ->with(Builder::class)
-            ->once();
-        $app
-            ->shouldHaveReceived('bind')
-            ->with(Parser::class)
-            ->once();
-
-        $app
-            ->shouldHaveReceived('singleton')
-            ->with(
-                Mockery::on(function (string $abstract) {
-                    return ($abstract == JWTHandlerContract::class);
-                }),
-                Mockery::on(function (\Closure $concrete) use ($issuer, $parser, $jwtFactory, $validator, $configuration) {
-                    $expectedJwtHandler = new JWTHandler(
-                        $issuer,
-                        $jwtFactory,
-                        $validator,
-                        $configuration,
-                        $parser
-                    );
-
-                    $jwtHandler = $concrete();
-
-                    $this->assertEquals($expectedJwtHandler, $jwtHandler);
-
-                    return ($expectedJwtHandler == $jwtHandler);
-                }),
-            )
-            ->once();
-    }
-
-    /**
-     * @return void
-     */
-    public function testRegisterTokenBlockList(): void
-    {
-        $tokenBlockListClass = $this->getFaker()->uuid;
-
-        $app = $this->createApp();
-        $this
-            ->addGetConfig(
-                $app,
-                [
-                    'jwt.tokenBlockList' => $tokenBlockListClass
-                ]
-            )
-            ->addMake($app, $tokenBlockListClass);
-
-        $registrar = $this->createRegistrar($app);
-
-        $this->runReflectionMethod($registrar, 'registerTokenBlockList');
-
-        $app
-            ->shouldHaveReceived('singleton')
-            ->with(
-                Mockery::on(function (string $abstract) {
-                    return ($abstract == TokenBlockList::class);
-                }),
-                Mockery::on(function (\Closure $concrete) use ($tokenBlockListClass) {
-                    $tokenBlockList = $concrete();
-
-                    return ($tokenBlockList == $tokenBlockListClass);
-                })
-            )
-            ->once();
-
-        $this->assertTrue(true);
-    }
-
-    /**
-     * @return void
-     */
-    public function testRegisterTokenBlockListWithoutBlockListSetting(): void
-    {
-        $app = $this->createApp();
-        $registrar = $this->createRegistrar($app);
-
-        $this->runReflectionMethod($registrar, 'registerTokenBlockList');
-
-        $app
-            ->shouldHaveReceived('singleton')
-            ->with(
-                TokenBlockList::class,
-                Mockery::on(function (\Closure $concrete) {
-                    $tokenBlockList = $concrete();
-
-                    return \is_null($tokenBlockList);
-                })
-            )
-            ->once();
-
-        $app->shouldNotHaveReceived('make');
-
-        $this->assertTrue(true);
-    }
-
-    /**
-     * @return void
-     */
-    public function testExtendAuthGuard(): void
-    {
-        $guardName = $this->getFaker()->word;
-        $userProvider = Mockery::mock(UserProvider::class);
-        $request = new Request();
-        $eventDispatcher = Mockery::mock(Dispatcher::class);
-        $jwtHandler = Mockery::mock(JWTHandlerContract::class);
-        $tokenBlockList = Mockery::mock(TokenBlockList::class);
-        $refreshTokenRepository = Mockery::mock(RefreshTokenRepository::class);
-        $accessTokenProvider = new TestTokenProvider();
-        $refreshTokenProvider = new TestTokenProvider();
-
-        $authManager = Mockery::spy(AuthManager::class);
-        $authManager
-            ->shouldReceive('createUserProvider')
-            ->andReturn($userProvider);
-
-        $eventFactory = $this->createEventFactory();
-        $accessTokenProviderKey = $this->getFaker()->uuid;
-        $refreshTokenProviderKey = $this->getFaker()->uuid;
-        $jwtGuardConfig = $this->createJWTGuardConfig();
-
-        $app = $this->createApp();
-        $this
-            ->addGet(
-                $app,
-                $authManager,
-                $tokenBlockList,
-                $request,
-                $eventDispatcher,
-                $jwtHandler,
-                $refreshTokenRepository,
-                null,
-                null,
-                null,
-                [
-                    'jwt.accessTokenProvider.class'  => TestTokenProvider::class,
-                    'jwt.accessTokenProvider.key'    => $accessTokenProviderKey,
-                    'jwt.refreshTokenProvider.class' => TestTokenProvider::class,
-                    'jwt.refreshTokenProvider.key'   => $refreshTokenProviderKey,
-                    'jwt.refreshTokenRepository'     => RefreshTokenRepository::class,
-                ],
-                $eventFactory,
-                $jwtGuardConfig
-            )
-            ->mockAppMake($app, $accessTokenProvider, TestTokenProvider::class)
-            ->mockAppMake($app, $refreshTokenProvider, TestTokenProvider::class);
-
-        $jwtGuard = new JWTGuard(
-            $guardName,
-            $jwtHandler,
-            $userProvider,
-            $request,
-            $jwtGuardConfig,
-            $accessTokenProvider->setKey($accessTokenProviderKey),
-            $refreshTokenProvider->setKey($refreshTokenProviderKey),
-            $refreshTokenRepository,
-            $eventFactory,
-            $tokenBlockList,
-            $eventDispatcher
-        );
-
-        $registrar = $this->createRegistrar($app);
-
-        $this->runReflectionMethod($registrar, 'extendAuthGuard');
-
-        $authManager
-            ->shouldHaveReceived('extend')
-            ->with(
-                'jwt',
-                Mockery::on(function (\Closure $concrete) use ($app, $jwtGuard, $guardName) {
-                    $concreteJwtGuard = $concrete(
-                        $app,
-                        $guardName,
-                        [
-                            'provider' => Mockery::mock(UserProvider::class),
-                        ]
-                    );
-                    $this->assertEquals($jwtGuard, $concreteJwtGuard);
-
-                    return ($jwtGuard == $concreteJwtGuard);
-                })
-            )
-            ->once();
-
-        $this->assertTrue(true);
-    }
-
-    /**
-     * @return void
-     */
-    public function testExtendAuthGuardOnlyWithRequiredProperties(): void
-    {
-        $guardName = $this->getFaker()->word;
-        $userProvider = Mockery::mock(UserProvider::class);
-        $request = new Request();
-        $jwtHandler = Mockery::mock(JWTHandlerContract::class);
-
-        $authManager = Mockery::spy(AuthManager::class);
-        $authManager
-            ->shouldReceive('createUserProvider')
-            ->andReturn($userProvider);
-
-        $accessTokenProvider = new TestTokenProvider();
-        $refreshTokenProvider = new TestTokenProvider();
-        $accessTokenProviderKey = $this->getFaker()->uuid;
-        $eventFactory = $this->createEventFactory();
-        $refreshTokenProviderKey = $this->getFaker()->word;
-        $refreshTokenRepository = $this->createRefreshTokenRepository();
-        $jwtGuardConfig = $this->createJWTGuardConfig();
-
-        $app = $this->createApp();
-        $this
-            ->addGet(
-                $app,
-                $authManager,
-                null,
-                $request,
-                null,
-                $jwtHandler,
-                $refreshTokenRepository,
-                null,
-                null,
-                null,
-                [
-                    'jwt.accessTokenProvider.class'  => TestTokenProvider::class,
-                    'jwt.accessTokenProvider.key'    => $accessTokenProviderKey,
-                    'jwt.refreshTokenProvider.class' => TestTokenProvider::class,
-                    'jwt.refreshTokenProvider.key'   => $refreshTokenProviderKey,
-                    'jwt.refreshTokenRepository'     => RefreshTokenRepository::class,
-                ],
-                $eventFactory,
-                $jwtGuardConfig
-            )
-            ->mockAppMake($app, $accessTokenProvider, TestTokenProvider::class)
-            ->mockAppMake($app, $refreshTokenProvider, TestTokenProvider::class);
-
-        $jwtGuard = new JWTGuard(
-            $guardName,
-            $jwtHandler,
-            $userProvider,
-            $request,
-            $jwtGuardConfig,
-            $accessTokenProvider->setKey($accessTokenProviderKey),
-            $refreshTokenProvider->setKey($refreshTokenProviderKey),
-            $refreshTokenRepository,
-            $eventFactory
-        );
-
-        $registrar = $this->createRegistrar($app);
-
-        $this->runReflectionMethod($registrar, 'extendAuthGuard');
-
-        $authManager
-            ->shouldHaveReceived('extend')
-            ->with(
-                'jwt',
-                Mockery::on(function (\Closure $concrete) use ($app, $jwtGuard, $guardName) {
-                    $concreteJwtGuard = $concrete(
-                        $app,
-                        $guardName,
-                        [
-                            'provider' => Mockery::mock(UserProvider::class),
-                        ]
-                    );
-                    $this->assertEquals($jwtGuard, $concreteJwtGuard);
-
-                    return ($jwtGuard == $concreteJwtGuard);
-                })
-            )
-            ->once();
-
-        $this->assertTrue(true);
-    }
-
-    /**
-     * @return void
-     */
-    public function testRegisterJWTGuardConfig(): void
-    {
-        $accessTokenTtl = $this->getFaker()->numberBetween();
-        $refreshTokenTtl = $this->getFaker()->numberBetween();
-        $ipCheckEnabled = $this->getFaker()->boolean;
-        $app = $this->createApp();
-        $this->addGetConfig(
-            $app,
-            [
-                'jwt.accessTokenProvider.ttl'  => $accessTokenTtl,
-                'jwt.refreshTokenProvider.ttl' => $refreshTokenTtl,
-                'jwt.ipCheckEnabled'           => $ipCheckEnabled,
-            ]
-        );
-        $jwtGuardConfig = new JWTGuardConfig($accessTokenTtl, $refreshTokenTtl, $ipCheckEnabled);
-        $registrar = $this->createRegistrar($app);
-
-        $this->runReflectionMethod($registrar, 'registerJWTGuardConfig');
-
-        $app
-            ->shouldHaveReceived('singleton')
-            ->with(
-                JWTGuardConfig::class,
-                Mockery::on(function (\Closure $closure) use ($jwtGuardConfig) {
-                    $concreteJWTGuardConfig = $closure();
-
-                    return $jwtGuardConfig == $concreteJWTGuardConfig;
-                })
-            )
-            ->once();
-    }
-
-    /**
-     * @return void
-     */
-    public function testGetAccessTokenProvider(): void
-    {
-        $key = $this->getFaker()->uuid;
-        $app = $this->createApp();
-        $this
-            ->addGetConfig(
-                $app,
-                [
-                    'jwt.accessTokenProvider.class' => TestTokenProvider::class,
-                    'jwt.accessTokenProvider.key'   => $key,
-                ]
-            )
-            ->mockAppMake($app, new TestTokenProvider(), TestTokenProvider::class);
-
-        $registrar = $this->createRegistrar($app);
-
-        $tokenProvider = $this->runReflectionMethod($registrar, 'getAccessTokenProvider');
-
-        $this->assertEquals((new TestTokenProvider())->setKey($key), $tokenProvider);
-    }
-
-    /**
-     * @return void
-     */
-    public function testGetRefreshTokenProvider(): void
-    {
-        $key = $this->getFaker()->uuid;
-        $app = $this->createApp();
-        $this
-            ->addGetConfig(
-                $app,
-                [
-                    'jwt.refreshTokenProvider.class' => TestTokenProvider::class,
-                    'jwt.refreshTokenProvider.key'   => $key,
-                ]
-            )
-            ->mockAppMake($app, new TestTokenProvider(), TestTokenProvider::class);
-
-        $registrar = $this->createRegistrar($app);
-
-        $tokenProvider = $this->runReflectionMethod($registrar, 'getRefreshTokenProvider');
-
-        $this->assertEquals((new TestTokenProvider())->setKey($key), $tokenProvider);
-    }
-
-    /**
-     * @return void
-     */
-    public function testGetRefreshTokenProviderWithoutTokenProvider(): void
-    {
-        $registrar = $this->createRegistrar($this->createApp());
-
-        $this->assertEmpty($this->runReflectionMethod($registrar, 'getRefreshTokenProvider'));
-    }
-
-    /**
-     * @return void
-     */
-    public function testGetRefreshTokenProviderWithoutKey(): void
-    {
-        $app = $this->createApp();
-        $this->addGetConfig(
-            $app,
-            [
-                'jwt.refreshTokenProvider.class' => TestTokenProvider::class,
-            ]
-        );
-
-        $registrar = $this->createRegistrar($app);
-
-        $this->expectException(InvalidTokenProviderKeyException::class);
-
-        $this->runReflectionMethod($registrar, 'getRefreshTokenProvider');
-    }
-
-    /**
-     * @return void
-     */
-    public function testRegister(): void
-    {
-        $app = $this->createApp();
-        $registrar = $this->createRegistrar($app);
-
-        $this->assertEquals($registrar, $registrar->register());
-
-        $app
-            ->shouldHaveReceived('singleton')
-            ->with(
-                JWTFactoryContract::class,
-                JWTFactory::class
-            )
-            ->once();
-        $app
-            ->shouldHaveReceived('bind')
-            ->with(Builder::class)
-            ->once();
-        $app
-            ->shouldHaveReceived('bind')
-            ->with(Parser::class)
-            ->once();
-        $app
-            ->shouldHaveReceived('singleton')
-            ->with(
-                JWTHandlerContract::class,
-                Mockery::any()
-            )
-            ->once();
-        $app
-            ->shouldHaveReceived('singleton')
-            ->with(
-                TokenBlockList::class,
-                Mockery::any()
-            )
-            ->once();
-        $app
-            ->shouldHaveReceived('singleton')
-            ->with(
-                JWTGuardConfig::class,
-                Mockery::any()
-            )
-            ->once();
-        $app
-            ->shouldHaveReceived('singleton')
-            ->with(
-                JWTGuardContract::class,
-                Mockery::any()
-            )
-            ->once();
-        $app
-            ->shouldHaveReceived('singleton')
-            ->with(
-                EventFactoryContract::class,
-                EventFactory::class
-            )
-            ->once();
-    }
-
-    /**
-     * @return void
-     */
-    public function testBoot(): void
-    {
-        $authManager = Mockery::spy(AuthManager::class);
-        $app = $this->createApp();
-        $this->addGet($app, $authManager);
-
-        $registrar = $this->createRegistrar($app);
-
-        $this->assertEquals($registrar, $registrar->boot());
-
-        $authManager
-            ->shouldHaveReceived('extend')
-            ->with(
-                'jwt',
-                Mockery::any()
-            )
-            ->once();
-    }
-
-    //endregion
-
-    /**
-     * @param Container|null $app
-     *
      * @return Registrar|MockInterface
      */
     private function createRegistrar(Container $app = null): Registrar
@@ -600,26 +56,8 @@ final class RegistrarTest extends TestCase
         return Mockery::spy(Container::class);
     }
 
-    /**
-     * @param Container|MockInterface     $app
-     * @param AuthManager|null            $authManager
-     * @param TokenBlockList|null         $withTokenBlockList
-     * @param Request|null                $request
-     * @param Dispatcher|null             $eventDispatcher
-     * @param JWTHandlerContract|null     $jwtHandler
-     * @param RefreshTokenRepository|null $refreshTokenRepository
-     * @param Builder|null                $builder
-     * @param Parser|null                 $parser
-     * @param JWTFactoryContract|null     $jwtFactory
-     * @param array                       $config
-     * @param EventFactoryContract|null   $eventFactory
-     * @param JWTGuardConfig|null         $jwtGuardConfig
-     * @param Signer|null                 $signer
-     *
-     * @return RegistrarTest
-     */
     private function addGet(
-        Container $app,
+        MockInterface $app,
         AuthManager $authManager = null,
         TokenBlockList $withTokenBlockList = null,
         Request $request = null,
@@ -711,13 +149,7 @@ final class RegistrarTest extends TestCase
         return $this;
     }
 
-    /**
-     * @param Container|MockInterface $app
-     * @param array                     $config
-     *
-     * @return $this
-     */
-    private function addGetConfig(Container $app, array $config = [])
+    private function addGetConfig(MockInterface $app, array $config = [])
     {
         $app
             ->shouldReceive('get')
@@ -727,13 +159,7 @@ final class RegistrarTest extends TestCase
         return $this;
     }
 
-    /**
-     * @param Container|MockInterface $app
-     * @param mixed|null                $concrete
-     *
-     * @return RegistrarTest
-     */
-    private function addMake(Container $app, $concrete = null): RegistrarTest
+    private function addMake(MockInterface $app, $concrete = null): RegistrarTest
     {
         $app
             ->shouldReceive('make')
@@ -742,13 +168,6 @@ final class RegistrarTest extends TestCase
         return $this;
     }
 
-    /**
-     * @param Container|MockInterface $app
-     * @param mixed                   $concrete
-     * @param string                  $class
-     *
-     * @return $this
-     */
     private function mockAppMake(MockInterface $app, $concrete, string $class): self
     {
         $app
@@ -757,5 +176,501 @@ final class RegistrarTest extends TestCase
             ->andReturn($concrete);
 
         return $this;
+    }
+
+    public function testRegisterJWTFactory(): void
+    {
+        $app = $this->createApp();
+
+        $registrar = $this->createRegistrar($app);
+
+        $this->assertEquals(
+            $registrar,
+            $this->runReflectionMethod($registrar, 'registerJWTFactory')
+        );
+
+        $app
+            ->shouldHaveReceived('singleton')
+            ->with(
+                JWTFactoryContract::class,
+                JWTFactory::class
+            )
+            ->once();
+    }
+
+    public function testRegisterJWTHandler(): void
+    {
+        $issuer = $this->getFaker()->uuid;
+        $parser = $this->createParser();
+        $jwtFactory = $this->createJWTFactory();
+        $validator = $this->createValidator();
+        $configuration = $this->createConfiguration();
+        $app = $this->createApp();
+        $this->addGet(
+            $app,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            $parser,
+            $jwtFactory,
+            [
+                'jwt.signer' => TestSigner::class,
+                'jwt.secret' => $this->getFaker()->word,
+                'jwt.issuer' => $issuer,
+            ],
+            null,
+            null,
+            null,
+            $validator,
+            $configuration
+        );
+
+        $registrar = $this->createRegistrar($app);
+
+        $this->runReflectionMethod($registrar, 'registerJWTHandler');
+
+        $app
+            ->shouldHaveReceived('bind')
+            ->with(Builder::class)
+            ->once();
+        $app
+            ->shouldHaveReceived('bind')
+            ->with(Parser::class)
+            ->once();
+
+        $app
+            ->shouldHaveReceived('singleton')
+            ->with(
+                Mockery::on(function (string $abstract) {
+                    return ($abstract == JWTHandlerContract::class);
+                }),
+                Mockery::on(function (\Closure $concrete) use ($issuer, $parser, $jwtFactory, $validator, $configuration) {
+                    $expectedJwtHandler = new JWTHandler(
+                        $issuer,
+                        $jwtFactory,
+                        $validator,
+                        $configuration,
+                        $parser
+                    );
+
+                    $jwtHandler = $concrete();
+
+                    $this->assertEquals($expectedJwtHandler, $jwtHandler);
+
+                    return ($expectedJwtHandler == $jwtHandler);
+                }),
+            )
+            ->once();
+    }
+
+    public function testRegisterTokenBlockList(): void
+    {
+        $tokenBlockListClass = $this->getFaker()->uuid;
+
+        $app = $this->createApp();
+        $this
+            ->addGetConfig(
+                $app,
+                [
+                    'jwt.tokenBlockList' => $tokenBlockListClass
+                ]
+            )
+            ->addMake($app, $tokenBlockListClass);
+
+        $registrar = $this->createRegistrar($app);
+
+        $this->runReflectionMethod($registrar, 'registerTokenBlockList');
+
+        $app
+            ->shouldHaveReceived('singleton')
+            ->with(
+                Mockery::on(function (string $abstract) {
+                    return ($abstract == TokenBlockList::class);
+                }),
+                Mockery::on(function (\Closure $concrete) use ($tokenBlockListClass) {
+                    $tokenBlockList = $concrete();
+
+                    return ($tokenBlockList == $tokenBlockListClass);
+                })
+            )
+            ->once();
+
+        $this->assertTrue(true);
+    }
+
+    public function testRegisterTokenBlockListWithoutBlockListSetting(): void
+    {
+        $app = $this->createApp();
+        $registrar = $this->createRegistrar($app);
+
+        $this->runReflectionMethod($registrar, 'registerTokenBlockList');
+
+        $app
+            ->shouldHaveReceived('singleton')
+            ->with(
+                TokenBlockList::class,
+                Mockery::on(function (\Closure $concrete) {
+                    $tokenBlockList = $concrete();
+
+                    return \is_null($tokenBlockList);
+                })
+            )
+            ->once();
+
+        $app->shouldNotHaveReceived('make');
+
+        $this->assertTrue(true);
+    }
+
+    public function testExtendAuthGuard(): void
+    {
+        $guardName = $this->getFaker()->word;
+        $userProvider = Mockery::mock(UserProvider::class);
+        $request = new Request();
+        $eventDispatcher = Mockery::mock(Dispatcher::class);
+        $jwtHandler = Mockery::mock(JWTHandlerContract::class);
+        $tokenBlockList = Mockery::mock(TokenBlockList::class);
+        $refreshTokenRepository = Mockery::mock(RefreshTokenRepository::class);
+        $accessTokenProvider = new TestTokenProvider();
+        $refreshTokenProvider = new TestTokenProvider();
+
+        $authManager = Mockery::spy(AuthManager::class);
+        $authManager
+            ->shouldReceive('createUserProvider')
+            ->andReturn($userProvider);
+
+        $eventFactory = $this->createEventFactory();
+        $accessTokenProviderKey = $this->getFaker()->uuid;
+        $refreshTokenProviderKey = $this->getFaker()->uuid;
+        $jwtGuardConfig = $this->createJWTGuardConfig();
+
+        $app = $this->createApp();
+        $this
+            ->addGet(
+                $app,
+                $authManager,
+                $tokenBlockList,
+                $request,
+                $eventDispatcher,
+                $jwtHandler,
+                $refreshTokenRepository,
+                null,
+                null,
+                null,
+                [
+                    'jwt.accessTokenProvider.class'  => TestTokenProvider::class,
+                    'jwt.accessTokenProvider.key'    => $accessTokenProviderKey,
+                    'jwt.refreshTokenProvider.class' => TestTokenProvider::class,
+                    'jwt.refreshTokenProvider.key'   => $refreshTokenProviderKey,
+                    'jwt.refreshTokenRepository'     => RefreshTokenRepository::class,
+                ],
+                $eventFactory,
+                $jwtGuardConfig
+            )
+            ->mockAppMake($app, $accessTokenProvider, TestTokenProvider::class)
+            ->mockAppMake($app, $refreshTokenProvider, TestTokenProvider::class);
+
+        $jwtGuard = new JWTGuard(
+            $guardName,
+            $jwtHandler,
+            $userProvider,
+            $request,
+            $jwtGuardConfig,
+            $accessTokenProvider->setKey($accessTokenProviderKey),
+            $refreshTokenProvider->setKey($refreshTokenProviderKey),
+            $refreshTokenRepository,
+            $eventFactory,
+            $tokenBlockList,
+            $eventDispatcher
+        );
+
+        $registrar = $this->createRegistrar($app);
+
+        $this->runReflectionMethod($registrar, 'extendAuthGuard');
+
+        $authManager
+            ->shouldHaveReceived('extend')
+            ->with(
+                'jwt',
+                Mockery::on(function (\Closure $concrete) use ($app, $jwtGuard, $guardName) {
+                    $concreteJwtGuard = $concrete(
+                        $app,
+                        $guardName,
+                        [
+                            'provider' => Mockery::mock(UserProvider::class),
+                        ]
+                    );
+                    $this->assertEquals($jwtGuard, $concreteJwtGuard);
+
+                    return ($jwtGuard == $concreteJwtGuard);
+                })
+            )
+            ->once();
+
+        $this->assertTrue(true);
+    }
+
+    public function testExtendAuthGuardOnlyWithRequiredProperties(): void
+    {
+        $guardName = $this->getFaker()->word;
+        $userProvider = Mockery::mock(UserProvider::class);
+        $request = new Request();
+        $jwtHandler = Mockery::mock(JWTHandlerContract::class);
+
+        $authManager = Mockery::spy(AuthManager::class);
+        $authManager
+            ->shouldReceive('createUserProvider')
+            ->andReturn($userProvider);
+
+        $accessTokenProvider = new TestTokenProvider();
+        $refreshTokenProvider = new TestTokenProvider();
+        $accessTokenProviderKey = $this->getFaker()->uuid;
+        $eventFactory = $this->createEventFactory();
+        $refreshTokenProviderKey = $this->getFaker()->word;
+        $refreshTokenRepository = $this->createRefreshTokenRepository();
+        $jwtGuardConfig = $this->createJWTGuardConfig();
+
+        $app = $this->createApp();
+        $this
+            ->addGet(
+                $app,
+                $authManager,
+                null,
+                $request,
+                null,
+                $jwtHandler,
+                $refreshTokenRepository,
+                null,
+                null,
+                null,
+                [
+                    'jwt.accessTokenProvider.class'  => TestTokenProvider::class,
+                    'jwt.accessTokenProvider.key'    => $accessTokenProviderKey,
+                    'jwt.refreshTokenProvider.class' => TestTokenProvider::class,
+                    'jwt.refreshTokenProvider.key'   => $refreshTokenProviderKey,
+                    'jwt.refreshTokenRepository'     => RefreshTokenRepository::class,
+                ],
+                $eventFactory,
+                $jwtGuardConfig
+            )
+            ->mockAppMake($app, $accessTokenProvider, TestTokenProvider::class)
+            ->mockAppMake($app, $refreshTokenProvider, TestTokenProvider::class);
+
+        $jwtGuard = new JWTGuard(
+            $guardName,
+            $jwtHandler,
+            $userProvider,
+            $request,
+            $jwtGuardConfig,
+            $accessTokenProvider->setKey($accessTokenProviderKey),
+            $refreshTokenProvider->setKey($refreshTokenProviderKey),
+            $refreshTokenRepository,
+            $eventFactory
+        );
+
+        $registrar = $this->createRegistrar($app);
+
+        $this->runReflectionMethod($registrar, 'extendAuthGuard');
+
+        $authManager
+            ->shouldHaveReceived('extend')
+            ->with(
+                'jwt',
+                Mockery::on(function (\Closure $concrete) use ($app, $jwtGuard, $guardName) {
+                    $concreteJwtGuard = $concrete(
+                        $app,
+                        $guardName,
+                        [
+                            'provider' => Mockery::mock(UserProvider::class),
+                        ]
+                    );
+                    $this->assertEquals($jwtGuard, $concreteJwtGuard);
+
+                    return ($jwtGuard == $concreteJwtGuard);
+                })
+            )
+            ->once();
+
+        $this->assertTrue(true);
+    }
+
+    public function testRegisterJWTGuardConfig(): void
+    {
+        $accessTokenTtl = $this->getFaker()->numberBetween();
+        $refreshTokenTtl = $this->getFaker()->numberBetween();
+        $ipCheckEnabled = $this->getFaker()->boolean;
+        $app = $this->createApp();
+        $this->addGetConfig(
+            $app,
+            [
+                'jwt.accessTokenProvider.ttl'  => $accessTokenTtl,
+                'jwt.refreshTokenProvider.ttl' => $refreshTokenTtl,
+                'jwt.ipCheckEnabled'           => $ipCheckEnabled,
+            ]
+        );
+        $jwtGuardConfig = new JWTGuardConfig($accessTokenTtl, $refreshTokenTtl, $ipCheckEnabled);
+        $registrar = $this->createRegistrar($app);
+
+        $this->runReflectionMethod($registrar, 'registerJWTGuardConfig');
+
+        $app
+            ->shouldHaveReceived('singleton')
+            ->with(
+                JWTGuardConfig::class,
+                Mockery::on(function (\Closure $closure) use ($jwtGuardConfig) {
+                    $concreteJWTGuardConfig = $closure();
+
+                    return $jwtGuardConfig == $concreteJWTGuardConfig;
+                })
+            )
+            ->once();
+    }
+
+    public function testGetAccessTokenProvider(): void
+    {
+        $key = $this->getFaker()->uuid;
+        $app = $this->createApp();
+        $this
+            ->addGetConfig(
+                $app,
+                [
+                    'jwt.accessTokenProvider.class' => TestTokenProvider::class,
+                    'jwt.accessTokenProvider.key'   => $key,
+                ]
+            )
+            ->mockAppMake($app, new TestTokenProvider(), TestTokenProvider::class);
+
+        $registrar = $this->createRegistrar($app);
+
+        $tokenProvider = $this->runReflectionMethod($registrar, 'getAccessTokenProvider');
+
+        $this->assertEquals((new TestTokenProvider())->setKey($key), $tokenProvider);
+    }
+
+    public function testGetRefreshTokenProvider(): void
+    {
+        $key = $this->getFaker()->uuid;
+        $app = $this->createApp();
+        $this
+            ->addGetConfig(
+                $app,
+                [
+                    'jwt.refreshTokenProvider.class' => TestTokenProvider::class,
+                    'jwt.refreshTokenProvider.key'   => $key,
+                ]
+            )
+            ->mockAppMake($app, new TestTokenProvider(), TestTokenProvider::class);
+
+        $registrar = $this->createRegistrar($app);
+
+        $tokenProvider = $this->runReflectionMethod($registrar, 'getRefreshTokenProvider');
+
+        $this->assertEquals((new TestTokenProvider())->setKey($key), $tokenProvider);
+    }
+
+    public function testGetRefreshTokenProviderWithoutTokenProvider(): void
+    {
+        $registrar = $this->createRegistrar($this->createApp());
+
+        $this->assertEmpty($this->runReflectionMethod($registrar, 'getRefreshTokenProvider'));
+    }
+
+    public function testGetRefreshTokenProviderWithoutKey(): void
+    {
+        $app = $this->createApp();
+        $this->addGetConfig(
+            $app,
+            [
+                'jwt.refreshTokenProvider.class' => TestTokenProvider::class,
+            ]
+        );
+
+        $registrar = $this->createRegistrar($app);
+
+        $this->expectException(InvalidTokenProviderKeyException::class);
+
+        $this->runReflectionMethod($registrar, 'getRefreshTokenProvider');
+    }
+
+    public function testRegister(): void
+    {
+        $app = $this->createApp();
+        $registrar = $this->createRegistrar($app);
+
+        $this->assertEquals($registrar, $registrar->register());
+
+        $app
+            ->shouldHaveReceived('singleton')
+            ->with(
+                JWTFactoryContract::class,
+                JWTFactory::class
+            )
+            ->once();
+        $app
+            ->shouldHaveReceived('bind')
+            ->with(Builder::class)
+            ->once();
+        $app
+            ->shouldHaveReceived('bind')
+            ->with(Parser::class)
+            ->once();
+        $app
+            ->shouldHaveReceived('singleton')
+            ->with(
+                JWTHandlerContract::class,
+                Mockery::any()
+            )
+            ->once();
+        $app
+            ->shouldHaveReceived('singleton')
+            ->with(
+                TokenBlockList::class,
+                Mockery::any()
+            )
+            ->once();
+        $app
+            ->shouldHaveReceived('singleton')
+            ->with(
+                JWTGuardConfig::class,
+                Mockery::any()
+            )
+            ->once();
+        $app
+            ->shouldHaveReceived('singleton')
+            ->with(
+                JWTGuardContract::class,
+                Mockery::any()
+            )
+            ->once();
+        $app
+            ->shouldHaveReceived('singleton')
+            ->with(
+                EventFactoryContract::class,
+                EventFactory::class
+            )
+            ->once();
+    }
+
+    public function testBoot(): void
+    {
+        $authManager = Mockery::spy(AuthManager::class);
+        $app = $this->createApp();
+        $this->addGet($app, $authManager);
+
+        $registrar = $this->createRegistrar($app);
+
+        $this->assertEquals($registrar, $registrar->boot());
+
+        $authManager
+            ->shouldHaveReceived('extend')
+            ->with(
+                'jwt',
+                Mockery::any()
+            )
+            ->once();
     }
 }
