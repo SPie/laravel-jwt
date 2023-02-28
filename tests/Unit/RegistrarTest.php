@@ -48,136 +48,6 @@ final class RegistrarTest extends TestCase
         return new Registrar($app ?: $this->createApp());
     }
 
-    /**
-     * @return Container|MockInterface
-     */
-    private function createApp(): Container
-    {
-        return Mockery::spy(Container::class);
-    }
-
-    private function addGet(
-        MockInterface $app,
-        AuthManager $authManager = null,
-        TokenBlockList $withTokenBlockList = null,
-        Request $request = null,
-        Dispatcher $eventDispatcher = null,
-        JWTHandlerContract $jwtHandler = null,
-        RefreshTokenRepository $refreshTokenRepository = null,
-        Builder $builder = null,
-        Parser $parser = null,
-        JWTFactoryContract $jwtFactory = null,
-        array $config = [],
-        EventFactoryContract $eventFactory = null,
-        JWTGuardConfig $jwtGuardConfig = null,
-        Signer $signer = null,
-        Validator $validator = null,
-        Configuration $configuration = null
-    ): RegistrarTest {
-        $app
-            ->shouldReceive('get')
-            ->andReturnUsing(
-                function (string $argument) use (
-                    $authManager,
-                    $withTokenBlockList,
-                    $request,
-                    $eventDispatcher,
-                    $jwtHandler,
-                    $refreshTokenRepository,
-                    $builder,
-                    $parser,
-                    $jwtFactory,
-                    $config,
-                    $eventFactory,
-                    $jwtGuardConfig,
-                    $signer,
-                    $validator,
-                    $configuration
-                ) {
-                    switch ($argument) {
-                        case 'auth':
-                            return $authManager;
-
-                        case JWTHandlerContract::class:
-                            return $jwtHandler ?: Mockery::mock(JWTHandlerContract::class);
-
-                        case 'request':
-                            return $request ?: new Request();
-
-                        case Dispatcher::class:
-                            return $eventDispatcher;
-
-                        case TokenBlockList::class:
-                            return $withTokenBlockList;
-
-                        case RefreshTokenRepository::class:
-                            return $refreshTokenRepository;
-
-                        case Builder::class:
-                            return $builder;
-
-                        case Parser::class:
-                            return $parser;
-
-                        case JWTFactoryContract::class:
-                            return $jwtFactory;
-
-                        case 'config':
-                            return $config;
-
-                        case EventFactory::class:
-                            return $eventFactory;
-
-                        case JWTGuardConfig::class:
-                            return $jwtGuardConfig;
-
-                        case Signer::class:
-                            return $signer;
-
-                        case Validator::class:
-                            return $validator;
-
-                        case Configuration::class:
-                            return $configuration;
-
-                        default:
-                            return $this->getFaker()->uuid;
-                    }
-                }
-            );
-
-        return $this;
-    }
-
-    private function addGetConfig(MockInterface $app, array $config = [])
-    {
-        $app
-            ->shouldReceive('get')
-            ->with('config')
-            ->andReturn($config);
-
-        return $this;
-    }
-
-    private function addMake(MockInterface $app, $concrete = null): RegistrarTest
-    {
-        $app
-            ->shouldReceive('make')
-            ->andReturn($concrete);
-
-        return $this;
-    }
-
-    private function mockAppMake(MockInterface $app, $concrete, string $class): self
-    {
-        $app
-            ->shouldReceive('make')
-            ->with($class)
-            ->andReturn($concrete);
-
-        return $this;
-    }
-
     public function testRegisterJWTFactory(): void
     {
         $app = $this->createApp();
@@ -204,7 +74,10 @@ final class RegistrarTest extends TestCase
         $parser = $this->createParser();
         $jwtFactory = $this->createJWTFactory();
         $validator = $this->createValidator();
-        $configuration = $this->createConfiguration();
+        $signer = $this->createSigner();
+        $signingKey = $this->createKey();
+        $builder = $this->createBuilder();
+        $configuration = $this->createConfiguration($signer, $signingKey, $parser, $builder);
         $app = $this->createApp();
         $this->addGet(
             $app,
@@ -234,27 +107,20 @@ final class RegistrarTest extends TestCase
         $this->runReflectionMethod($registrar, 'registerJWTHandler');
 
         $app
-            ->shouldHaveReceived('bind')
-            ->with(Builder::class)
-            ->once();
-        $app
-            ->shouldHaveReceived('bind')
-            ->with(Parser::class)
-            ->once();
-
-        $app
             ->shouldHaveReceived('singleton')
             ->with(
                 Mockery::on(function (string $abstract) {
                     return ($abstract == JWTHandlerContract::class);
                 }),
-                Mockery::on(function (\Closure $concrete) use ($issuer, $parser, $jwtFactory, $validator, $configuration) {
+                Mockery::on(function (\Closure $concrete) use ($issuer, $parser, $jwtFactory, $validator, $signer, $signingKey, $builder) {
                     $expectedJwtHandler = new JWTHandler(
                         $issuer,
                         $jwtFactory,
                         $validator,
-                        $configuration,
-                        $parser
+                        $signer,
+                        $signingKey,
+                        $parser,
+                        $builder
                     );
 
                     $jwtHandler = $concrete();
@@ -530,6 +396,38 @@ final class RegistrarTest extends TestCase
             ->once();
     }
 
+    public function testRegisterJWTGuardConfigWithEmptyTTL(): void
+    {
+        $accessTokenTtl = $this->getFaker()->numberBetween();
+        $refreshTokenTtl = $this->getFaker()->numberBetween();
+        $ipCheckEnabled = $this->getFaker()->boolean;
+        $app = $this->createApp();
+        $this->addGetConfig(
+            $app,
+            [
+                'jwt.accessTokenProvider.ttl'  => $accessTokenTtl,
+                'jwt.refreshTokenProvider.ttl' => '',
+                'jwt.ipCheckEnabled'           => $ipCheckEnabled,
+            ]
+        );
+        $jwtGuardConfig = new JWTGuardConfig($accessTokenTtl, null, $ipCheckEnabled);
+        $registrar = $this->createRegistrar($app);
+
+        $this->runReflectionMethod($registrar, 'registerJWTGuardConfig');
+
+        $app
+            ->shouldHaveReceived('singleton')
+            ->with(
+                JWTGuardConfig::class,
+                Mockery::on(function (\Closure $closure) use ($jwtGuardConfig) {
+                    $concreteJWTGuardConfig = $closure();
+
+                    return $jwtGuardConfig == $concreteJWTGuardConfig;
+                })
+            )
+            ->once();
+    }
+
     public function testGetAccessTokenProvider(): void
     {
         $key = $this->getFaker()->uuid;
@@ -611,14 +509,6 @@ final class RegistrarTest extends TestCase
             )
             ->once();
         $app
-            ->shouldHaveReceived('bind')
-            ->with(Builder::class)
-            ->once();
-        $app
-            ->shouldHaveReceived('bind')
-            ->with(Parser::class)
-            ->once();
-        $app
             ->shouldHaveReceived('singleton')
             ->with(
                 JWTHandlerContract::class,
@@ -672,5 +562,155 @@ final class RegistrarTest extends TestCase
                 Mockery::any()
             )
             ->once();
+    }
+
+    /**
+     * @return Registrar|MockInterface
+     */
+    private function createRegistrar(Container $app = null): Registrar
+    {
+        return new Registrar($app ?: $this->createApp());
+    }
+
+    /**
+     * @return Container|MockInterface
+     */
+    private function createApp(): Container
+    {
+        return Mockery::spy(Container::class);
+    }
+
+    /**
+     * @param Container|MockInterface     $app
+     */
+    private function addGet(
+        Container $app,
+        AuthManager $authManager = null,
+        TokenBlockList $withTokenBlockList = null,
+        Request $request = null,
+        Dispatcher $eventDispatcher = null,
+        JWTHandlerContract $jwtHandler = null,
+        RefreshTokenRepository $refreshTokenRepository = null,
+        Builder $builder = null,
+        Parser $parser = null,
+        JWTFactoryContract $jwtFactory = null,
+        array $config = [],
+        EventFactoryContract $eventFactory = null,
+        JWTGuardConfig $jwtGuardConfig = null,
+        Signer $signer = null,
+        Validator $validator = null,
+        Configuration $configuration = null
+    ): RegistrarTest {
+        $app
+            ->shouldReceive('get')
+            ->andReturnUsing(
+                function (string $argument) use (
+                    $authManager,
+                    $withTokenBlockList,
+                    $request,
+                    $eventDispatcher,
+                    $jwtHandler,
+                    $refreshTokenRepository,
+                    $builder,
+                    $parser,
+                    $jwtFactory,
+                    $config,
+                    $eventFactory,
+                    $jwtGuardConfig,
+                    $signer,
+                    $validator,
+                    $configuration
+                ) {
+                    switch ($argument) {
+                        case 'auth':
+                            return $authManager;
+
+                        case JWTHandlerContract::class:
+                            return $jwtHandler ?: Mockery::mock(JWTHandlerContract::class);
+
+                        case 'request':
+                            return $request ?: new Request();
+
+                        case Dispatcher::class:
+                            return $eventDispatcher;
+
+                        case TokenBlockList::class:
+                            return $withTokenBlockList;
+
+                        case RefreshTokenRepository::class:
+                            return $refreshTokenRepository;
+
+                        case Builder::class:
+                            return $builder;
+
+                        case Parser::class:
+                            return $parser;
+
+                        case JWTFactoryContract::class:
+                            return $jwtFactory;
+
+                        case 'config':
+                            return $config;
+
+                        case EventFactory::class:
+                            return $eventFactory;
+
+                        case JWTGuardConfig::class:
+                            return $jwtGuardConfig;
+
+                        case Signer::class:
+                            return $signer;
+
+                        case Validator::class:
+                            return $validator;
+
+                        case Configuration::class:
+                            return $configuration;
+
+                        default:
+                            return $this->getFaker()->uuid;
+                    }
+                }
+            );
+
+        return $this;
+    }
+
+    /**
+     * @param Container|MockInterface $app
+     */
+    private function addGetConfig(Container $app, array $config = [])
+    {
+        $app
+            ->shouldReceive('get')
+            ->with('config')
+            ->andReturn($config);
+
+        return $this;
+    }
+
+    /**
+     * @param Container|MockInterface $app
+     */
+    private function addMake(Container $app, $concrete = null): RegistrarTest
+    {
+        $app
+            ->shouldReceive('make')
+            ->andReturn($concrete);
+
+        return $this;
+    }
+
+    /**
+     * @param Container|MockInterface $app
+     */
+    private function mockAppMake(MockInterface $app, $concrete, string $class): self
+    {
+        $app
+            ->shouldReceive('make')
+            ->with($class)
+            ->andReturn($concrete);
+
+        return $this;
     }
 }

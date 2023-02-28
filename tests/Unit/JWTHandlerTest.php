@@ -7,6 +7,8 @@ use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\ClaimsFormatter;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Parser;
+use Lcobucci\JWT\Signer;
+use Lcobucci\JWT\Signer\Key;
 use Mockery;
 use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Contracts\JWTFactory;
@@ -26,19 +28,30 @@ final class JWTHandlerTest extends TestCase
     use JWTHelper;
     use ReflectionMethodHelper;
 
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+
+        CarbonImmutable::setTestNow();
+    }
+
     private function createJWTHandler(
         string $issuer = null,
         JWTFactory $jwtFactory = null,
         Validator $validator = null,
-        Configuration $configuration = null,
-        Parser $parser = null
+        Signer $signer = null,
+        Key $signingKey = null,
+        Parser $parser = null,
+        Builder $builder = null
     ): JWTHandler {
         return new JWTHandler(
             $issuer ?: $this->getFaker()->uuid,
             $jwtFactory ?: $this->createJWTFactory(),
             $validator ?: $this->createValidator(),
-            $configuration ?: $this->createConfiguration(),
-            $parser ?: $this->createParser()
+            $signer ?: $this->createSigner(),
+            $signingKey ?: $this->createKey(),
+            $parser ?: $this->createParser(),
+            $builder ?: $this->createBuilder()
         );
     }
 
@@ -52,12 +65,7 @@ final class JWTHandlerTest extends TestCase
         return fn (ClaimsFormatter $claimsFormatter) => $builder ?: $this->createBuilder();
     }
 
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-
-        CarbonImmutable::setTestNow();
-    }
+    //region Tests
 
     public function testCreateTimestamps(): void
     {
@@ -86,14 +94,15 @@ final class JWTHandlerTest extends TestCase
         $key = $this->createKey();
         $builder = $this->createBuilder();
         $this->mockBuilderGetToken($builder, $token, $signer, $key);
-        $configuration = $this->createConfiguration($signer, $key);
-        $configuration->setBuilderFactory($this->createBuilderFactory($builder));
 
         $jwtHandler = $this->createJWTHandler(
             null,
             $jwtFactory,
             null,
-            $configuration
+            $signer,
+            $key,
+            null,
+            $builder
         );
 
         return [$jwtHandler, $jwt, $builder];
@@ -172,7 +181,14 @@ final class JWTHandlerTest extends TestCase
         $this->mockValidatorValidate($validator, $validToken, $token);
         $parser = $this->createParser();
         $this->mockParserParse($parser, $validParsedToken ? $token : new \InvalidArgumentException(), $input);
-        $jwtHandler = $this->createJWTHandler(null, $jwtFactory, $validator, null, $parser);
+        $jwtHandler = $this->createJWTHandler(
+            null,
+            $jwtFactory,
+            $validator,
+            null,
+            null,
+            $parser
+        );
 
         return [$jwtHandler, $input, $jwt];
     }

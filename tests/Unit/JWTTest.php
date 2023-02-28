@@ -83,7 +83,7 @@ final class JWTTest extends TestCase
     {
         $issuedAt = new \DateTimeImmutable($this->getFaker()->dateTime()->format('Y-m-d H:i:s'));
 
-        $this->assertEquals($issuedAt, $this->createJWT($this->createJWTToken(null, ['iat' => $issuedAt->getTimestamp()]))->getIssuedAt());
+        $this->assertEquals($issuedAt, $this->createJWT($this->createJWTToken(null, ['iat' => $issuedAt]))->getIssuedAt());
     }
 
     public function testGetIssuedAtEmpty(): void
@@ -95,7 +95,7 @@ final class JWTTest extends TestCase
     {
         $expiresAt = new \DateTimeImmutable($this->getFaker()->dateTime()->format('Y-m-d H:i:s'));
 
-        $this->assertEquals($expiresAt, $this->createJWT($this->createJWTToken(null, ['exp' => $expiresAt->getTimestamp()]))->getExpiresAt());
+        $this->assertEquals($expiresAt, $this->createJWT($this->createJWTToken(null, ['exp' => $expiresAt]))->getExpiresAt());
     }
 
     public function testGetExpiresAtEmpty(): void

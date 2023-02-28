@@ -41,6 +41,15 @@ trait JWTHelper
         return Mockery::spy(JWTGuard::class);
     }
 
+    private function mockJWTGuardGuest(MockInterface $jwtGuard, bool $isGuest): self
+    {
+        $jwtGuard
+            ->shouldReceive('guest')
+            ->andReturn($isGuest);
+
+        return $this;
+    }
+
     private function mockJWTGuardReturnTokens(MockInterface $jwtGuard, Response $response): self
     {
         $jwtGuard
@@ -138,6 +147,14 @@ trait JWTHelper
             $claims ?: $this->createDataSet(),
             $signature ?: $this->createSignature()
         );
+    }
+
+    /**
+     * @return Signer|MockInterface
+     */
+    protected function getSigner(): Signer
+    {
+        return Mockery::spy(Signer::class);
     }
 
     /**
@@ -400,11 +417,19 @@ trait JWTHelper
         return new Signature($hash ?: $this->getFaker()->sha256, $encoded ?: $this->getFaker()->sha256);
     }
 
-    private function createConfiguration(Signer $signer = null, Key $key = null): Configuration
-    {
-        return Configuration::forSymmetricSigner(
+    private function createConfiguration(
+        Signer $signer = null,
+        Key $key = null,
+        Parser $parser = null,
+        Builder $builder = null
+    ): Configuration {
+        $configuration = Configuration::forSymmetricSigner(
             $signer ?: $this->createSigner(),
             $key ?: $this->createKey()
         );
+        $configuration->setParser($parser ?: $this->createParser());
+        $configuration->setBuilderFactory(fn () => $builder ?: $this->createBuilder());
+
+        return $configuration;
     }
 }

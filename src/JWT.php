@@ -45,21 +45,12 @@ final class JWT implements JWTContract
 
     public function getExpiresAt(): ?\DateTimeImmutable
     {
-        $expiresAt = $this->getClaim(self::CLAIM_EXPIRES_AT, false);
-
-        return $expiresAt
-            ? (new \DateTimeImmutable())->setTimestamp($expiresAt)
-            : null;
+        return $this->getClaim(self::CLAIM_EXPIRES_AT, false) ?: null;
     }
 
     public function getIssuedAt(): ?\DateTimeImmutable
     {
-        $issuedAt = $this->getClaim(self::CLAIM_ISSUED_AT);
-        if (empty($issuedAt)) {
-            return null;
-        }
-
-        return (new \DateTimeImmutable())->setTimestamp($issuedAt);
+        return $this->getClaim(self::CLAIM_ISSUED_AT) ?: null;
     }
 
     public function getRefreshTokenId(): ?string

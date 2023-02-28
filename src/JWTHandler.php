@@ -3,8 +3,10 @@
 namespace SPie\LaravelJWT;
 
 use Carbon\CarbonImmutable;
-use Lcobucci\JWT\Configuration;
+use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Parser;
+use Lcobucci\JWT\Signer;
+use Lcobucci\JWT\Signer\Key;
 use Lcobucci\JWT\Token;
 use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\Contracts\JWTFactory;
@@ -23,22 +25,30 @@ final class JWTHandler implements JWTHandlerContract
 
     private Validator $validator;
 
-    private Configuration $configuration;
+    private Signer $signer;
+
+    private Key $signingKey;
 
     private Parser $parser;
+
+    private Builder $builder;
 
     public function __construct(
         string $issuer,
         JWTFactory $jwtFactory,
         Validator $validator,
-        Configuration $configuration,
-        Parser $parser
+        Signer $signer,
+        Key $signingKey,
+        Parser $parser,
+        Builder $builder
     ) {
         $this->issuer = $issuer;
         $this->jwtFactory = $jwtFactory;
         $this->validator = $validator;
-        $this->configuration = $configuration;
+        $this->signer = $signer;
+        $this->signingKey = $signingKey;
         $this->parser = $parser;
+        $this->builder = $builder;
     }
 
     public function getValidJWT(string $token): JWT
@@ -46,6 +56,12 @@ final class JWTHandler implements JWTHandlerContract
         return $this->jwtFactory->createJWT($this->getValidToken($token));
     }
 
+    /**
+     * @throws BeforeValidException
+     * @throws InvalidSignatureException
+     * @throws InvalidTokenException
+     * @throws TokenExpiredException
+     */
     private function getValidToken(string $token): Token
     {
         try {
@@ -74,7 +90,7 @@ final class JWTHandler implements JWTHandlerContract
     {
         [$issuedAt, $expiresAt] = $this->createTimestamps($ttl);
 
-        $builder = $this->configuration->builder()
+        $builder = $this->builder
             ->issuedBy($this->issuer)
             ->relatedTo($subject)
             ->issuedAt($issuedAt);
@@ -87,9 +103,7 @@ final class JWTHandler implements JWTHandlerContract
             $builder->withClaim($name, $value);
         }
 
-        return $this->jwtFactory->createJWT(
-            $builder->getToken($this->configuration->signer(), $this->configuration->signingKey())
-        );
+        return $this->jwtFactory->createJWT($builder->getToken($this->signer, $this->signingKey));
     }
 
     private function createTimestamps(int $ttl = null): array

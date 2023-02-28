@@ -51,6 +51,11 @@ final class Registrar implements RegistrarContract
         $this->app = $app;
     }
 
+    private function getApp(): Container
+    {
+        return $this->app;
+    }
+
     public function register(): self
     {
         return $this
@@ -139,16 +144,18 @@ final class Registrar implements RegistrarContract
 
     private function registerJWTHandler(): self
     {
-        $this->app->bind(Builder::class);
-        $this->app->bind(Parser::class);
+        $this->getApp()->singleton(JWTHandlerContract::class, function () {
+            /** @var Configuration $configuration */
+            $configuration = $this->app->get(Configuration::class);
 
-        $this->app->singleton(JWTHandlerContract::class, function () {
             return new JWTHandler(
                 $this->getIssuerSetting(),
                 $this->app->get(JWTFactoryContract::class),
                 $this->app->get(ValidatorContract::class),
-                $this->app->get(Configuration::class),
-                $this->app->get(Parser::class),
+                $configuration->signer(),
+                $configuration->signingKey(),
+                $configuration->parser(),
+                $configuration->builder()
             );
         });
 
@@ -278,7 +285,7 @@ final class Registrar implements RegistrarContract
 
     private function getRefreshTokenTTLSetting(): ?int
     {
-        return $this->getJWTConfig(self::SETTING_REFRESH_TOKEN_PROVIDER . '.' . self::SETTING_TTL);
+        return $this->getJWTConfig(self::SETTING_REFRESH_TOKEN_PROVIDER . '.' . self::SETTING_TTL) ?: null;
     }
 
     private function getRefreshTokenRepositoryClass(): ?string
