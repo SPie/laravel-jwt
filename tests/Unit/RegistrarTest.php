@@ -565,14 +565,6 @@ final class RegistrarTest extends TestCase
     }
 
     /**
-     * @return Registrar|MockInterface
-     */
-    private function createRegistrar(Container $app = null): Registrar
-    {
-        return new Registrar($app ?: $this->createApp());
-    }
-
-    /**
      * @return Container|MockInterface
      */
     private function createApp(): Container
