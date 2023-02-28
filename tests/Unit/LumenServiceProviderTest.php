@@ -15,97 +15,12 @@ use SPie\LaravelJWT\Providers\Registrar;
 use SPie\LaravelJWT\Test\ReflectionMethodHelper;
 use SPie\LaravelJWT\Test\TestHelper;
 
-/**
- * Class LumenServiceProviderTest
- */
 final class LumenServiceProviderTest extends TestCase
 {
     use ReflectionMethodHelper;
     use TestHelper;
 
-    //region Tests
-
     /**
-     * @return void
-     */
-    public function testConstruct(): void
-    {
-        $app = $this->createApp();
-
-        $lumenServiceProvider = $this->createLumenServiceProvider($app);
-
-        $this->assertEquals($app, $this->getPrivateProperty($lumenServiceProvider, 'app'));
-        $registrar = $this->getPrivateProperty($lumenServiceProvider, 'registrar');
-        $this->assertInstanceOf(Registrar::class, $registrar);
-        $this->assertEquals($app, $this->getPrivateProperty($registrar, 'app'));
-    }
-
-    /**
-     * @return void
-     */
-    public function testRegister(): void
-    {
-        $registrar = Mockery::spy(RegistrarContract::class);
-
-        $lumenServiceProvider = $this->createLumenServiceProvider();
-        $this->setPrivateProperty($lumenServiceProvider, 'registrar', $registrar);
-
-        $this->assertEmpty($lumenServiceProvider->register());
-
-        $registrar
-            ->shouldHaveReceived('register')
-            ->once();
-    }
-
-
-    /**
-     * @return void
-     */
-    public function testBoot(): void
-    {
-        $registrar = Mockery::spy(RegistrarContract::class);
-        $configRepository = $this->createConfigRepository();
-        $configRepository
-            ->shouldReceive('get')
-            ->andReturn([]);
-        $app = $this->createApp($configRepository);
-        $lumenServiceProvider = $this->createLumenServiceProvider($app);
-        $this->setPrivateProperty($lumenServiceProvider, 'registrar', $registrar);
-
-        $this->assertEmpty($lumenServiceProvider->boot());
-
-        $configRepository
-            ->shouldHaveReceived('set')
-            ->with(
-                'jwt',
-                Mockery::on(function ($argument) {
-                    return \is_array($argument);
-                })
-            )
-            ->once();
-        $configRepository
-            ->shouldHaveReceived('get')
-            ->with(
-                'jwt',
-                []
-            )
-            ->once();
-        $app
-            ->shouldHaveReceived('configure')
-            ->with('jwt')
-            ->once();
-        $registrar
-            ->shouldHaveReceived('boot')
-            ->once();
-    }
-
-    //endregion
-
-    //region Mocks
-
-    /**
-     * @param Container|null $app
-     *
      * @return LumenServiceProvider|MockInterface
      */
     private function createLumenServiceProvider(Container $app = null): LumenServiceProvider
@@ -114,9 +29,6 @@ final class LumenServiceProviderTest extends TestCase
     }
 
     /**
-     * @param Repository|null  $configRepository
-     * @param AuthManager|null $authManager
-     *
      * @return Application|MockInterface
      */
     private function createApp(Repository $configRepository = null, AuthManager $authManager = null): Container
@@ -162,5 +74,68 @@ final class LumenServiceProviderTest extends TestCase
         return Mockery::spy(AuthManager::class);
     }
 
-    //endregion
+    public function testConstruct(): void
+    {
+        $app = $this->createApp();
+
+        $lumenServiceProvider = $this->createLumenServiceProvider($app);
+
+        $this->assertEquals($app, $this->getPrivateProperty($lumenServiceProvider, 'app'));
+        $registrar = $this->getPrivateProperty($lumenServiceProvider, 'registrar');
+        $this->assertInstanceOf(Registrar::class, $registrar);
+        $this->assertEquals($app, $this->getPrivateProperty($registrar, 'app'));
+    }
+
+    public function testRegister(): void
+    {
+        $registrar = Mockery::spy(RegistrarContract::class);
+
+        $lumenServiceProvider = $this->createLumenServiceProvider();
+        $this->setPrivateProperty($lumenServiceProvider, 'registrar', $registrar);
+
+        $lumenServiceProvider->register();
+
+        $registrar
+            ->shouldHaveReceived('register')
+            ->once();
+    }
+
+
+    public function testBoot(): void
+    {
+        $registrar = Mockery::spy(RegistrarContract::class);
+        $configRepository = $this->createConfigRepository();
+        $configRepository
+            ->shouldReceive('get')
+            ->andReturn([]);
+        $app = $this->createApp($configRepository);
+        $lumenServiceProvider = $this->createLumenServiceProvider($app);
+        $this->setPrivateProperty($lumenServiceProvider, 'registrar', $registrar);
+
+        $lumenServiceProvider->boot();
+
+        $configRepository
+            ->shouldHaveReceived('set')
+            ->with(
+                'jwt',
+                Mockery::on(function ($argument) {
+                    return \is_array($argument);
+                })
+            )
+            ->once();
+        $configRepository
+            ->shouldHaveReceived('get')
+            ->with(
+                'jwt',
+                []
+            )
+            ->once();
+        $app
+            ->shouldHaveReceived('configure')
+            ->with('jwt')
+            ->once();
+        $registrar
+            ->shouldHaveReceived('boot')
+            ->once();
+    }
 }

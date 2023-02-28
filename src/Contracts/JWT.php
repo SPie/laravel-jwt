@@ -2,11 +2,6 @@
 
 namespace SPie\LaravelJWT\Contracts;
 
-/**
- * Interface JWT
- *
- * @package SPie\LaravelJWT\Contracts
- */
 interface JWT
 {
     const CLAIM_ISSUER     = 'iss';
@@ -20,51 +15,24 @@ interface JWT
     const CUSTOM_CLAIM_REFRESH_TOKEN = 'rti';
     const CUSTOM_CLAIM_IP_ADDRESS    = 'ipa';
 
-    /**
-     * @return string
-     */
     public function getJWT(): string;
 
-    /**
-     * @return array
-     */
     public function getClaims(): array;
 
     /**
-     * @param string $claim
-     * @param bool   $required
-     *
-     * @return mixed
+     * @return mixed|null
      */
     public function getClaim(string $claim, bool $required = true);
 
-    /**
-     * @return string|null
-     */
     public function getIssuer(): ?string;
 
-    /**
-     * @return string|null
-     */
     public function getSubject(): ?string;
 
-    /**
-     * @return \DateTimeImmutable|null
-     */
     public function getExpiresAt(): ?\DateTimeImmutable;
 
-    /**
-     * @return \DateTimeImmutable|null
-     */
     public function getIssuedAt(): ?\DateTimeImmutable;
 
-    /**
-     * @return string|null
-     */
     public function getRefreshTokenId(): ?string;
 
-    /**
-     * @return string|null
-     */
     public function getIpAddress(): ?string;
 }

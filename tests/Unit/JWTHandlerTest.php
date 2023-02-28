@@ -235,6 +235,4 @@ final class JWTHandlerTest extends TestCase
 
         $jwtHandler->getValidJWT($input);
     }
-
-    //endregion
 }

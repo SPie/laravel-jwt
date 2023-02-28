@@ -80,14 +80,14 @@ final class Registrar implements RegistrarContract
 
     private function registerJWTGuard(): self
     {
-        $this->getApp()->singleton(JWTGuardContract::class, fn () => $this->getApp()->get('auth')->guard());
+        $this->app->singleton(JWTGuardContract::class, fn () => $this->app->get('auth')->guard());
 
         return $this;
     }
 
     private function registerJWTFactory(): self
     {
-        $this->getApp()->singleton(JWTFactoryContract::class, JWTFactory::class);
+        $this->app->singleton(JWTFactoryContract::class, JWTFactory::class);
 
         return $this;
     }
@@ -106,7 +106,7 @@ final class Registrar implements RegistrarContract
     {
         $this->app->singleton(LcobucciValidatorContract::class, LcobucciValidator::class);
 
-        $this->getApp()->singleton(ValidatorContract::class, fn () => new Validator(
+        $this->app->singleton(ValidatorContract::class, fn () => new Validator(
             $this->app->get(LcobucciValidatorContract::class),
             $this->app->get(SignedWith::class)
         ));
@@ -164,11 +164,11 @@ final class Registrar implements RegistrarContract
 
     private function registerTokenBlockList(): self
     {
-        $this->getApp()->singleton(TokenBlockList::class, function () {
+        $this->app->singleton(TokenBlockList::class, function () {
             $tokenBlockListClass = $this->getBlockListSetting();
 
             return !empty($tokenBlockListClass)
-                ? $this->getApp()->make($tokenBlockListClass)
+                ? $this->app->make($tokenBlockListClass)
                 : null;
         });
 
@@ -177,26 +177,26 @@ final class Registrar implements RegistrarContract
 
     private function registerEventFactory(): self
     {
-        $this->getApp()->singleton(EventFactoryContract::class, EventFactory::class);
+        $this->app->singleton(EventFactoryContract::class, EventFactory::class);
 
         return $this;
     }
 
     private function extendAuthGuard(): self
     {
-        $this->getApp()->get('auth')->extend('jwt', function ($app, $name, array $config) {
+        $this->app->get('auth')->extend('jwt', function ($app, $name, array $config) {
             return new JWTGuard(
                 $name,
-                $this->getApp()->get(JWTHandlerContract::class),
-                $this->getApp()->get('auth')->createUserProvider($config['provider']),
-                $this->getApp()->get('request'),
-                $this->getApp()->get(JWTGuardConfig::class),
+                $this->app->get(JWTHandlerContract::class),
+                $this->app->get('auth')->createUserProvider($config['provider']),
+                $this->app->get('request'),
+                $this->app->get(JWTGuardConfig::class),
                 $this->getAccessTokenProvider(),
                 $this->getRefreshTokenProvider(),
-                $this->getApp()->get($this->getRefreshTokenRepositoryClass()),
-                $this->getApp()->get(EventFactory::class),
-                $this->getApp()->get(TokenBlockList::class),
-                $this->getApp()->get(Dispatcher::class)
+                $this->app->get($this->getRefreshTokenRepositoryClass()),
+                $this->app->get(EventFactory::class),
+                $this->app->get(TokenBlockList::class),
+                $this->app->get(Dispatcher::class)
             );
         });
 
@@ -218,7 +218,7 @@ final class Registrar implements RegistrarContract
     {
         $accessTokenProviderClass = $this->getAccessTokenProviderClassSetting();
 
-        return $this->getApp()->make($accessTokenProviderClass)
+        return $this->app->make($accessTokenProviderClass)
             ->setKey($this->getAccessTokenProviderKeySetting());
     }
 
@@ -234,7 +234,7 @@ final class Registrar implements RegistrarContract
             throw new InvalidTokenProviderKeyException();
         }
 
-        return $this->getApp()->make($refreshTokenProviderClass)
+        return $this->app->make($refreshTokenProviderClass)
             ->setKey($this->getRefreshTokenProviderKeySetting());
     }
 
@@ -300,6 +300,6 @@ final class Registrar implements RegistrarContract
 
     private function getJWTConfig(string $key, $default = null): ?string
     {
-        return $this->getApp()->get('config')[self::SETTING_JWT . '.' . $key] ?? $default;
+        return $this->app->get('config')[self::SETTING_JWT . '.' . $key] ?? $default;
     }
 }

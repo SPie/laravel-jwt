@@ -6,15 +6,8 @@ use Illuminate\Http\Request;
 use Mockery as m;
 use Mockery\MockInterface;
 
-/**
- * Trait RequestHelper
- *
- * @package SPie\LaravelJWT\Test
- */
 trait RequestHelper
 {
-    //region Mocks
-
     /**
      * @return Request|MockInterface
      */
@@ -23,12 +16,6 @@ trait RequestHelper
         return m::spy(Request::class);
     }
 
-    /**
-     * @param Request|MockInterface $request
-     * @param string|null           $ipAddress
-     *
-     * @return $this
-     */
     private function mockRequestIp(MockInterface $request, ?string $ipAddress)
     {
         $request
@@ -37,6 +24,4 @@ trait RequestHelper
 
         return $this;
     }
-
-    //endregion
 }

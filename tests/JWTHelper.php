@@ -33,6 +33,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 trait JWTHelper
 {
+    /**
+     * @return JWTGuard|MockInterface
+     */
     protected function createJWTGuard(): JWTGuard
     {
         return Mockery::spy(JWTGuard::class);
@@ -340,13 +343,6 @@ trait JWTHelper
         return $this;
     }
 
-    /**
-     * @param bool|null $withIpCheck
-     * @param int|null  $accessTokenTtl
-     * @param int|null  $refreshTokenTtl
-     *
-     * @return JWTGuardConfig
-     */
     private function createJWTGuardConfig(
         bool $withIpCheck = null,
         int $accessTokenTtl = null,
@@ -416,17 +412,11 @@ trait JWTHelper
         return new DataSet($data, $encoded);
     }
 
-    /**
-     * @return Signature
-     */
     private function createSignature(string $hash = null, string $encoded = null): Signature
     {
         return new Signature($hash ?: $this->getFaker()->sha256, $encoded ?: $this->getFaker()->sha256);
     }
 
-    /**
-     * @return Configuration|MockInterface
-     */
     private function createConfiguration(
         Signer $signer = null,
         Key $key = null,

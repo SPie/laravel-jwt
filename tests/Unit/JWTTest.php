@@ -44,8 +44,6 @@ final class JWTTest extends TestCase
         return $token;
     }
 
-    //region Tests
-
     public function testGetJWT(): void
     {
         $jwt = $this->getFaker()->sha256;
@@ -136,6 +134,4 @@ final class JWTTest extends TestCase
     {
         $this->assertEmpty($this->createJWT($this->createJWTToken())->getIpAddress());
     }
-
-    //endregion
 }

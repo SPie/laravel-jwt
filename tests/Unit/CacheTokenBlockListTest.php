@@ -11,21 +11,47 @@ use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\Test\JWTHelper;
 use SPie\LaravelJWT\Test\TestHelper;
 
-/**
- * Class CacheTokenBlockListTest
- */
 final class CacheTokenBlockListTest extends TestCase
 {
     use TestHelper;
     use JWTHelper;
 
-    //region Tests
+    private function createCacheTokenBlockList(Repository $repository = null): CacheTokenBlockList
+    {
+        return new CacheTokenBlockList($repository ?: $this->createRepository());
+    }
 
     /**
-     * @return void
-     *
-     * @throws \Exception
+     * @return Repository|MockInterface
      */
+    private function createRepository(): Repository
+    {
+        return Mockery::spy(Repository::class);
+    }
+
+    private function hashJWT(string $jwt): string
+    {
+        return \md5($jwt);
+    }
+
+    /**
+     * @return JWT|MockInterface
+     */
+    private function createJWTToRevoke(int $ttl = null): JWT
+    {
+        return $this->createJWT()
+            ->shouldReceive('getJWT')
+            ->andReturn($this->getFaker()->uuid)
+            ->getMock()
+            ->shouldReceive('getExpiresAt')
+            ->andReturn(
+                $ttl
+                    ? (new \DateTimeImmutable())->add(new \DateInterval('PT' . $ttl . 'M'))
+                    : null
+            )
+            ->getMock();
+    }
+
     public function testRevoke(): void
     {
         $repository = $this->createRepository();
@@ -48,11 +74,6 @@ final class CacheTokenBlockListTest extends TestCase
             ->once();
     }
 
-    /**
-     * @return void
-     *
-     * @throws \Exception
-     */
     public function testRevokeForever(): void
     {
         $repository = $this->createRepository();
@@ -73,11 +94,6 @@ final class CacheTokenBlockListTest extends TestCase
             ->once();
     }
 
-    /**
-     * @return void
-     *
-     * @throws Exception
-     */
     public function testIsRevoked(): void
     {
         $jwt = $this->createJWTToRevoke();
@@ -93,9 +109,6 @@ final class CacheTokenBlockListTest extends TestCase
             ->once();
     }
 
-    /**
-     * @return void
-     */
     public function testIsRevokedWithoutToken(): void
     {
         $repository = $this->createRepository();
@@ -104,57 +117,5 @@ final class CacheTokenBlockListTest extends TestCase
             ->andReturn(false);
 
         $this->assertFalse($this->createCacheTokenBlockList($repository)->isRevoked($this->getFaker()->uuid));
-    }
-
-    //endregion
-
-    /**
-     * @param Repository|null $repository
-     *
-     * @return CacheTokenBlockList
-     */
-    private function createCacheTokenBlockList(Repository $repository = null): CacheTokenBlockList
-    {
-        return new CacheTokenBlockList($repository ?: $this->createRepository());
-    }
-
-    /**
-     * @return Repository|MockInterface
-     */
-    private function createRepository(): Repository
-    {
-        return Mockery::spy(Repository::class);
-    }
-
-    /**
-     * @param string $jwt
-     *
-     * @return string
-     */
-    private function hashJWT(string $jwt): string
-    {
-        return \md5($jwt);
-    }
-
-    /**
-     * @param int|null $ttl
-     *
-     * @return JWT|MockInterface
-     *
-     * @throws \Exception
-     */
-    private function createJWTToRevoke(int $ttl = null): JWT
-    {
-        return $this->createJWT()
-            ->shouldReceive('getJWT')
-            ->andReturn($this->getFaker()->uuid)
-            ->getMock()
-            ->shouldReceive('getExpiresAt')
-            ->andReturn(
-                $ttl
-                    ? (new \DateTimeImmutable())->add(new \DateInterval('PT' . $ttl . 'M'))
-                    : null
-            )
-            ->getMock();
     }
 }

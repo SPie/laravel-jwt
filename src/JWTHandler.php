@@ -51,13 +51,6 @@ final class JWTHandler implements JWTHandlerContract
         $this->builder = $builder;
     }
 
-    /**
-     * @throws BeforeValidException
-     * @throws TokenExpiredException
-     * @throws InvalidTokenException
-     * @throws InvalidSignatureException
-     * @throws \Exception
-     */
     public function getValidJWT(string $token): JWT
     {
         return $this->jwtFactory->createJWT($this->getValidToken($token));

@@ -40,7 +40,13 @@ final class RegistrarTest extends TestCase
     use JWTHelper;
     use ReflectionMethodHelper;
 
-    //region Tests
+    /**
+     * @return Registrar|MockInterface
+     */
+    private function createRegistrar(Container $app = null): Registrar
+    {
+        return new Registrar($app ?: $this->createApp());
+    }
 
     public function testRegisterJWTFactory(): void
     {
@@ -556,16 +562,6 @@ final class RegistrarTest extends TestCase
                 Mockery::any()
             )
             ->once();
-    }
-
-    //endregion
-
-    /**
-     * @return Registrar|MockInterface
-     */
-    private function createRegistrar(Container $app = null): Registrar
-    {
-        return new Registrar($app ?: $this->createApp());
     }
 
     /**

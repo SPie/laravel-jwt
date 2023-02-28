@@ -8,19 +8,24 @@ use SPie\LaravelJWT\Test\HttpHelper;
 use SPie\LaravelJWT\Test\TestHelper;
 use SPie\LaravelJWT\TokenProvider\HeaderTokenProvider;
 
-/**
- * Class HeaderTokenProviderTest
- */
 final class HeaderTokenProviderTest extends TestCase
 {
     use TestHelper;
     use HttpHelper;
 
-    //region Tests
+    private function createHeaderTokenProvider(string $headerName): HeaderTokenProvider
+    {
+        return (new HeaderTokenProvider())->setKey($headerName);
+    }
 
-    /**
-     * @return void
-     */
+    private function createRequestWithHeader(string $headerName, string $value): Request
+    {
+        $request = $this->createEmptyRequest();
+        $request->headers->set($headerName, $value);
+
+        return $request;
+    }
+
     public function testGetRequestToken(): void
     {
         $headerName = $this->getFaker()->uuid;
@@ -33,9 +38,6 @@ final class HeaderTokenProviderTest extends TestCase
         );
     }
 
-    /**
-     * @return void
-     */
     public function testGetRequestTokenWithoutToken(): void
     {
         $this->assertEmpty(
@@ -43,9 +45,6 @@ final class HeaderTokenProviderTest extends TestCase
         );
     }
 
-    /**
-     * @return void
-     */
     public function testGetRequestTokenWithoutMatch(): void
     {
         $headerName = $this->getFaker()->uuid;
@@ -56,9 +55,6 @@ final class HeaderTokenProviderTest extends TestCase
         );
     }
 
-    /**
-     * @return void
-     */
     public function testSetResponseToken(): void
     {
         $token = $this->getFaker()->uuid;
@@ -69,31 +65,5 @@ final class HeaderTokenProviderTest extends TestCase
             $this->createHeaderTokenProvider($headerName)
                 ->setResponseToken($this->createEmptyResponse(), $token)->headers->get($headerName)
         );
-    }
-
-    //endregion
-
-    /**
-     * @param string $headerName
-     *
-     * @return HeaderTokenProvider
-     */
-    private function createHeaderTokenProvider(string $headerName): HeaderTokenProvider
-    {
-        return (new HeaderTokenProvider())->setKey($headerName);
-    }
-
-    /**
-     * @param string $headerName
-     * @param string $value
-     *
-     * @return Request
-     */
-    private function createRequestWithHeader(string $headerName, string $value): Request
-    {
-        $request = $this->createEmptyRequest();
-        $request->headers->set($headerName, $value);
-
-        return $request;
     }
 }
