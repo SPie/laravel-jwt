@@ -1,6 +1,6 @@
 <?php
 
-namespace SPie\LaravelJWT\Test\Unit;
+namespace SPie\LaravelJWT\Test\Unit\Providers;
 
 use Illuminate\Auth\AuthManager;
 use Illuminate\Contracts\Auth\UserProvider;

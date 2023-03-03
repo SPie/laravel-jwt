@@ -1,6 +1,6 @@
 <?php
 
-namespace SPie\LaravelJWT\Test\Unit;
+namespace SPie\LaravelJWT\Test\Unit\Events;
 
 use Illuminate\Auth\Events\Attempting;
 use Illuminate\Auth\Events\Failed;

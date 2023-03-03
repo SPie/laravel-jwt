@@ -1,35 +1,34 @@
 <?php
 
-namespace SPie\LaravelJWT\Test\Unit;
+namespace SPie\LaravelJWT\Test\Unit\Providers;
 
 use Illuminate\Auth\AuthManager;
 use Illuminate\Config\Repository;
 use Illuminate\Contracts\Container\Container;
-use Illuminate\Contracts\Foundation\Application;
 use Mockery;
 use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Contracts\Registrar as RegistrarContract;
-use SPie\LaravelJWT\Providers\LumenServiceProvider;
+use SPie\LaravelJWT\Providers\LaravelServiceProvider;
 use SPie\LaravelJWT\Providers\Registrar;
 use SPie\LaravelJWT\Test\ReflectionMethodHelper;
 use SPie\LaravelJWT\Test\TestHelper;
 
-final class LumenServiceProviderTest extends TestCase
+final class LaravelServiceProviderTest extends TestCase
 {
     use ReflectionMethodHelper;
     use TestHelper;
 
     /**
-     * @return LumenServiceProvider|MockInterface
+     * @return LaravelServiceProvider|MockInterface
      */
-    private function createLumenServiceProvider(Container $app = null): LumenServiceProvider
+    private function createLaravelServiceProvider(Container $app = null): LaravelServiceProvider
     {
-        return new LumenServiceProvider($app ?: $this->createApp());
+        return new LaravelServiceProvider($app ?: $this->createApp());
     }
 
     /**
-     * @return Application|MockInterface
+     * @return Container|MockInterface
      */
     private function createApp(Repository $configRepository = null, AuthManager $authManager = null): Container
     {
@@ -78,10 +77,9 @@ final class LumenServiceProviderTest extends TestCase
     {
         $app = $this->createApp();
 
-        $lumenServiceProvider = $this->createLumenServiceProvider($app);
-
-        $this->assertEquals($app, $this->getPrivateProperty($lumenServiceProvider, 'app'));
-        $registrar = $this->getPrivateProperty($lumenServiceProvider, 'registrar');
+        $laravelServiceProvider = new LaravelServiceProvider($app);
+        $this->assertEquals($app, $this->getPrivateProperty($laravelServiceProvider, 'app'));
+        $registrar = $this->getPrivateProperty($laravelServiceProvider, 'registrar');
         $this->assertInstanceOf(Registrar::class, $registrar);
         $this->assertEquals($app, $this->getPrivateProperty($registrar, 'app'));
     }
@@ -90,30 +88,46 @@ final class LumenServiceProviderTest extends TestCase
     {
         $registrar = Mockery::spy(RegistrarContract::class);
 
-        $lumenServiceProvider = $this->createLumenServiceProvider();
-        $this->setPrivateProperty($lumenServiceProvider, 'registrar', $registrar);
+        $laravelServiceProvider = $this->createLaravelServiceProvider();
+        $this->setPrivateProperty($laravelServiceProvider, 'registrar', $registrar);
 
-        $lumenServiceProvider->register();
+        $laravelServiceProvider->register();
 
         $registrar
             ->shouldHaveReceived('register')
             ->once();
     }
 
-
     public function testBoot(): void
     {
         $registrar = Mockery::spy(RegistrarContract::class);
+        $configPath = $this->getFaker()->uuid;
         $configRepository = $this->createConfigRepository();
         $configRepository
             ->shouldReceive('get')
             ->andReturn([]);
         $app = $this->createApp($configRepository);
-        $lumenServiceProvider = $this->createLumenServiceProvider($app);
-        $this->setPrivateProperty($lumenServiceProvider, 'registrar', $registrar);
+        $app
+            ->shouldReceive('basePath')
+            ->andReturn($configPath);
+        $laravelServiceProvider = $this->createLaravelServiceProvider($app);
+        $this->setPrivateProperty($laravelServiceProvider, 'registrar', $registrar);
 
-        $lumenServiceProvider->boot();
+        $laravelServiceProvider->boot();
 
+        $publishes = $this->getPrivateProperty($laravelServiceProvider, 'publishes');
+        $publishGroups = $this->getPrivateProperty($laravelServiceProvider, 'publishGroups');
+
+        $this->assertArrayHasKey(LaravelServiceProvider::class, $publishes);
+        $keys = \array_keys($publishes[LaravelServiceProvider::class]);
+        $values = \array_values($publishes[LaravelServiceProvider::class]);
+        $this->assertEquals(1, \preg_match('/config\/jwt.php/', \array_shift($keys)));
+        $this->assertEquals($configPath, \array_shift($values));
+        $this->assertArrayHasKey('config', $publishGroups);
+        $keys = \array_keys($publishGroups['config']);
+        $values = \array_values($publishGroups['config']);
+        $this->assertEquals(1, \preg_match('/config\/jwt.php/', \array_shift($keys)));
+        $this->assertEquals($configPath, \array_shift($values));
         $configRepository
             ->shouldHaveReceived('set')
             ->with(
@@ -129,10 +143,6 @@ final class LumenServiceProviderTest extends TestCase
                 'jwt',
                 []
             )
-            ->once();
-        $app
-            ->shouldHaveReceived('configure')
-            ->with('jwt')
             ->once();
         $registrar
             ->shouldHaveReceived('boot')

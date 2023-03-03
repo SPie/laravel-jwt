@@ -1,6 +1,6 @@
 <?php
 
-namespace SPie\LaravelJWT\Test\Unit;
+namespace SPie\LaravelJWT\Test\Unit\BlockList;
 
 use Illuminate\Cache\Repository;
 use Mockery;

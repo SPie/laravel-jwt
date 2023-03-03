@@ -1,6 +1,6 @@
 <?php
 
-namespace SPie\LaravelJWT\Test\Unit;
+namespace SPie\LaravelJWT\Test\Unit\TokenProvider;
 
 use Illuminate\Http\Request;
 use PHPUnit\Framework\TestCase;

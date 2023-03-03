@@ -1,8 +1,7 @@
 <?php
 
-namespace SPie\LaravelJWT\Test\Unit;
+namespace SPie\LaravelJWT\Test\Unit\Middleware;
 
-use Illuminate\Auth\AuthenticationException;
 use PHPUnit\Framework\TestCase;
 use SPie\LaravelJWT\Contracts\JWTGuard;
 use SPie\LaravelJWT\Middleware\JWTTokens;
