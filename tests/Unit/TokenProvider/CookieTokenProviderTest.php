@@ -1,6 +1,6 @@
 <?php
 
-namespace SPie\LaravelJWT\Test\Unit;
+namespace SPie\LaravelJWT\Test\Unit\TokenProvider;
 
 use Illuminate\Contracts\Cookie\Factory;
 use Illuminate\Http\Request;

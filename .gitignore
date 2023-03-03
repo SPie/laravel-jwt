@@ -5,3 +5,4 @@ report/
 composer.lock
 *.swp
 .phpunit.result.cache
+.projections.json

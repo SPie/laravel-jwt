@@ -1,6 +1,6 @@
 <?php
 
-namespace SPie\LaravelJWT\Test\Unit;
+namespace SPie\LaravelJWT\Test\Unit\Auth;
 
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\Events\Attempting;
@@ -22,7 +22,6 @@ use SPie\LaravelJWT\Contracts\RefreshTokenRepository;
 use SPie\LaravelJWT\Contracts\TokenBlockList;
 use SPie\LaravelJWT\Contracts\TokenProvider;
 use SPie\LaravelJWT\Exceptions\InvalidTokenException;
-use SPie\LaravelJWT\Contracts\JWT;
 use SPie\LaravelJWT\Contracts\JWTHandler;
 use SPie\LaravelJWT\Test\HttpHelper;
 use SPie\LaravelJWT\Test\JWTHelper;
