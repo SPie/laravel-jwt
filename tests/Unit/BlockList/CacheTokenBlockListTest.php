@@ -16,7 +16,7 @@ final class CacheTokenBlockListTest extends TestCase
     use TestHelper;
     use JWTHelper;
 
-    private function createCacheTokenBlockList(Repository $repository = null): CacheTokenBlockList
+    private function createCacheTokenBlockList(?Repository $repository = null): CacheTokenBlockList
     {
         return new CacheTokenBlockList($repository ?: $this->createRepository());
     }
@@ -37,7 +37,7 @@ final class CacheTokenBlockListTest extends TestCase
     /**
      * @return JWT|MockInterface
      */
-    private function createJWTToRevoke(int $ttl = null): JWT
+    private function createJWTToRevoke(?int $ttl = null): JWT
     {
         return $this->createJWT()
             ->shouldReceive('getJWT')

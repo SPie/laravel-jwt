@@ -36,13 +36,13 @@ final class JWTHandlerTest extends TestCase
     }
 
     private function createJWTHandler(
-        string $issuer = null,
-        JWTFactory $jwtFactory = null,
-        Validator $validator = null,
-        Signer $signer = null,
-        Key $signingKey = null,
-        Parser $parser = null,
-        Builder $builder = null
+        ?string $issuer = null,
+        ?JWTFactory $jwtFactory = null,
+        ?Validator $validator = null,
+        ?Signer $signer = null,
+        ?Key $signingKey = null,
+        ?Parser $parser = null,
+        ?Builder $builder = null
     ): JWTHandler {
         return new JWTHandler(
             $issuer ?: $this->getFaker()->uuid,
@@ -55,12 +55,12 @@ final class JWTHandlerTest extends TestCase
         );
     }
 
-    private function runCreateTimestampsMethod(JWTHandler $jwtHandler, int $minutes = null): array
+    private function runCreateTimestampsMethod(JWTHandler $jwtHandler, ?int $minutes = null): array
     {
         return $this->runReflectionMethod($jwtHandler, 'createTimestamps', [$minutes]);
     }
 
-    private function createBuilderFactory(Builder $builder = null): \Closure
+    private function createBuilderFactory(?Builder $builder = null): \Closure
     {
         return fn (ClaimsFormatter $claimsFormatter) => $builder ?: $this->createBuilder();
     }

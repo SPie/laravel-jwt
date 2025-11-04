@@ -57,8 +57,8 @@ final class JWTGuard implements JWTGuardContract
         TokenProvider $refreshTokenProvider,
         RefreshTokenRepository $refreshTokenRepository,
         EventFactory $eventFactory,
-        TokenBlockList $tokenBlockList = null,
-        Dispatcher $eventDispatcher = null
+        ?TokenBlockList $tokenBlockList = null,
+        ?Dispatcher $eventDispatcher = null
     ) {
         $this->name = $name;
         $this->jwtHandler = $jwtHandler;
@@ -100,9 +100,11 @@ final class JWTGuard implements JWTGuardContract
         return $this->refreshToken;
     }
 
-    public function setUser(Authenticatable $user): void
+    public function setUser(Authenticatable $user)
     {
         $this->user = $user;
+
+        return $this;
     }
 
     public function user(): ?Authenticatable
@@ -119,7 +121,7 @@ final class JWTGuard implements JWTGuardContract
         return $user;
     }
 
-    private function authenticateWithAccessToken(Request $request): ?JWTAuthenticatable
+    private function authenticateWithAccessToken(Request $request): ?Authenticatable
     {
         $accessToken = $this->getAccessTokenFromRequest($request);
         if (!$accessToken) {
@@ -162,7 +164,7 @@ final class JWTGuard implements JWTGuardContract
         return $accessJwt;
     }
 
-    private function authenticateWithRefreshToken(Request $request): ?JWTAuthenticatable
+    private function authenticateWithRefreshToken(Request $request): ?Authenticatable
     {
         $refreshToken = $this->getRefreshTokenFromRequest($request);
         if (!$refreshToken) {
@@ -370,7 +372,7 @@ final class JWTGuard implements JWTGuardContract
     /**
      * @param mixed $id
      *
-     * @return bool|Authenticatable|null
+     * @return bool|Authenticatable
      */
     public function onceUsingId($id)
     {

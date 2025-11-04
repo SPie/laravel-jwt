@@ -22,7 +22,7 @@ final class LaravelServiceProviderTest extends TestCase
     /**
      * @return LaravelServiceProvider|MockInterface
      */
-    private function createLaravelServiceProvider(Container $app = null): LaravelServiceProvider
+    private function createLaravelServiceProvider(?Container $app = null): LaravelServiceProvider
     {
         return new LaravelServiceProvider($app ?: $this->createApp());
     }
@@ -30,7 +30,7 @@ final class LaravelServiceProviderTest extends TestCase
     /**
      * @return Container|MockInterface
      */
-    private function createApp(Repository $configRepository = null, AuthManager $authManager = null): Container
+    private function createApp(?Repository $configRepository = null, ?AuthManager $authManager = null): Container
     {
         $app = Mockery::spy(Container::class, \ArrayAccess::class);
         $app

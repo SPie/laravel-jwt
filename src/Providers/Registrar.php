@@ -265,7 +265,7 @@ final class Registrar implements RegistrarContract
 
     private function getAccessTokenTTLSetting(): int
     {
-        return $this->getJWTConfig(self::SETTING_ACCESS_TOKEN_PROVIDER . '.' . self::SETTING_TTL);
+        return (int)$this->getJWTConfig(self::SETTING_ACCESS_TOKEN_PROVIDER . '.' . self::SETTING_TTL);
     }
 
     private function getBlockListSetting(): ?string
@@ -285,7 +285,12 @@ final class Registrar implements RegistrarContract
 
     private function getRefreshTokenTTLSetting(): ?int
     {
-        return $this->getJWTConfig(self::SETTING_REFRESH_TOKEN_PROVIDER . '.' . self::SETTING_TTL) ?: null;
+        $refreshTokenTtl = $this->getJWTConfig(self::SETTING_REFRESH_TOKEN_PROVIDER . '.' . self::SETTING_TTL);
+        if ($refreshTokenTtl === null) {
+            return null;
+        }
+
+        return (int)$refreshTokenTtl;
     }
 
     private function getRefreshTokenRepositoryClass(): ?string
@@ -295,11 +300,16 @@ final class Registrar implements RegistrarContract
 
     private function getIpCheckEnabledSetting(): bool
     {
-        return $this->getJWTConfig(self::SETTING_IP_CHECK_ENABLED, false);
+        $ipCheckEnabled = $this->getJWTConfig(self::SETTING_IP_CHECK_ENABLED);
+        if ($ipCheckEnabled === null) {
+            return false;
+        }
+
+        return (bool)$ipCheckEnabled;
     }
 
-    private function getJWTConfig(string $key, $default = null): ?string
+    private function getJWTConfig(string $key): ?string
     {
-        return $this->app->get('config')[self::SETTING_JWT . '.' . $key] ?? $default;
+        return $this->app->get('config')[self::SETTING_JWT . '.' . $key];
     }
 }

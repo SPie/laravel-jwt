@@ -43,7 +43,7 @@ final class RegistrarTest extends TestCase
     /**
      * @return Registrar|MockInterface
      */
-    private function createRegistrar(Container $app = null): Registrar
+    private function createRegistrar(?Container $app = null): Registrar
     {
         return new Registrar($app ?: $this->createApp());
     }
@@ -577,21 +577,21 @@ final class RegistrarTest extends TestCase
      */
     private function addGet(
         Container $app,
-        AuthManager $authManager = null,
-        TokenBlockList $withTokenBlockList = null,
-        Request $request = null,
-        Dispatcher $eventDispatcher = null,
-        JWTHandlerContract $jwtHandler = null,
-        RefreshTokenRepository $refreshTokenRepository = null,
-        Builder $builder = null,
-        Parser $parser = null,
-        JWTFactoryContract $jwtFactory = null,
+        ?AuthManager $authManager = null,
+        ?TokenBlockList $withTokenBlockList = null,
+        ?Request $request = null,
+        ?Dispatcher $eventDispatcher = null,
+        ?JWTHandlerContract $jwtHandler = null,
+        ?RefreshTokenRepository $refreshTokenRepository = null,
+        ?Builder $builder = null,
+        ?Parser $parser = null,
+        ?JWTFactoryContract $jwtFactory = null,
         array $config = [],
-        EventFactoryContract $eventFactory = null,
-        JWTGuardConfig $jwtGuardConfig = null,
-        Signer $signer = null,
-        Validator $validator = null,
-        Configuration $configuration = null
+        ?EventFactoryContract $eventFactory = null,
+        ?JWTGuardConfig $jwtGuardConfig = null,
+        ?Signer $signer = null,
+        ?Validator $validator = null,
+        ?Configuration $configuration = null
     ): RegistrarTest {
         $app
             ->shouldReceive('get')

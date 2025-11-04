@@ -6,6 +6,9 @@ use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 
+/**
+ * @deprecated Lumen is not longer maintaned and won't be supported in future versions of this package
+ */
 final class LumenServiceProvider extends ServiceProvider
 {
     use RegistrarHolder;

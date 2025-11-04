@@ -18,7 +18,7 @@ final class CookieTokenProviderTest extends TestCase
     use TestHelper;
     use HttpHelper;
 
-    private function createCookieTokenProvider(string $cookieName = null, Factory  $cookieFactory = null): CookieTokenProvider
+    private function createCookieTokenProvider(?string $cookieName = null, ?Factory  $cookieFactory = null): CookieTokenProvider
     {
         return (new CookieTokenProvider(
             $cookieFactory ?: $this->createCookieFactory()
