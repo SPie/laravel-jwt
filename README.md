@@ -1,5 +1,5 @@
 # JWT Package for Laravel
-[![Build Status](https://travis-ci.org/spie/laravel-jwt.svg?branch=master)](https://travis-ci.org/spie/laravel-jwt)
+[![Tests](https://github.com/SPie/laravel-jwt/actions/workflows/tests.yml/badge.svg)](https://github.com/SPie/laravel-jwt/actions/workflows/tests.yml)
 [![Coverage Status](https://coveralls.io/repos/github/SPie/laravel-jwt/badge.svg?branch=master)](https://coveralls.io/github/SPie/laravel-jwt?branch=master)
 [![StyleCI](https://github.styleci.io/repos/158879350/shield?branch=master)](https://github.styleci.io/repos/158879350)
 
