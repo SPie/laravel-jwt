@@ -20,8 +20,8 @@
         "phpunit/phpunit": "^9.0",
         "mockery/mockery": "^1.2",
         "php-coveralls/php-coveralls": "^2.1",
-        "phpstan/phpstan": "^0.12.90",
-        "phpstan/phpstan-deprecation-rules": "^0.12.6",
+        "phpstan/phpstan": "^2.1",
+        "phpstan/phpstan-deprecation-rules": "^2.0",
         "phpstan/extension-installer": "^1.1",
         "fakerphp/faker": "^1.19"
     },
