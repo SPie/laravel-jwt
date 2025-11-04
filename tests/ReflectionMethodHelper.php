@@ -4,7 +4,6 @@ namespace SPie\LaravelJWT\Test;
 
 trait ReflectionMethodHelper
 {
-
     /**
      * @return mixed
      */
