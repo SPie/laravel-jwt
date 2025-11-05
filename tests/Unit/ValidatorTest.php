@@ -15,7 +15,7 @@ final class ValidatorTest extends TestCase
 {
     use JWTHelper;
 
-    private function getValidator(LcobucciValidator $validator = null, Constraint $constraint = null): Validator
+    private function getValidator(?LcobucciValidator $validator = null, ?Constraint $constraint = null): Validator
     {
         return new Validator(
             $validator ?: $this->createLcobucciValidator(),

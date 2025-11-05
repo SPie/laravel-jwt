@@ -13,7 +13,7 @@ final class JsonTokenProviderTest extends TestCase
     use HttpHelper;
     use TestHelper;
 
-    private function getJsonTokenProvider(string $key = null): JsonTokenProvider
+    private function getJsonTokenProvider(?string $key = null): JsonTokenProvider
     {
         return (new JsonTokenProvider())->setKey($key ?: $this->getFaker()->word);
     }

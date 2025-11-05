@@ -42,17 +42,17 @@ final class JWTGuardTest extends TestCase
      * @return JWTGuard|MockInterface
      */
     private function createJWTGuard(
-        JWTHandler $jwtHandler = null,
-        UserProvider $userProvider = null,
-        JWTGuardConfig $jwtGuardConfig = null,
-        TokenProvider $accessTokenProvider = null,
-        TokenBlockList $tokenBlockList = null,
-        TokenProvider $refreshTokenProvider = null,
-        RefreshTokenRepository $refreshTokenRepository = null,
-        Dispatcher $eventDispatcher = null,
-        Request $request = null,
-        string $name = null,
-        EventFactory $eventFactory = null
+        ?JWTHandler $jwtHandler = null,
+        ?UserProvider $userProvider = null,
+        ?JWTGuardConfig $jwtGuardConfig = null,
+        ?TokenProvider $accessTokenProvider = null,
+        ?TokenBlockList $tokenBlockList = null,
+        ?TokenProvider $refreshTokenProvider = null,
+        ?RefreshTokenRepository $refreshTokenRepository = null,
+        ?Dispatcher $eventDispatcher = null,
+        ?Request $request = null,
+        ?string $name = null,
+        ?EventFactory $eventFactory = null
     ): JWTGuard {
         return new JWTGuard(
             $name ?: $this->getFaker()->word,
@@ -69,7 +69,7 @@ final class JWTGuardTest extends TestCase
         );
     }
 
-    private function createRequestWithIp(string $ipAddress = null): Request
+    private function createRequestWithIp(?string $ipAddress = null): Request
     {
         $request = $this->createRequest();
         $this->mockRequestIp($request, $ipAddress ?: $this->getFaker()->ipv4);
@@ -97,7 +97,7 @@ final class JWTGuardTest extends TestCase
         $jwt,
         string $subject,
         array $claims = [],
-        int $ttl = null
+        ?int $ttl = null
     ) {
         $jwtHandler
             ->shouldReceive('createJWT')
@@ -111,7 +111,7 @@ final class JWTGuardTest extends TestCase
         MockInterface $jwtHandler,
         $jwt,
         string $subject,
-        int $ttl = null
+        ?int $ttl = null
     ) {
         $jwtHandler
             ->shouldReceive('createJWT')
@@ -173,7 +173,7 @@ final class JWTGuardTest extends TestCase
     /**
      * @return UserProvider|MockInterface
      */
-    private function createUserProvider(Authenticatable $user = null, bool $validCredentials = false): UserProvider
+    private function createUserProvider(?Authenticatable $user = null, bool $validCredentials = false): UserProvider
     {
         $userProvider = Mockery::spy(UserProvider::class);
 
@@ -200,9 +200,9 @@ final class JWTGuardTest extends TestCase
      * @return JWTAuthenticatable|MockInterface
      */
     private function createUser(
-        string $authIdentifierName = null,
-        string $authIdentifier = null,
-        string $authPassword = null,
+        ?string $authIdentifierName = null,
+        ?string $authIdentifier = null,
+        ?string $authPassword = null,
         array $customClaims = []
     ): JWTAuthenticatable {
         $user = Mockery::spy(JWTAuthenticatable::class);
@@ -229,7 +229,7 @@ final class JWTGuardTest extends TestCase
     /**
      * @return TokenProvider|MockInterface
      */
-    private function createAccessTokenProvider(string $token = null, Response $response = null): TokenProvider
+    private function createAccessTokenProvider(?string $token = null, ?Response $response = null): TokenProvider
     {
         $accessTokenProvider = Mockery::spy(TokenProvider::class);
 
@@ -247,7 +247,7 @@ final class JWTGuardTest extends TestCase
     /**
      * @return TokenProvider|MockInterface
      */
-    private function createRefreshTokenProvider(string $token = null, Response $response = null): TokenProvider
+    private function createRefreshTokenProvider(?string $token = null, ?Response $response = null): TokenProvider
     {
         $refreshTokenProvider = Mockery::spy(TokenProvider::class);
 
@@ -680,7 +680,7 @@ final class JWTGuardTest extends TestCase
         );
     }
 
-    private function setUpIssueAccessToken(JWTAuthenticatable $user, JWTHandler $jwtHandler, string $ipAddress = null): array
+    private function setUpIssueAccessToken(JWTAuthenticatable $user, JWTHandler $jwtHandler, ?string $ipAddress = null): array
     {
         $ttl = $this->getFaker()->numberBetween();
         $accessToken = $this->createJWT();
@@ -693,7 +693,7 @@ final class JWTGuardTest extends TestCase
         return [$accessToken, $ttl];
     }
 
-    private function setUpIssueRefreshToken(JWTAuthenticatable $user, JWTHandler $jwtHandler, string $ipAddress = null): array
+    private function setUpIssueRefreshToken(JWTAuthenticatable $user, JWTHandler $jwtHandler, ?string $ipAddress = null): array
     {
         $refreshTtl = $this->getFaker()->numberBetween();
         $refreshToken = $this->createJWT();

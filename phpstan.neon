@@ -1,0 +1,9 @@
+parameters:
+    level: 2
+    paths:
+        - src
+    treatPhpDocTypesAsCertain: false
+    ignoreErrors:
+        -
+            message: '#Call to an undefined method.*::configure\(\)#'
+            path: src/Providers/LumenServiceProvider.php

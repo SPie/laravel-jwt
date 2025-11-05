@@ -140,7 +140,7 @@ trait JWTHelper
         return Mockery::spy(UnencryptedToken::class);
     }
 
-    private function createPlainToken(DataSet $headers = null, DataSet $claims = null, Signature $signature = null): Plain
+    private function createPlainToken(?DataSet $headers = null, ?DataSet $claims = null, ?Signature $signature = null): Plain
     {
         return new Plain(
             $headers ?: $this->createDataSet(),
@@ -344,9 +344,9 @@ trait JWTHelper
     }
 
     private function createJWTGuardConfig(
-        bool $withIpCheck = null,
-        int $accessTokenTtl = null,
-        int $refreshTokenTtl = null
+        ?bool $withIpCheck = null,
+        ?int $accessTokenTtl = null,
+        ?int $refreshTokenTtl = null
     ): JWTGuardConfig {
         return new JWTGuardConfig(
             $accessTokenTtl ?? $this->getFaker()->numberBetween(),
@@ -412,16 +412,16 @@ trait JWTHelper
         return new DataSet($data, $encoded);
     }
 
-    private function createSignature(string $hash = null, string $encoded = null): Signature
+    private function createSignature(?string $hash = null, ?string $encoded = null): Signature
     {
         return new Signature($hash ?: $this->getFaker()->sha256, $encoded ?: $this->getFaker()->sha256);
     }
 
     private function createConfiguration(
-        Signer $signer = null,
-        Key $key = null,
-        Parser $parser = null,
-        Builder $builder = null
+        ?Signer $signer = null,
+        ?Key $key = null,
+        ?Parser $parser = null,
+        ?Builder $builder = null
     ): Configuration {
         $configuration = Configuration::forSymmetricSigner(
             $signer ?: $this->createSigner(),

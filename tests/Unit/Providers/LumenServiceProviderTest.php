@@ -23,7 +23,7 @@ final class LumenServiceProviderTest extends TestCase
     /**
      * @return LumenServiceProvider|MockInterface
      */
-    private function createLumenServiceProvider(Container $app = null): LumenServiceProvider
+    private function createLumenServiceProvider(?Container $app = null): LumenServiceProvider
     {
         return new LumenServiceProvider($app ?: $this->createApp());
     }
@@ -31,7 +31,7 @@ final class LumenServiceProviderTest extends TestCase
     /**
      * @return Application|MockInterface
      */
-    private function createApp(Repository $configRepository = null, AuthManager $authManager = null): Container
+    private function createApp(?Repository $configRepository = null, ?AuthManager $authManager = null): Container
     {
         $app = Mockery::spy(Container::class, \ArrayAccess::class);
         $app

@@ -16,7 +16,7 @@ final class JWTTokensTest extends TestCase
     use JWTHelper;
     use RequestHelper;
 
-    private function getJWTTokens(JWTGuard $jwtGuard = null): JWTTokens
+    private function getJWTTokens(?JWTGuard $jwtGuard = null): JWTTokens
     {
         return new JWTTokens($jwtGuard ?: $this->createJWTGuard());
     }

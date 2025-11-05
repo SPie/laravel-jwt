@@ -3,7 +3,6 @@
 namespace SPie\LaravelJWT\Providers;
 
 use Illuminate\Contracts\Container\Container;
-use Illuminate\Contracts\Foundation\Application;
 use SPie\LaravelJWT\Contracts\Registrar as RegistrarContract;
 
 trait RegistrarHolder

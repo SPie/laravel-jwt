@@ -44,6 +44,9 @@ jobs:
         composer self-update
         composer install --no-interaction --no-progress --prefer-dist
 
+    - name: Run PHPStan
+      run: vendor/bin/phpstan analyse
+
     - name: Run PHPUnit tests
       run: vendor/bin/phpunit --coverage-clover build/logs/clover.xml
 

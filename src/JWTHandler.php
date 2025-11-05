@@ -86,7 +86,7 @@ final class JWTHandler implements JWTHandlerContract
         return $token;
     }
 
-    public function createJWT(string $subject, array $payload = [], int $ttl = null): JWT
+    public function createJWT(string $subject, array $payload = [], ?int $ttl = null): JWT
     {
         [$issuedAt, $expiresAt] = $this->createTimestamps($ttl);
 
@@ -106,7 +106,7 @@ final class JWTHandler implements JWTHandlerContract
         return $this->jwtFactory->createJWT($builder->getToken($this->signer, $this->signingKey));
     }
 
-    private function createTimestamps(int $ttl = null): array
+    private function createTimestamps(?int $ttl = null): array
     {
         $issuedAt = new \DateTimeImmutable();
 
