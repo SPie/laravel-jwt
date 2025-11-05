@@ -1,6 +1,5 @@
 # JWT Package for Laravel
-[![Tests](https://github.com/SPie/laravel-jwt/actions/workflows/tests.yml/badge.svg)](https://github.com/SPie/laravel-jwt/actions/workflows/tests.yml)
-[![PHPStan](https://img.shields.io/badge/PHPStan-enabled-brightgreen.svg?style=flat)](https://github.com/phpstan/phpstan)
+[![Build](https://github.com/SPie/laravel-jwt/actions/workflows/tests.yml/badge.svg)](https://github.com/SPie/laravel-jwt/actions/workflows/tests.yml)
 [![Coverage Status](https://coveralls.io/repos/github/SPie/laravel-jwt/badge.svg?branch=master)](https://coveralls.io/github/SPie/laravel-jwt?branch=master)
 [![StyleCI](https://github.styleci.io/repos/158879350/shield?branch=master)](https://github.styleci.io/repos/158879350)
 
@@ -10,9 +9,9 @@ This package provides a access and refresh token workflow. You need to create an
 you can issue a refresh token. Then this refresh token can be used to create access tokens if required.
 
 ## Requirements
-  * PHP >= 7.4
-  * [Laravel Components](https://github.com/laravel/framework) >= 7
-  * [lcobucci/jwt](https://github.com/lcobucci/jwt) ^3.2
+  * PHP ^7.4 || ^8.0
+  * [Laravel Components](https://github.com/laravel/framework) 7.0 || ^8.0 || ^9.0 || ^10.0 || ^11.0 || ^12.0
+  * [lcobucci/jwt](https://github.com/lcobucci/jwt) ^4.0
   
 ## Installation
 Just pull the package with composer
