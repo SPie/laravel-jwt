@@ -310,6 +310,6 @@ final class Registrar implements RegistrarContract
 
     private function getJWTConfig(string $key): ?string
     {
-        return $this->app->get('config')[self::SETTING_JWT . '.' . $key];
+        return $this->app->get('config')[self::SETTING_JWT . '.' . $key] ?? null;
     }
 }
